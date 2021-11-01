@@ -2,71 +2,73 @@
 #include <stdlib.h>
 #include <time.h>
 
+
+
 struct Node {
-	Node * pathParent;
+	struct Node * pathParent;
 	int arrival;
 	int remaining;
 	int row;
 	int col;
-	Node * left;
-	Node * right;
-	Node * graphParent;
-}
+	struct Node * left;
+	struct Node * right;
+	struct Node * graphParent;
+};
 
 struct PriorityQueue {
-	Node * head;
-}
+	struct Node * head;
+};
 
 struct Tile {
 	int type;
 	int visited;
-}
+};
 
-int estimate(Node * n){
+int estimate(struct Node * n){
 	return n->arrival + n->remaining;
 }
 
-int matches(Node * n1,Node * n2){
-	return n1->row == n2-> && n1->col == n2->col;
+int matches(struct Node * n1,struct Node * n2){
+	return n1->row == n2->row && n1->col == n2->col;
 }
 
-void insertNodeHelper(Node * parent,Node * toInsert){
+void insertNodeHelper(struct Node * parent,struct Node * toInsert){
 	if (matches(parent,toInsert)){
 		if (estimate(toInsert) < estimate(parent)){
-			parent->pathParent = node->pathParent;
-			parent->arrival = node->arrival;
+			parent->pathParent = toInsert->pathParent;
+			parent->arrival = toInsert->arrival;
 		}
 	}
-	if (estimate(node) >= estimate(parent)){
+	if (estimate(toInsert) >= estimate(parent)){
 		if (!parent->right){
-			node->graphParent = parent;
-			parent->right = node;
+			toInsert->graphParent = parent;
+			parent->right = toInsert;
 			return;
 		}
-		insertNodeHelper(parent->right,node);
+		insertNodeHelper(parent->right,toInsert);
 	}else {
 		if (!parent->left){
-			node->graphParent = parent;
-			parent->left = node;
+			toInsert->graphParent = parent;
+			parent->left = toInsert;
 			return;
 		}
-		insertNodeHelper(parent->left,node);
+		insertNodeHelper(parent->left,toInsert);
 	}
 }
 
 
-void insert(PriorityQueue * queue,Node * node){
-	if (!node->head){
+void insert(struct PriorityQueue * queue,struct Node * node){
+	if (!queue->head){
 		queue->head = node;
 	}else{
 		insertNodeHelper(queue->head,node);
 	}
 }
 
-Node * takeClosestHelper(Node * parent){
+struct Node * takeClosestHelper(struct Node * parent){
 	if (!parent->left){
 		if (parent->right){
-			Node * parentRoot = parent->graphParent;
+			struct Node * parentRoot = parent->graphParent;
 			parentRoot->left = parent->right;
 			parent->right->graphParent = parentRoot;
 		}else{
@@ -79,12 +81,12 @@ Node * takeClosestHelper(Node * parent){
 	}
 }
 
-Node * pop(PriorityQueue * queue){
+struct Node * pop(struct PriorityQueue * queue){
 	if (!queue->head){
 		return NULL;
 	}
 	if (!queue->head->left){
-		Node * toReturn = queue->head;
+		struct Node * toReturn = queue->head;
 		if (queue->head->right){
 			queue->head = queue->head->right;
 		}else{
@@ -96,8 +98,19 @@ Node * pop(PriorityQueue * queue){
 }
 
 
-
-Tile ** generateMaze(int width,int height,float freq){
-	Tile ** maze = malloc ((width * height) * sizeof (Tile *));
-	
+struct Tile * mazeAccess(struct Tile * maze,int row,int col,int cols){
+	return &maze[row * cols + col];
 }
+
+
+struct Tile * generateMaze(int width,int height,float freq){
+	struct Tile * maze = malloc ((width * height) * sizeof (int));
+	return maze;
+
+}
+
+int main(){
+	;
+}
+	
+
