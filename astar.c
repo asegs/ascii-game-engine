@@ -37,19 +37,19 @@ struct NewMaze{
 	struct Tile * maze;
 	struct Tile * start;
 	struct Tile * end;
-}
+};
 
 
-struct Node * NodeNew(struct Node * pathParent,int arrival,int remaining,int row,int col,struct Node * left,struct Node * right,struct Node * graphParent){
+struct Node * NodeNew(struct Node * pathParent,int arrival,int remaining,int row,int col){
 	struct Node * n = malloc(sizeof(struct Node ));
 	n->pathParent = pathParent;
 	n->arrival = arrival;
 	n->remaining = remaining;
 	n->row = row;
 	n->col = col;
-	n->left = left;
-	n->right;
-	n->graphParent = graphParent;
+	n->left = NULL;
+	n->right = NULL;
+	n->graphParent = NULL;
 	return n;
 }
 
@@ -229,8 +229,14 @@ struct Coord ** unwrapPath(struct Node * end){
 }
 
 
-struct Tile ** astar(struct NewMaze * maze,int height,int width){
-	return NULL;
+struct Node * astar(struct NewMaze * maze,int height,int width){
+	struct PriorityQueue * queue = malloc(sizeof(struct PriorityQueue *));
+	struct Node * startNode = NodeNew(NULL,0,pythagDistance(maze->start->pos->row,maze->end->pos->row,maze->start->pos->col,maze->end->pos->col),maze->start->pos->row,maze->start->pos->col);
+	queue->head = startNode;
+	while (queue->head){
+		struct Node * position = pop(queue);
+
+	}
 }
 
 
