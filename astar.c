@@ -229,14 +229,26 @@ struct Coord ** unwrapPath(struct Node * end){
 }
 
 
-struct Node * astar(struct NewMaze * maze,int height,int width){
+struct Coord ** astar(struct NewMaze * maze,int height,int width){
 	struct PriorityQueue * queue = malloc(sizeof(struct PriorityQueue *));
 	struct Node * startNode = NodeNew(NULL,0,pythagDistance(maze->start->pos->row,maze->end->pos->row,maze->start->pos->col,maze->end->pos->col),maze->start->pos->row,maze->start->pos->col);
 	queue->head = startNode;
 	while (queue->head){
 		struct Node * position = pop(queue);
-
+		if (position->row == maze->end->pos->row && position->col == maze->end->pos->col){
+			return unwrapPath(position);
+		}
+		struct Tile * current = mazeAccess(maze->maze,position->row,position->col,width);
+		current->visited = 1;
+		struct Tile ** adjacent = getAdjacentValidTiles(maze->maze,height,width,position->row,position->col);
+		for (int i = 0;i<MOVES;i++){
+			if (adjacent[i]){
+				struct Node * adj = NodeNew(position,position->arrival+1,pythagDistance(adjacent[i]->pos->row,maze->end->pos->row,adjacent[i]->pos->col,maze->end->pos->col),adjacent[i]->pos->row,adjacent[i]->pos->col);
+				insert(queue,adj);
+			}
+		}
 	}
+	return NULL;
 }
 
 
