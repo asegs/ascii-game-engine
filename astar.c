@@ -33,6 +33,12 @@ struct Tile {
 	struct Coord * pos;
 };
 
+struct NewMaze{
+	struct Tile * maze;
+	struct Tile * start;
+	struct Tile * end;
+}
+
 
 struct Node * NodeNew(struct Node * pathParent,int arrival,int remaining,int row,int col,struct Node * left,struct Node * right,struct Node * graphParent){
 	struct Node * n = malloc(sizeof(struct Node ));
@@ -67,6 +73,14 @@ struct Tile * TileNew(int type,int visited,int row,int col){
 	t->visited = visited;
 	t->pos = CoordNew(row,col);
 	return t;
+}
+
+struct NewMaze * NewMazeNew(struct Tile * maze,struct Tile * start,struct Tile * end){
+	struct NewMaze * n = malloc(sizeof(struct NewMaze));
+	n->maze = maze;
+	n->start = start;
+	n->end = end;
+	return n;
 }
 
 
@@ -157,7 +171,7 @@ int randRange(int min,int max){
 	return rand() % (max + 1 - min) + min;
 }
 
-struct Tile * generateMaze(int width,int height,double freq){
+struct NewMaze * generateMaze(int width,int height,double freq){
 	struct Tile * maze = malloc ((width * height) * sizeof (struct Tile *));
 	for (int i = 0;i<(width*height);i++){
 		int row = i / width;
@@ -169,7 +183,7 @@ struct Tile * generateMaze(int width,int height,double freq){
 	startTile->type = 2;
 	startTile->visited = 1;
 	endTile->type = 3;
-	return maze;
+	return NewMazeNew(maze,startTile,endTile);
 
 }
 
@@ -215,8 +229,7 @@ struct Coord ** unwrapPath(struct Node * end){
 }
 
 
-struct Tile ** astar(struct Tile * maze,int height,int width){
-	//find start and end
+struct Tile ** astar(struct NewMaze * maze,int height,int width){
 	return NULL;
 }
 
