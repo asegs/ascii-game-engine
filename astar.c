@@ -32,7 +32,7 @@ struct Tile {
 };
 
 struct NewMaze{
-	struct Tile * maze;
+	struct Tile ** maze;
 	struct Tile * start;
 	struct Tile * end;
 };
@@ -73,7 +73,7 @@ struct Tile * TileNew(int type,int visited,int row,int col){
 	return t;
 }
 
-struct NewMaze * NewMazeNew(struct Tile * maze,struct Tile * start,struct Tile * end){
+struct NewMaze * NewMazeNew(struct Tile ** maze,struct Tile * start,struct Tile * end){
 	struct NewMaze * n = malloc(sizeof(struct NewMaze));
 	n->maze = maze;
 	n->start = start;
@@ -156,8 +156,8 @@ struct Node * pop(struct PriorityQueue * queue){
 }
 
 
-struct Tile * mazeAccess(struct Tile * maze,int row,int col,int cols){
-	struct Tile * t =  &maze[row * cols + col];
+struct Tile * mazeAccess(struct Tile ** maze,int row,int col,int cols){
+	struct Tile * t =  maze[row * cols + col];
     return t;
 }
 
@@ -171,12 +171,12 @@ int randRange(int min,int max){
 }
 
 struct NewMaze * generateMaze(int width,int height,double freq){
-	struct Tile * maze = malloc ((width * height) * sizeof (struct Tile *));
+	struct Tile ** maze = malloc ((width * height) * sizeof (struct Tile *));
 	for (int i = 0;i<(width*height);i++){
 		int row = i / width;
 		int col = i % width;
 		struct Tile * t = (rndm()<freq) ? TileNew(1,1,row,col) : TileNew(0,0,row,col);
-		maze[i] = *t;
+		maze[i] = t;
 	}
 	struct Tile * startTile = mazeAccess(maze,randRange(0,height-1),randRange(0,width-1),width);
 	struct Tile * endTile = mazeAccess(maze,randRange(0,height-1),randRange(0,width-1),width);
@@ -196,9 +196,8 @@ int pythagDistance(int row1,int row2,int col1,int col2){
 }
 
 //issues here
-int tileGood(struct Tile * maze,struct Tile * tile,int width,int height){
-	int a = (0 <= tile->pos->row) && (tile->pos->row < height) && (0 <= tile->pos->col) && (tile->pos->col < width) && !(mazeAccess(maze,tile->pos->row,tile->pos->col,width)->visited);
-	return a;
+int tileGood(struct Tile ** maze,struct Tile * tile,int width,int height){
+	return tile && tile->pos && (0 <= tile->pos->row) && (tile->pos->row < height) && (0 <= tile->pos->col) && (tile->pos->col < width) && !(mazeAccess(maze,tile->pos->row,tile->pos->col,width)->visited);
 }
 
 struct Coord * getCoordsForPair(struct Coord * pos,int rowMod,int colMod){
@@ -206,7 +205,7 @@ struct Coord * getCoordsForPair(struct Coord * pos,int rowMod,int colMod){
 }
 
 //may need to free tiles
-struct Tile ** getAdjacentValidTiles(struct Tile * maze,int height,int width,int row, int col){
+struct Tile ** getAdjacentValidTiles(struct Tile ** maze,int height,int width,int row, int col){
 	static int mods [MOVES * 2] = {0,-1,-1,0,0,1,1,0};
 	struct Tile ** adjacent = malloc(MOVES * sizeof(struct Tile *));
 	for (int i = 0;i<MOVES * 2;i+=2){
@@ -224,6 +223,7 @@ struct Tile ** getAdjacentValidTiles(struct Tile * maze,int height,int width,int
 struct Coord ** unwrapPath(struct Node * end){
 	struct Coord ** path = malloc((end->arrival + 1) * sizeof(struct Coord *));
 	while (end){
+        printf("Step: %d,%d\n",end->row,end->col);
 		path[end->arrival] = CoordNew(end->row,end->col);
 		end = end->pathParent;
 	}
@@ -234,6 +234,8 @@ struct Coord ** unwrapPath(struct Node * end){
 struct Coord ** astar(struct NewMaze * maze,int height,int width){
 	struct Coord * startPos = maze -> start -> pos;
 	struct Coord * endPos = maze -> end -> pos;
+    printf("Start: %d,%d\n",startPos->row,startPos->col);
+    printf("End: %d,%d\n",endPos->row,endPos->col);
 	struct Node * startNode = NodeNew(NULL,0,pythagDistance(startPos->row,endPos->row,startPos->col,endPos->col),startPos->row,startPos->col);
     struct PriorityQueue * queue = PQueueNew(startNode);
 	while (queue->head){
