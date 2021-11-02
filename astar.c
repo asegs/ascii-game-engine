@@ -223,7 +223,6 @@ struct Tile ** getAdjacentValidTiles(struct Tile ** maze,int height,int width,in
 struct Coord ** unwrapPath(struct Node * end){
 	struct Coord ** path = malloc((end->arrival + 1) * sizeof(struct Coord *));
 	while (end){
-        printf("Step: %d,%d\n",end->row,end->col);
 		path[end->arrival] = CoordNew(end->row,end->col);
 		end = end->pathParent;
 	}
@@ -255,6 +254,7 @@ struct Coord ** astar(struct NewMaze * maze,int height,int width){
 	}
 	return NULL;
 }
+
 
 
 int main(){
