@@ -14,6 +14,8 @@ const (
 
 const MAX_MESSAGES int = 1000
 
+const RESET string = "\033[0m"
+
 type ContextMessage struct {
 	Format string
 	Body string
@@ -54,8 +56,47 @@ func (t * Terminal) send (context string,body string,row int,col int){
 	}
 }
 
-func (t * Terminal) moveCursor(n int,dir ){
-	fmt.Printf("\033[%dD",n)
+func (t * Terminal) moveCursor(n int,dir Direction){
+	fmt.Printf("\033[%d%c",n,dir)
+}
+
+
+func (t * Terminal) moveTo(newRow int,newCol int){
+	if newRow - t.Row > 0{
+		t.moveCursor(newRow - t.Row,DOWN)
+	}else if newRow - t.Row < 0 {
+		t.moveCursor((newRow - t.Row) * -1,UP)
+	}
+
+	if newCol - t.Col > 0{
+		t.moveCursor(newCol - t.Col,RIGHT)
+	}else if newCol - t.Col < 0 {
+		t.moveCursor((newCol - t.Col) * -1,LEFT)
+	}
+}
+
+func (t * Terminal) wipeNTilesAt(tiles int, row int, col int){
+	t.moveTo(row,col)
+	println(RESET)
+	for tiles > 0 {
+		fmt.Printf(" ")
+		tiles --
+	}
+}
+
+func (t * Terminal) printRender(message string,txtLen int){
+	println(message)
+	t.moveCursor(txtLen,LEFT)
+}
+
+func (t * Terminal) placeAt(message string, row int, col int,txtLen int){
+	t.moveTo(row,col)
+	t.printRender(message,txtLen)
+
+}
+
+func (t * Terminal) placeStandardMessageAt(message string,row int,col int){
+
 }
 
 func (t * Terminal) handleRenders(){
