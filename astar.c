@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #define MOVES 4
 
 
@@ -92,10 +93,12 @@ int matches(struct Node * n1,struct Node * n2){
 
 void insertNodeHelper(struct Node * parent,struct Node * toInsert){
 	if (matches(parent,toInsert)){
+        printf("HIT.\n");
 		if (estimate(toInsert) < estimate(parent)){
 			parent->pathParent = toInsert->pathParent;
 			parent->arrival = toInsert->arrival;
 		}
+        return;
 	}
 	if (estimate(toInsert) >= estimate(parent)){
 		if (!parent->right){
@@ -231,6 +234,7 @@ struct Coord ** unwrapPath(struct Node * end){
 
 
 struct Coord ** astar(struct NewMaze * maze,int height,int width){
+    clock_t begin = clock();
 	struct Coord * startPos = maze -> start -> pos;
 	struct Coord * endPos = maze -> end -> pos;
     printf("Start: %d,%d\n",startPos->row,startPos->col);
@@ -240,9 +244,13 @@ struct Coord ** astar(struct NewMaze * maze,int height,int width){
 	while (queue->head){
 		struct Node * position = pop(queue);
 		if (position->row == endPos->row && position->col == endPos->col){
+            clock_t term = clock();
+            printf("%ld\n",(term - begin));
+            printf("%ld\n",CLOCKS_PER_SEC);
 			return unwrapPath(position);
 		}
 		struct Tile * current = mazeAccess(maze->maze,position->row,position->col,width);
+        printf("%d\n",current->visited);
 		current->visited = 1;
 		struct Tile ** adjacent = getAdjacentValidTiles(maze->maze,height,width,position->row,position->col);
 		for (int i = 0;i<MOVES;i++){
@@ -252,14 +260,15 @@ struct Coord ** astar(struct NewMaze * maze,int height,int width){
 			}
 		}
 	}
+    printf("FAILED\n");
 	return NULL;
 }
 
 
 
 int main(){
-	struct NewMaze * maze = generateMaze(10,10,0.3);
-	astar(maze,10,10);
+	struct NewMaze * maze = generateMaze(100,100,0.1);
+	astar(maze,100,100);
 }
 	
 

@@ -1,5 +1,17 @@
 package main
 
+import (
+	"fmt"
+)
+
+type Direction rune
+const (
+	LEFT Direction = 'D'
+	RIGHT Direction = 'C'
+	DOWN Direction = 'B'
+	UP Direction = 'A'
+)
+
 const MAX_MESSAGES int = 1000
 
 type ContextMessage struct {
@@ -42,8 +54,8 @@ func (t * Terminal) send (context string,body string,row int,col int){
 	}
 }
 
-func (t * Terminal) cursorLeft(n int){
-	//
+func (t * Terminal) moveCursor(n int,dir ){
+	fmt.Printf("\033[%dD",n)
 }
 
 func (t * Terminal) handleRenders(){
