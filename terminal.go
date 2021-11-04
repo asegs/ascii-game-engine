@@ -123,6 +123,9 @@ func (ctx * Context) finish() * Context {
 }
 
 
+func (t * Terminal) writeStyleAt(style Context,text string,row int,col int){
+	t.placeAt(fmt.Sprintf(style.Format,text),row,col,len(text))
+}
 func (t * Terminal) handleRenders(){
 	var ctx ContextMessage
 	for true{
