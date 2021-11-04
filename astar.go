@@ -16,8 +16,8 @@ const (
 )
 
 const EROSIONS int = 10
-const MIN_TO_ERODE int= 4
-const MAX_TO_ERODE int = 5
+const MIN_TO_ERODE int= 2
+const MAX_TO_ERODE int = 4
 const DIAG bool = false
 
 var source = rand.NewSource(time.Now().UnixNano())
@@ -391,7 +391,7 @@ func display(maze [][] * Tile,path [] * Coord){
 }
 
 func main(){
-	maze,start,end := generateMaze(180,40,0.6)
+	maze,start,end := generateMaze(180,40,0.3)
 	pth := 	astar(maze,start,end)
 	display(maze,pth)
 

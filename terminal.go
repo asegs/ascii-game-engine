@@ -16,8 +16,11 @@ const MAX_MESSAGES int = 1000
 
 const RESET string = "\033[0m"
 
-type ContextMessage struct {
+type Context struct {
 	Format string
+}
+type ContextMessage struct {
+	Format * Context
 	Body string
 	Row int
 	Col int
@@ -47,7 +50,7 @@ func createTerminal(height int,width int)*Terminal{
 	return terminal
 }
 
-func (t * Terminal) send (context string,body string,row int,col int){
+func (t * Terminal) send (context * Context,body string,row int,col int){
 	t.Feed <- ContextMessage{
 		Format: context,
 		Body:   body,
@@ -95,9 +98,30 @@ func (t * Terminal) placeAt(message string, row int, col int,txtLen int){
 
 }
 
-func (t * Terminal) placeStandardMessageAt(message string,row int,col int){
-
+func initContext () * Context {
+	return &Context{Format: "\033["}
 }
+
+func (ctx * Context) addSimpleStyle(styleConst int) * Context{
+	ctx.Format = ctx.Format + fmt.Sprintf("%d;",styleConst)
+	return ctx
+}
+
+func (ctx * Context) addRgbStyleFg(r int,g int,b int) * Context{
+	ctx.Format = ctx.Format + fmt.Sprintf("38;2;%d;%d;%d;",r,g,b)
+	return ctx
+}
+
+func (ctx * Context) addRgbStyleBg(r int, g int,b int) * Context{
+	ctx.Format = ctx.Format + fmt.Sprintf("48;2;%d;%d;%d;",r,g,b)
+	return ctx
+}
+
+func (ctx * Context) finish() * Context {
+	ctx.Format = ctx.Format + "%s\033[0m"
+	return ctx
+}
+
 
 func (t * Terminal) handleRenders(){
 	var ctx ContextMessage
