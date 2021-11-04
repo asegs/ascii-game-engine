@@ -47,6 +47,7 @@ func createTerminal(height int,width int)*Terminal{
 		}
 		println()
 	}
+	go terminal.handleRenders()
 	return terminal
 }
 
@@ -61,6 +62,23 @@ func (t * Terminal) send (context * Context,body string,row int,col int){
 
 func (t * Terminal) moveCursor(n int,dir Direction){
 	fmt.Printf("\033[%d%c",n,dir)
+	if dir == UP{
+
+	}
+	switch dir {
+	case UP:
+		t.Row -= n
+		return
+	case DOWN:
+		t.Row += n
+		return
+	case LEFT:
+		t.Col -= n
+		return
+	case RIGHT:
+		t.Col += n
+		return
+	}
 }
 
 
@@ -118,18 +136,27 @@ func (ctx * Context) addRgbStyleBg(r int, g int,b int) * Context{
 }
 
 func (ctx * Context) finish() * Context {
-	ctx.Format = ctx.Format + "%s\033[0m"
+	ctx.Format = ctx.Format[0:len(ctx.Format) - 1] + "m%s\033[0m"
 	return ctx
 }
 
 
-func (t * Terminal) writeStyleAt(style Context,text string,row int,col int){
+func (t * Terminal) writeStyleAt(style * Context,text string,row int,col int){
 	t.placeAt(fmt.Sprintf(style.Format,text),row,col,len(text))
 }
 func (t * Terminal) handleRenders(){
 	var ctx ContextMessage
 	for true{
 		ctx = <- t.Feed
+		t.writeStyleAt(ctx.Format,ctx.Body,ctx.Row,ctx.Col)
+	}
+}
+
+func main(){
+	t := createTerminal(10,40)
+	c := initContext().addRgbStyleBg(255,0,0).finish()
+	t.send(c,"Hello",4,4)
+	for true{
 
 	}
 }
