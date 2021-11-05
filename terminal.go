@@ -7,9 +7,9 @@ import (
 type Direction rune
 const (
 	LEFT Direction = 'D'
-	RIGHT Direction = 'C'
-	DOWN Direction = 'B'
-	UP Direction = 'A'
+	RIGHT = 'C'
+	DOWN = 'B'
+	UP = 'A'
 )
 
 const MAX_MESSAGES int = 1000
