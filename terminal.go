@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-type Direction rune
+type Direction byte
 const (
 	LEFT Direction = 'D'
 	RIGHT = 'C'
@@ -19,11 +19,14 @@ const RESET string = "\033[0m"
 type Context struct {
 	Format string
 }
+
+
 type ContextMessage struct {
 	Format * Context
 	Body string
 	Row int
 	Col int
+	IsCoord bool
 }
 
 type Terminal struct {
@@ -51,20 +54,18 @@ func createTerminal(height int,width int)*Terminal{
 	return terminal
 }
 
-func (t * Terminal) send (context * Context,body string,row int,col int){
+func (t * Terminal) send (context * Context,body string,row int,col int,isCoord bool){
 	t.Feed <- ContextMessage{
 		Format: context,
 		Body:   body,
 		Row:    row,
 		Col:    col,
+		IsCoord: isCoord,
 	}
 }
 
 func (t * Terminal) moveCursor(n int,dir Direction){
 	fmt.Printf("\033[%d%c",n,dir)
-	if dir == UP{
-
-	}
 	switch dir {
 	case UP:
 		t.Row -= n
@@ -106,8 +107,8 @@ func (t * Terminal) wipeNTilesAt(tiles int, row int, col int){
 }
 
 func (t * Terminal) printRender(message string,txtLen int){
-	println(message)
 	t.moveCursor(txtLen,LEFT)
+	print(message)
 }
 
 func (t * Terminal) placeAt(message string, row int, col int,txtLen int){
@@ -144,19 +145,22 @@ func (ctx * Context) finish() * Context {
 func (t * Terminal) writeStyleAt(style * Context,text string,row int,col int){
 	t.placeAt(fmt.Sprintf(style.Format,text),row,col,len(text))
 }
+
+func (t * Terminal) writeStyleHere(style * Context,text string){
+	t.printRender(fmt.Sprintf(style.Format,text),len(text))
+}
 func (t * Terminal) handleRenders(){
 	var ctx ContextMessage
 	for true{
 		ctx = <- t.Feed
-		t.writeStyleAt(ctx.Format,ctx.Body,ctx.Row,ctx.Col)
-	}
-}
+		if ctx.IsCoord {
+			t.moveTo(ctx.Row,ctx.Col)
+		}else{
+			t.moveTo(t.Row + ctx.Row,t.Col + ctx.Col)
+		}
 
-func main(){
-	t := createTerminal(10,40)
-	c := initContext().addRgbStyleBg(255,0,0).finish()
-	t.send(c,"Hello",4,4)
-	for true{
+		t.writeStyleHere(ctx.Format,ctx.Body)
 
 	}
 }
+

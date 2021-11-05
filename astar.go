@@ -390,9 +390,9 @@ func display(maze [][] * Tile,path [] * Coord){
 	}
 }
 
-func main(){
-	maze,start,end := generateMaze(180,40,0.3)
-	pth := 	astar(maze,start,end)
-	display(maze,pth)
-
-}
+//func main(){
+//	maze,start,end := generateMaze(180,40,0.3)
+//	pth := 	astar(maze,start,end)
+//	display(maze,pth)
+//
+//}

@@ -51,20 +51,7 @@ func (s * StdIn) scanForInput(){
 		}else if c == BRACKET && ranksToMovement == 1{
 			ranksToMovement ++
 		}else if ranksToMovement == 2 && 65 <= c && c <= 68{
-			switch c {
-			case 65:
-				s.events <- MOVE_UP
-				break
-			case 66:
-				s.events <- MOVE_DOWN
-				break
-			case 67:
-				s.events <- MOVE_RIGHT
-				break
-			case 68:
-				s.events <- MOVE_LEFT
-				break
-			}
+			s.events <- c + 63
 			ranksToMovement = 0
 		}else{
 			s.events <- c
