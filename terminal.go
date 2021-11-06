@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
+	"runtime"
 )
 
-type Direction byte
+type Direction rune
 const (
 	LEFT Direction = 'D'
 	RIGHT = 'C'
@@ -40,8 +41,8 @@ type Terminal struct {
 func createTerminal(height int,width int)*Terminal{
 	feed := make(chan ContextMessage,MAX_MESSAGES)
 	terminal := &Terminal{
-		Row:  0,
-		Col:  height + 1,
+		Row:  height + 1,
+		Col:  0,
 		Feed: feed,
 	}
 	for i := 0;i<height;i++ {
@@ -65,6 +66,11 @@ func (t * Terminal) send (context * Context,body string,row int,col int,isCoord 
 }
 
 func (t * Terminal) moveCursor(n int,dir Direction){
+	_, file, no, ok := runtime.Caller(1)
+    if ok {
+        LogString(fmt.Sprintf("called from %s#%d\n", file, no))
+    }
+	LogString(fmt.Sprintf("%c",dir))
 	fmt.Printf("\033[%d%c",n,dir)
 	switch dir {
 	case UP:
@@ -84,6 +90,7 @@ func (t * Terminal) moveCursor(n int,dir Direction){
 
 
 func (t * Terminal) moveTo(newRow int,newCol int){
+	LogString(fmt.Sprintf("Called move to with coords:(%d,%d),current position is: (%d,%d)",newRow,newCol,t.Row,t.Col))
 	if newRow - t.Row > 0{
 		t.moveCursor(newRow - t.Row,DOWN)
 	}else if newRow - t.Row < 0 {
@@ -107,8 +114,9 @@ func (t * Terminal) wipeNTilesAt(tiles int, row int, col int){
 }
 
 func (t * Terminal) printRender(message string,txtLen int){
-	t.moveCursor(txtLen,LEFT)
+	t.Col += txtLen
 	print(message)
+	t.moveCursor(txtLen,LEFT)
 }
 
 func (t * Terminal) placeAt(message string, row int, col int,txtLen int){
@@ -160,7 +168,6 @@ func (t * Terminal) handleRenders(){
 		}
 
 		t.writeStyleHere(ctx.Format,ctx.Body)
-
+		LogString(fmt.Sprintf("New position is: (%d,%d)",t.Row,t.Col))
 	}
 }
-

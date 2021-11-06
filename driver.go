@@ -1,6 +1,7 @@
 package main
 
 func main(){
+	go HandleLog()
 	terminal := createTerminal(20,40)
 	input := initializeInput()
 	redBlock := initContext().addRgbStyleBg(255,0,0).finish()
@@ -12,6 +13,7 @@ func main(){
 		switch dir {
 		case MOVE_LEFT:
 			col --
+			break
 		case MOVE_RIGHT:
 			col++
 			break

@@ -3,7 +3,6 @@ package main
 import (
 	"os"
 	"os/exec"
-	"time"
 )
 
 const (
@@ -43,7 +42,6 @@ func (s * StdIn) scanForInput(){
 
 	ranksToMovement := 0
 	for true{
-		os.Stdin.SetReadDeadline(time.Now().Add(1500 * time.Millisecond))
 		os.Stdin.Read(buf)
 		c = buf[0]
 		if c == ESCAPE{
@@ -51,6 +49,7 @@ func (s * StdIn) scanForInput(){
 		}else if c == BRACKET && ranksToMovement == 1{
 			ranksToMovement ++
 		}else if ranksToMovement == 2 && 65 <= c && c <= 68{
+			LogString("Sent key!")
 			s.events <- c + 63
 			ranksToMovement = 0
 		}else{
