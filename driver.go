@@ -5,25 +5,28 @@ func main(){
 	terminal := createTerminal(20,40)
 	input := initializeInput()
 	redBlock := initContext().addRgbStyleBg(255,0,0).finish()
+	clear := initContext().addSimpleStyle(0).finish()
 	var dir byte
-	row := 0
-	col := 0
+
 	for {
 		dir = <- input.events
+		row := 0
+		col := 0
 		switch dir {
 		case MOVE_LEFT:
-			col --
+			col = -1
 			break
 		case MOVE_RIGHT:
-			col++
+			col = 1
 			break
 		case MOVE_DOWN:
-			row++
+			row = 1
 			break
 		case MOVE_UP:
-			row--
+			row = -1
 			break
 		}
-		terminal.send(redBlock," ",row,col,true)
+		terminal.send(clear," ",0,0,false)
+		terminal.send(redBlock,"*",row,col,false)
 	}
 }

@@ -41,9 +41,11 @@ type Terminal struct {
 func createTerminal(height int,width int)*Terminal{
 	feed := make(chan ContextMessage,MAX_MESSAGES)
 	terminal := &Terminal{
-		Row:  height + 1,
+		Row:  height,
 		Col:  0,
 		Feed: feed,
+		Height:height,
+		Width:width,
 	}
 	for i := 0;i<height;i++ {
 		for b := 0;b<width;b++ {
@@ -91,6 +93,22 @@ func (t * Terminal) moveCursor(n int,dir Direction){
 
 func (t * Terminal) moveTo(newRow int,newCol int){
 	LogString(fmt.Sprintf("Called move to with coords:(%d,%d),current position is: (%d,%d)",newRow,newCol,t.Row,t.Col))
+	LogString(fmt.Sprintf("Height: %d,Width: %d",t.Height,t.Width))
+	if newRow >= t.Height{
+		newRow = t.Height - 1
+	}
+
+	if newRow < 0{
+		newRow = 0
+	}
+
+	if newCol >= t.Width{
+		newCol = t.Width - 1
+	}
+
+	if newCol < 0{
+		newCol = 0
+	}
 	if newRow - t.Row > 0{
 		t.moveCursor(newRow - t.Row,DOWN)
 	}else if newRow - t.Row < 0 {
