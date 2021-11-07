@@ -340,7 +340,6 @@ func unwrapPath(end * Node)  [] * Coord {
 }
 
 func astar(maze [][] * Tile,start * Coord,end * Coord) [] * Coord {
-	st := time.Now()
 	s := &Node{
 		PathParent:  nil,
 		Arrival:     0,
@@ -365,8 +364,6 @@ func astar(maze [][] * Tile,start * Coord,end * Coord) [] * Coord {
 			continue
 		}
 		if position.Pos.matches(end){
-			ft := time.Now()
-			LogString(fmt.Sprintln(ft.Sub(st)))
 			return unwrapPath(position)
 		}
 		mazeData.Visited = true
@@ -385,8 +382,6 @@ func astar(maze [][] * Tile,start * Coord,end * Coord) [] * Coord {
 			}
 		}
 	}
-	ft := time.Now()
-	LogString(fmt.Sprintln(ft.Sub(st)))
 	return nil
 }
 

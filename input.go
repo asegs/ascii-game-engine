@@ -53,7 +53,6 @@ func (s * StdIn) scanForInput(){
 		}else if c == BRACKET && ranksToMovement == 1{
 			ranksToMovement ++
 		}else if ranksToMovement == 2 && 65 <= c && c <= 68{
-			LogString("Sent key!")
 			s.events <- c + 63
 			ranksToMovement = 0
 		}else{

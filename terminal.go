@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"runtime"
 )
 
 type Direction rune
@@ -68,11 +67,6 @@ func (t * Terminal) send (context * Context,body string,row int,col int,isCoord 
 }
 
 func (t * Terminal) moveCursor(n int,dir Direction){
-	_, file, no, ok := runtime.Caller(1)
-    if ok {
-        LogString(fmt.Sprintf("called from %s#%d\n", file, no))
-    }
-	LogString(fmt.Sprintf("%c",dir))
 	fmt.Printf("\033[%d%c",n,dir)
 	switch dir {
 	case UP:
@@ -92,8 +86,6 @@ func (t * Terminal) moveCursor(n int,dir Direction){
 
 
 func (t * Terminal) moveTo(newRow int,newCol int){
-	LogString(fmt.Sprintf("Called move to with coords:(%d,%d),current position is: (%d,%d)",newRow,newCol,t.Row,t.Col))
-	LogString(fmt.Sprintf("Height: %d,Width: %d",t.Height,t.Width))
 	if newRow >= t.Height{
 		newRow = t.Height - 1
 	}
@@ -186,6 +178,5 @@ func (t * Terminal) handleRenders(){
 		}
 
 		t.writeStyleHere(ctx.Format,ctx.Body)
-		LogString(fmt.Sprintf("New position is: (%d,%d)",t.Row,t.Col))
 	}
 }

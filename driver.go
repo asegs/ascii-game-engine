@@ -4,7 +4,6 @@ const height int = 20
 const width int = 40
 
 func main(){
-	go HandleLog()
 	terminal := createTerminal(height,width)
 	input := initializeInput()
 	cursor := initContext().addRgbStyleFg(255,0,0).finish()
