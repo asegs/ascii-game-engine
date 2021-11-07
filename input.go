@@ -38,6 +38,7 @@ However input reads are blocking and so a timeout won't work
 func (s * StdIn) scanForInput(){
 	// restore the echoing state when exiting
 	defer exec.Command("stty", "-F", "/dev/tty", "echo").Run()
+	defer exec.Command("clear").Run()
 	var buf = make([]byte, 1)
 	var c byte
 
