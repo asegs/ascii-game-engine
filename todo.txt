@@ -1,0 +1,3 @@
+Add history, tell terminal to delete a char and replace with what was there before instead of managing
+Transparent cursor, only show * character but show color behind it
+In driver, allow toggling of build mode

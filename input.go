@@ -13,6 +13,8 @@ const (
 	MOVE_RIGHT = 130
 	MOVE_DOWN = 129
 	MOVE_UP = 128
+	BACKSPACE = 127
+	BACKSLASH = 92
 )
 
 type StdIn struct {

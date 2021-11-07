@@ -7,6 +7,7 @@ func main(){
 	go HandleLog()
 	terminal := createTerminal(height,width)
 	input := initializeInput()
+	cursor := initContext().addRgbStyleFg(255,0,0).finish()
 	redBlock := initContext().addRgbStyleBg(255,0,0).finish()
 	blackBlock := initContext().addRgbStyleBg(0,0,0).finish()
 	greenBlock := initContext().addRgbStyleBg(0,255,0).finish()
@@ -30,6 +31,7 @@ func main(){
 	opType := 0
 	rowChange := 0
 	colChange := 0
+	var path []*Coord
 
 	for {
 		rowChange = 0
@@ -88,6 +90,30 @@ func main(){
 			}
 			opType = 4
 			break
+		case ENTER:
+			maze,start,end := parseMazeFromChars(data,'1','0','2','3')
+			path = astar(maze,start,end)
+			for i := 1;i<len(path) - 1;i++{
+				terminal.send(redBlock," ",path[i].Row,path[i].Col,true)
+			}
+			opType = 0
+			break
+		case BACKSLASH:
+			for i := 1;i<len(path) - 1;i++{
+				terminal.send(clear," ",path[i].Row,path[i].Col,true)
+			}
+			opType = 0
+			break
+		case BACKSPACE:
+			for i := 0;i<height;i++{
+				for b := 0;b<width;b++{
+					data[i][b] = '0'
+					terminal.send(clear," ",i,b,true)
+				}
+			}
+			opType = 0
+			break
+
 		}
 		switch opType {
 		case 1:
@@ -107,7 +133,7 @@ func main(){
 			case '3':
 				terminal.send(blueBlock," ",prevRow,prevCol,true)
 			}
-			terminal.send(redBlock,"*",pos.Row,pos.Col,true)
+			terminal.send(cursor,"*",pos.Row,pos.Col,true)
 			break
 		case 2:
 			if data[pos.Row][pos.Col] == '0'{

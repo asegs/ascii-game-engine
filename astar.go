@@ -103,7 +103,7 @@ var terms8Axis [8] * Coord = [8] * Coord{
 }
 
 func (n * Node) estimate()int{
-	return n.Arrival + n.Remaining
+	return square(n.Arrival) + n.Remaining
 }
 
 func (c * Coord) matches (c1 * Coord) bool {
@@ -366,7 +366,7 @@ func astar(maze [][] * Tile,start * Coord,end * Coord) [] * Coord {
 		}
 		if position.Pos.matches(end){
 			ft := time.Now()
-			fmt.Println(ft.Sub(st))
+			LogString(fmt.Sprintln(ft.Sub(st)))
 			return unwrapPath(position)
 		}
 		mazeData.Visited = true
@@ -386,7 +386,7 @@ func astar(maze [][] * Tile,start * Coord,end * Coord) [] * Coord {
 		}
 	}
 	ft := time.Now()
-	fmt.Println(ft.Sub(st))
+	LogString(fmt.Sprintln(ft.Sub(st)))
 	return nil
 }
 
