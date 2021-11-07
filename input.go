@@ -7,6 +7,7 @@ import (
 
 const (
 	ESCAPE byte = 27
+	ENTER = 10
 	BRACKET = 91
 	MOVE_LEFT = 131
 	MOVE_RIGHT = 130
