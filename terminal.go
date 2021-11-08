@@ -29,20 +29,47 @@ type ContextMessage struct {
 	IsCoord bool
 }
 
+type Recorded struct {
+	Format * Context
+	data byte
+}
+
+type DataAt struct {
+	Pos * Coord
+	Char byte
+}
+
 type Terminal struct {
 	Row int
 	Col int
 	Height int
 	Width int
 	Feed chan ContextMessage
+	CharFeed chan DataAt
+	CustomFeed chan func(terminal * Terminal)
+	Associations map[byte] * Recorded
+	StoredData [][] * Recorded
+	CurrentData [][] * Recorded
 }
 
 func createTerminal(height int,width int)*Terminal{
-	feed := make(chan ContextMessage,MAX_MESSAGES)
+	stored := make([][] * Recorded,height)
+	current := make([][] * Recorded,height)
+	for i:=0;i<height;i++{
+		sRow := make([] * Recorded,width)
+		cRow := make([] * Recorded,width)
+		stored[i] = sRow
+		current[i] = cRow
+	}
 	terminal := &Terminal{
 		Row:  height,
 		Col:  0,
-		Feed: feed,
+		Feed: make(chan ContextMessage,MAX_MESSAGES),
+		CharFeed: make(chan DataAt,MAX_MESSAGES),
+		CustomFeed: make(chan func(terminal * Terminal),MAX_MESSAGES),
+		Associations: make(map[byte]*Recorded),
+		StoredData: stored,
+		CurrentData: current,
 		Height:height,
 		Width:width,
 	}
@@ -169,14 +196,30 @@ func (t * Terminal) writeStyleHere(style * Context,text string){
 }
 func (t * Terminal) handleRenders(){
 	var ctx ContextMessage
+	var cstm func (t * Terminal)
+	var char DataAt
 	for true{
-		ctx = <- t.Feed
-		if ctx.IsCoord {
-			t.moveTo(ctx.Row,ctx.Col)
-		}else{
-			t.moveTo(t.Row + ctx.Row,t.Col + ctx.Col)
-		}
+		select {
+			case ctx = <- t.Feed:
+				ctx = <- t.Feed
+				if ctx.IsCoord {
+					t.moveTo(ctx.Row,ctx.Col)
+				}else{
+					t.moveTo(t.Row + ctx.Row,t.Col + ctx.Col)
+				}
 
-		t.writeStyleHere(ctx.Format,ctx.Body)
+				t.writeStyleHere(ctx.Format,ctx.Body)
+
+			case cstm = <- t.CustomFeed:
+				cstm(t)
+			case char = <- t.CharFeed:
+				if format, ok := t.Associations[char.Char]; ok {
+					if t.Col >= width - 1{
+						continue
+					}
+					//could send normally, let's make this performance critical though
+
+				}
+		}
 	}
 }
