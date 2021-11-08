@@ -195,6 +195,16 @@ func (t * Terminal) writeStyleAt(style * Context,text string,row int,col int){
 func (t * Terminal) writeStyleHere(style * Context,text string){
 	t.printRender(fmt.Sprintf(style.Format,text),len(text))
 }
+
+
+func (t * Terminal) composeCharAssociation(char byte,recorded * Recorded) func(t * Terminal){
+	return func(t *Terminal) {
+		t.Associations[char] = recorded
+	}
+}
+
+
+//possibility of register happening after first character is sent
 func (t * Terminal) handleRenders(){
 	var ctx ContextMessage
 	var cstm func (t * Terminal)
