@@ -37,6 +37,7 @@ type Recorded struct {
 type DataAt struct {
 	Pos * Coord
 	Char byte
+	IsCoord bool
 }
 
 type Terminal struct {
@@ -198,6 +199,7 @@ func (t * Terminal) handleRenders(){
 	var ctx ContextMessage
 	var cstm func (t * Terminal)
 	var char DataAt
+	var character [1]byte
 	for true{
 		select {
 			case ctx = <- t.Feed:
@@ -210,14 +212,22 @@ func (t * Terminal) handleRenders(){
 
 				t.writeStyleHere(ctx.Format,ctx.Body)
 
-			case cstm = <- t.CustomFeed:
+			case cstm = <- t.CustomFeed://could send normally, let's make this performance critical though
 				cstm(t)
 			case char = <- t.CharFeed:
 				if format, ok := t.Associations[char.Char]; ok {
+					if char.IsCoord{
+						t.moveTo(char.Pos.Row,char.Pos.Col)
+					}else{
+						t.moveTo(t.Row + char.Pos.Row,t.Col + char.Pos.Col)
+					}
 					if t.Col >= width - 1{
 						continue
 					}
-					//could send normally, let's make this performance critical though
+					t.Col ++
+					character[0] = char.Char
+					fmt.Printf(format.Format.Format,character)
+					t.moveCursor(1,LEFT)
 
 				}
 		}
