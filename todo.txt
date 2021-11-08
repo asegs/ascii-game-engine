@@ -1,3 +1,4 @@
-Add history, tell terminal to delete a char and replace with what was there before instead of managing
+Add history, tell terminal to delete a char and replace with what was there before instead of managing, only revert if current key is what you expect
 Transparent cursor, only show * character but show color behind it
 In driver, allow toggling of build mode
+In driver, clear previous path before rendering new one
