@@ -242,108 +242,79 @@ func (t * Terminal) undoConditional(row int,col int,match byte){
 Composition functions
  */
 
-//returns a function that associates a fixed char with a style detail when called
-func composeCharAssociation(char byte,recorded * Recorded) func(t * Terminal){
-	return func(t *Terminal) {
-		t.Associations[char] = recorded
+//sends a function that associates a fixed char with a style detail when called
+func (t * Terminal) sendCharAssociation(char byte,recorded * Recorded) {
+	t.CustomFeed <- func(term *Terminal) {
+		term.Associations[char] = recorded
 	}
 }
 
-//returns a function that moves to a coordinate and prints text with a style when called
-func composePrintStyleAtCoord(style * Context,row int,col int,text string) func (t * Terminal){
-	return func(t *Terminal) {
-		t.moveTo(row,col)
-		t.writeStyleHere(style,text)
+//sends a function that moves to a coordinate and prints text with a style when called
+func (t * Terminal) sendPrintStyleAtCoord(style * Context,row int,col int,text string) {
+	t.CustomFeed <- func(term *Terminal) {
+		term.moveTo(row,col)
+		term.writeStyleHere(style,text)
 	}
 }
 
-//returns a function that moves over and up/down some amount and prints text with a style when called
-func composePrintStyleAtShift(style * Context,rShift int,cShift int,text string) func (t * Terminal){
-	return func(t *Terminal) {
-		t.moveTo(t.Row + rShift,t.Col + cShift)
-		t.writeStyleHere(style,text)
+//sends a function that moves over and up/down some amount and prints text with a style when called
+func (t * Terminal) sendPrintStyleAtShift(style * Context,rShift int,cShift int,text string){
+	t.CustomFeed <- func(term *Terminal) {
+		term.moveTo(term.Row + rShift,term.Col + cShift)
+		term.writeStyleHere(style,text)
 	}
 }
 
-//composes a function that when called places a key character at a coordinate
-func composePlaceCharAtCoord(char byte,row int,col int) func(t * Terminal){
-	return func(t *Terminal) {
-		if format, ok := t.Associations[char]; ok {
-			t.moveTo(row,col)
-			if t.Col >= width - 1{
+//sends a function that when called places a key character at a coordinate
+func (t * Terminal) sendPlaceCharAtCoord(char byte,row int,col int) {
+	t.CustomFeed <- func(term *Terminal) {
+		if format, ok := term.Associations[char]; ok {
+			term.moveTo(row,col)
+			if term.Col >= width - 1{
 				return
 			}
-			t.Col ++
+			term.Col ++
 			var character [1] byte
 			character[0] = char
 			fmt.Printf(format.Format.Format,character)
-			t.updateAtPos(row,col,&Recorded{
+			term.updateAtPos(row,col,&Recorded{
 				Format: format.Format,
 				data:   char,
 			})
-			t.moveCursor(1,LEFT)
+			term.moveCursor(1,LEFT)
 		}
 	}
 }
 
-func composePlaceCharAtShift(char byte,rShift int,cShift int) func (t * Terminal){
-	return func(t *Terminal) {
-		if format, ok := t.Associations[char]; ok {
-			t.moveTo(t.Row + rShift,t.Col + cShift)
-			if t.Col >= width - 1{
+//sends a function that when called places a key character at a over, up/down shifted location
+func (t * Terminal) sendPlaceCharAtShift(char byte,rShift int,cShift int) {
+	t.CustomFeed <- func(term *Terminal) {
+		if format, ok := term.Associations[char]; ok {
+			term.moveTo(term.Row + rShift,term.Col + cShift)
+			if term.Col >= width - 1{
 				return
 			}
-			t.Col ++
+			term.Col ++
 			var character [1] byte
 			character[0] = char
 			fmt.Printf(format.Format.Format,character)
-			t.moveCursor(1,LEFT)
+			term.moveCursor(1,LEFT)
 		}
 	}
 }
 
-func composeUndoAtLocationConditional(row int,col int,match byte) func(t * Terminal){
-	return func(t *Terminal) {
-		t.undoConditional(row,col,match)
+//composes function that when called undoes a cell if it matches a character
+func (t * Terminal) sendUndoAtLocationConditional(row int,col int,match byte){
+	t.CustomFeed <- func(term *Terminal) {
+		term.undoConditional(row,col,match)
 	}
 }
 
 //possibility of register happening after first character is sent
 func (t * Terminal) handleRenders(){
-	var ctx ContextMessage
-	var cstm func (t * Terminal)
-	var char DataAt
-	var character [1]byte
+	var custom func (t * Terminal)
 	for true{
-		select {
-			case ctx = <- t.Feed:
-				ctx = <- t.Feed
-				if ctx.IsCoord {
-					t.moveTo(ctx.Row,ctx.Col)
-				}else{
-					t.moveTo(t.Row + ctx.Row,t.Col + ctx.Col)
-				}
-
-				t.writeStyleHere(ctx.Format,ctx.Body)
-
-			case cstm = <- t.CustomFeed://could send normally, let's make this performance critical though
-				cstm(t)
-			case char = <- t.CharFeed:
-				if format, ok := t.Associations[char.Char]; ok {
-					if char.IsCoord{
-						t.moveTo(char.Pos.Row,char.Pos.Col)
-					}else{
-						t.moveTo(t.Row + char.Pos.Row,t.Col + char.Pos.Col)
-					}
-					if t.Col >= width - 1{
-						continue
-					}
-					t.Col ++
-					character[0] = char.Char
-					fmt.Printf(format.Format.Format,character)
-					t.moveCursor(1,LEFT)
-
-				}
-		}
+	 custom = <- t.CustomFeed//could send normally, let's make this performance critical though
+		custom(t)
 	}
 }
