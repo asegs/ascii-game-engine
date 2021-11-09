@@ -285,7 +285,7 @@ func (t * Terminal) sendPlaceCharAtCoord(char byte,row int,col int) {
 		}
 	}
 }
-
+//bake undo into send messages
 //sends a function that when called places a key character at a over, up/down shifted location
 func (t * Terminal) sendPlaceCharAtShift(char byte,rShift int,cShift int) {
 	t.CustomFeed <- func(term *Terminal) {

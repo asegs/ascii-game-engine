@@ -13,19 +13,6 @@ func main(){
 	blueBlock := initContext().addRgbStyleBg(0,0,255).finish()
 	clear := initContext().addSimpleStyle(0).finish()
 	var dir byte
-	pos := Coord{
-		Row: 0,
-		Col: 0,
-	}
-
-	data := make([][] rune, height)
-	for i := 0;i<height;i++{
-		row := make([] rune, width)
-		for b:=0;b<width;b++{
-			row[b] = '0'
-		}
-		data[i] = row
-	}
 
 	opType := 0
 	rowChange := 0
@@ -38,10 +25,8 @@ func main(){
 		dir = <- input.events
 		switch dir {
 		case MOVE_LEFT:
-			if pos.Col > 0{
-				pos.Col --
-				colChange = -1
-			}
+			terminal.sendPlaceCharAtShift('*',0,-1)
+			terminal.undoConditional()
 			opType = 1
 			break
 		case MOVE_RIGHT:
