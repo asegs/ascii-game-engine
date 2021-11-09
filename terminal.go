@@ -157,11 +157,46 @@ func (t * Terminal) printRender(message string,txtLen int){
 	t.moveCursor(txtLen,LEFT)
 }
 
+func (t * Terminal) trimAndUpdateString(style * Context, text string) string{
+	over := len(text) + t.Col - (t.Width - 1)
+	if over > 0{
+		text = text[0:len(text) - over]
+	}
+	for i := 0;i<len(text);i++{
+		t.updateAtPos(t.Row,t.Col + i,&Recorded{
+			Format: style,
+			data:   text[i],
+		})
+	}
+	return text
+}
+
 func (t * Terminal) placeAt(message string, row int, col int,txtLen int){
 	t.moveTo(row,col)
 	t.printRender(message,txtLen)
 
 }
+
+func (t * Terminal) updateAtPos(row int,col int,record * Recorded){
+	t.StoredData[row][col] = t.CurrentData[row][col]
+	t.CurrentData[row][col] = record
+}
+
+func (t * Terminal) undoAtPos(row int,col int){
+	t.CurrentData[row][col] = t.StoredData[row][col]
+	t.moveTo(row,col)
+	if t.Col >= width - 1{
+		return
+	}
+	t.Col ++
+	var character [1] byte
+	character[0] = t.CurrentData[row][col].data
+	fmt.Printf(t.CurrentData[row][col].Format.Format,character)
+	t.moveCursor(1,LEFT)
+
+}
+
+
 
 func initContext () * Context {
 	return &Context{Format: "\033["}
@@ -188,11 +223,19 @@ func (ctx * Context) finish() * Context {
 }
 
 func (t * Terminal) writeStyleAt(style * Context,text string,row int,col int){
+	text = t.trimAndUpdateString(style,text)
 	t.placeAt(fmt.Sprintf(style.Format,text),row,col,len(text))
 }
 
 func (t * Terminal) writeStyleHere(style * Context,text string){
+	text = t.trimAndUpdateString(style,text)
 	t.printRender(fmt.Sprintf(style.Format,text),len(text))
+}
+
+func (t * Terminal) undoConditional(row int,col int,match byte){
+	if t.CurrentData[row][col].data == match{
+		t.undoAtPos(row,col)
+	}
 }
 
 /*
@@ -222,6 +265,7 @@ func composePrintStyleAtShift(style * Context,rShift int,cShift int,text string)
 	}
 }
 
+//composes a function that when called places a key character at a coordinate
 func composePlaceCharAtCoord(char byte,row int,col int) func(t * Terminal){
 	return func(t *Terminal) {
 		if format, ok := t.Associations[char]; ok {
@@ -233,6 +277,10 @@ func composePlaceCharAtCoord(char byte,row int,col int) func(t * Terminal){
 			var character [1] byte
 			character[0] = char
 			fmt.Printf(format.Format.Format,character)
+			t.updateAtPos(row,col,&Recorded{
+				Format: format.Format,
+				data:   char,
+			})
 			t.moveCursor(1,LEFT)
 		}
 	}
@@ -251,6 +299,12 @@ func composePlaceCharAtShift(char byte,rShift int,cShift int) func (t * Terminal
 			fmt.Printf(format.Format.Format,character)
 			t.moveCursor(1,LEFT)
 		}
+	}
+}
+
+func composeUndoAtLocationConditional(row int,col int,match byte) func(t * Terminal){
+	return func(t *Terminal) {
+		t.undoConditional(row,col,match)
 	}
 }
 
