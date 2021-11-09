@@ -187,7 +187,6 @@ func (ctx * Context) finish() * Context {
 	return ctx
 }
 
-
 func (t * Terminal) writeStyleAt(style * Context,text string,row int,col int){
 	t.placeAt(fmt.Sprintf(style.Format,text),row,col,len(text))
 }
@@ -196,13 +195,64 @@ func (t * Terminal) writeStyleHere(style * Context,text string){
 	t.printRender(fmt.Sprintf(style.Format,text),len(text))
 }
 
+/*
+Composition functions
+ */
 
-func (t * Terminal) composeCharAssociation(char byte,recorded * Recorded) func(t * Terminal){
+//returns a function that associates a fixed char with a style detail when called
+func composeCharAssociation(char byte,recorded * Recorded) func(t * Terminal){
 	return func(t *Terminal) {
 		t.Associations[char] = recorded
 	}
 }
 
+//returns a function that moves to a coordinate and prints text with a style when called
+func composePrintStyleAtCoord(style * Context,row int,col int,text string) func (t * Terminal){
+	return func(t *Terminal) {
+		t.moveTo(row,col)
+		t.writeStyleHere(style,text)
+	}
+}
+
+//returns a function that moves over and up/down some amount and prints text with a style when called
+func composePrintStyleAtShift(style * Context,rShift int,cShift int,text string) func (t * Terminal){
+	return func(t *Terminal) {
+		t.moveTo(t.Row + rShift,t.Col + cShift)
+		t.writeStyleHere(style,text)
+	}
+}
+
+func composePlaceCharAtCoord(char byte,row int,col int) func(t * Terminal){
+	return func(t *Terminal) {
+		if format, ok := t.Associations[char]; ok {
+			t.moveTo(row,col)
+			if t.Col >= width - 1{
+				return
+			}
+			t.Col ++
+			var character [1] byte
+			character[0] = char
+			fmt.Printf(format.Format.Format,character)
+			t.moveCursor(1,LEFT)
+		}
+	}
+}
+
+func composePlaceCharAtShift(char byte,rShift int,cShift int) func (t * Terminal){
+	return func(t *Terminal) {
+		if format, ok := t.Associations[char]; ok {
+			t.moveTo(t.Row + rShift,t.Col + cShift)
+			if t.Col >= width - 1{
+				return
+			}
+			t.Col ++
+			var character [1] byte
+			character[0] = char
+			fmt.Printf(format.Format.Format,character)
+			t.moveCursor(1,LEFT)
+		}
+	}
+}
 
 //possibility of register happening after first character is sent
 func (t * Terminal) handleRenders(){
