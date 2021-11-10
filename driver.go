@@ -19,58 +19,69 @@ func main(){
 	colChange := 0
 	var path []*Coord
 
+	terminal.sendCharAssociation('0',&Recorded{
+		Format: clear,
+		data:   ' ',
+	})
+	terminal.sendCharAssociation('1',&Recorded{
+		Format: blackBlock,
+		data:   ' ',
+	})
+	terminal.sendCharAssociation('2',&Recorded{
+		Format: greenBlock,
+		data:   ' ',
+	})
+	terminal.sendCharAssociation('3',&Recorded{
+		Format: blueBlock,
+		data:   ' ',
+	})
+	terminal.sendCharAssociation('*',&Recorded{
+		Format: cursor,
+		data:   '*',
+	})
+
 	for {
 		rowChange = 0
 		colChange = 0
 		dir = <- input.events
 		switch dir {
 		case MOVE_LEFT:
-			terminal.sendPlaceCharAtShift('*',0,-1)
-			terminal.undoConditional()
+			terminal.sendPlaceCharAtShiftWithCondUndo('*',0,-1,'*')
 			opType = 1
 			break
 		case MOVE_RIGHT:
-			if pos.Col < width - 1{
-				pos.Col ++
-				colChange = 1
-			}
+			terminal.sendPlaceCharAtShiftWithCondUndo('*',0,1,'*')
 			opType = 1
 			break
 		case MOVE_DOWN:
-			if pos.Row < height - 1{
-				pos.Row ++
-				rowChange = 1
-			}
+			terminal.sendPlaceCharAtShiftWithCondUndo('*',1,0,'*')
 			opType = 1
 			break
 		case MOVE_UP:
-			if pos.Row > 0{
-				pos.Row --
-				rowChange = -1
-			}
+			terminal.sendPlaceCharAtShiftWithCondUndo('*',-1,0,'*')
 			opType = 1
 			break
 		case '1':
-			if data[pos.Row][pos.Col] == '1'{
-				data[pos.Row][pos.Col] = '0'
-			}else {
-				data[pos.Row][pos.Col] = '1'
+			if terminal.CurrentData[terminal.Row][terminal.Col].Format == clear{
+				terminal.sendPlaceCharAtShift('1',0,0)
+			}else{
+				terminal.sendPlaceCharAtShift('0',0,0)
 			}
 			opType = 2
 			break
 		case '2':
-			if data[pos.Row][pos.Col] == '2'{
-				data[pos.Row][pos.Col] = '0'
-			}else {
-				data[pos.Row][pos.Col] = '2'
+			if terminal.CurrentData[terminal.Row][terminal.Col].Format == clear{
+				terminal.sendPlaceCharAtShift('2',0,0)
+			}else{
+				terminal.sendPlaceCharAtShift('0',0,0)
 			}
 			opType = 3
 			break
 		case '3':
-			if data[pos.Row][pos.Col] == '3'{
-				data[pos.Row][pos.Col] = '0'
-			}else {
-				data[pos.Row][pos.Col] = '3'
+			if terminal.CurrentData[terminal.Row][terminal.Col].Format == clear{
+				terminal.sendPlaceCharAtShift('3',0,0)
+			}else{
+				terminal.sendPlaceCharAtShift('0',0,0)
 			}
 			opType = 4
 			break

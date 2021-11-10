@@ -303,6 +303,45 @@ func (t * Terminal) sendPlaceCharAtShift(char byte,rShift int,cShift int) {
 	}
 }
 
+func (t * Terminal) sendPlaceCharAtShiftWithCondUndo(char byte,rShift int,cShift int,match byte) {
+	t.CustomFeed <- func(term *Terminal) {
+		if format, ok := term.Associations[char]; ok {
+			term.undoConditional(term.Row,term.Col,match)
+			term.moveTo(term.Row + rShift,term.Col + cShift)
+			if term.Col >= width - 1{
+				return
+			}
+			term.Col ++
+			var character [1] byte
+			character[0] = char
+			fmt.Printf(format.Format.Format,character)
+			term.moveCursor(1,LEFT)
+
+		}
+	}
+}
+
+func (t * Terminal) sendPlaceCharAtCoordCondUndo(char byte,row int,col int,lastRow int,lastCol int,match byte) {
+	t.CustomFeed <- func(term *Terminal) {
+		if format, ok := term.Associations[char]; ok {
+			term.undoConditional(lastRow,lastCol,match)
+			term.moveTo(row,col)
+			if term.Col >= width - 1{
+				return
+			}
+			term.Col ++
+			var character [1] byte
+			character[0] = char
+			fmt.Printf(format.Format.Format,character)
+			term.updateAtPos(row,col,&Recorded{
+				Format: format.Format,
+				data:   char,
+			})
+			term.moveCursor(1,LEFT)
+		}
+	}
+}
+
 //composes function that when called undoes a cell if it matches a character
 func (t * Terminal) sendUndoAtLocationConditional(row int,col int,match byte){
 	t.CustomFeed <- func(term *Terminal) {
