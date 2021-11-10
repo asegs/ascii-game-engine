@@ -20,24 +20,10 @@ type Context struct {
 	Format string
 }
 
-
-type ContextMessage struct {
-	Format * Context
-	Body string
-	Row int
-	Col int
-	IsCoord bool
-}
-
 type Recorded struct {
 	Format * Context
 	data byte
-}
-
-type DataAt struct {
-	Pos * Coord
-	Char byte
-	IsCoord bool
+	code byte
 }
 
 type Terminal struct {
@@ -45,8 +31,6 @@ type Terminal struct {
 	Col int
 	Height int
 	Width int
-	Feed chan ContextMessage
-	CharFeed chan DataAt
 	CustomFeed chan func(terminal * Terminal)
 	Associations map[byte] * Recorded
 	StoredData [][] * Recorded
@@ -65,8 +49,6 @@ func createTerminal(height int,width int)*Terminal{
 	terminal := &Terminal{
 		Row:  height,
 		Col:  0,
-		Feed: make(chan ContextMessage,MAX_MESSAGES),
-		CharFeed: make(chan DataAt,MAX_MESSAGES),
 		CustomFeed: make(chan func(terminal * Terminal),MAX_MESSAGES),
 		Associations: make(map[byte]*Recorded),
 		StoredData: stored,
@@ -82,16 +64,6 @@ func createTerminal(height int,width int)*Terminal{
 	}
 	go terminal.handleRenders()
 	return terminal
-}
-
-func (t * Terminal) send (context * Context,body string,row int,col int,isCoord bool){
-	t.Feed <- ContextMessage{
-		Format: context,
-		Body:   body,
-		Row:    row,
-		Col:    col,
-		IsCoord: isCoord,
-	}
 }
 
 func (t * Terminal) moveCursor(n int,dir Direction){
@@ -166,6 +138,7 @@ func (t * Terminal) trimAndUpdateString(style * Context, text string) string{
 		t.updateAtPos(t.Row,t.Col + i,&Recorded{
 			Format: style,
 			data:   text[i],
+			code: text[i],
 		})
 	}
 	return text
@@ -257,14 +230,6 @@ func (t * Terminal) sendPrintStyleAtCoord(style * Context,row int,col int,text s
 	}
 }
 
-//sends a function that moves over and up/down some amount and prints text with a style when called
-func (t * Terminal) sendPrintStyleAtShift(style * Context,rShift int,cShift int,text string){
-	t.CustomFeed <- func(term *Terminal) {
-		term.moveTo(term.Row + rShift,term.Col + cShift)
-		term.writeStyleHere(style,text)
-	}
-}
-
 //sends a function that when called places a key character at a coordinate
 func (t * Terminal) sendPlaceCharAtCoord(char byte,row int,col int) {
 	t.CustomFeed <- func(term *Terminal) {
@@ -277,49 +242,12 @@ func (t * Terminal) sendPlaceCharAtCoord(char byte,row int,col int) {
 			var character [1] byte
 			character[0] = char
 			fmt.Printf(format.Format.Format,character)
-			term.updateAtPos(row,col,&Recorded{
-				Format: format.Format,
-				data:   char,
-			})
+			term.updateAtPos(row,col,format)
 			term.moveCursor(1,LEFT)
 		}
 	}
 }
 //bake undo into send messages
-//sends a function that when called places a key character at a over, up/down shifted location
-func (t * Terminal) sendPlaceCharAtShift(char byte,rShift int,cShift int) {
-	t.CustomFeed <- func(term *Terminal) {
-		if format, ok := term.Associations[char]; ok {
-			term.moveTo(term.Row + rShift,term.Col + cShift)
-			if term.Col >= width - 1{
-				return
-			}
-			term.Col ++
-			var character [1] byte
-			character[0] = char
-			fmt.Printf(format.Format.Format,character)
-			term.moveCursor(1,LEFT)
-		}
-	}
-}
-
-func (t * Terminal) sendPlaceCharAtShiftWithCondUndo(char byte,rShift int,cShift int,match byte) {
-	t.CustomFeed <- func(term *Terminal) {
-		if format, ok := term.Associations[char]; ok {
-			term.undoConditional(term.Row,term.Col,match)
-			term.moveTo(term.Row + rShift,term.Col + cShift)
-			if term.Col >= width - 1{
-				return
-			}
-			term.Col ++
-			var character [1] byte
-			character[0] = char
-			fmt.Printf(format.Format.Format,character)
-			term.moveCursor(1,LEFT)
-
-		}
-	}
-}
 
 func (t * Terminal) sendPlaceCharAtCoordCondUndo(char byte,row int,col int,lastRow int,lastCol int,match byte) {
 	t.CustomFeed <- func(term *Terminal) {
@@ -333,10 +261,7 @@ func (t * Terminal) sendPlaceCharAtCoordCondUndo(char byte,row int,col int,lastR
 			var character [1] byte
 			character[0] = char
 			fmt.Printf(format.Format.Format,character)
-			term.updateAtPos(row,col,&Recorded{
-				Format: format.Format,
-				data:   char,
-			})
+			term.updateAtPos(row,col,format)
 			term.moveCursor(1,LEFT)
 		}
 	}

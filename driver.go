@@ -19,25 +19,38 @@ func main(){
 	colChange := 0
 	var path []*Coord
 
+	row := 0
+	col := 0
+
 	terminal.sendCharAssociation('0',&Recorded{
 		Format: clear,
 		data:   ' ',
+		code: '0',
 	})
 	terminal.sendCharAssociation('1',&Recorded{
 		Format: blackBlock,
 		data:   ' ',
+		code: '1',
 	})
 	terminal.sendCharAssociation('2',&Recorded{
 		Format: greenBlock,
 		data:   ' ',
+		code: '2',
 	})
 	terminal.sendCharAssociation('3',&Recorded{
 		Format: blueBlock,
 		data:   ' ',
+		code: '3',
 	})
 	terminal.sendCharAssociation('*',&Recorded{
 		Format: cursor,
 		data:   '*',
+		code: '*',
+	})
+	terminal.sendCharAssociation('x',&Recorded{
+		Format: redBlock,
+		data:   ' ',
+		code:   'x',
 	})
 
 	for {
@@ -46,47 +59,66 @@ func main(){
 		dir = <- input.events
 		switch dir {
 		case MOVE_LEFT:
-			terminal.sendPlaceCharAtShiftWithCondUndo('*',0,-1,'*')
+			terminal.sendPlaceCharAtCoordCondUndo('*',row,col - 1,row,col,'*')
+			if col > 0{
+				col--
+			}
 			opType = 1
 			break
 		case MOVE_RIGHT:
-			terminal.sendPlaceCharAtShiftWithCondUndo('*',0,1,'*')
+			terminal.sendPlaceCharAtCoordCondUndo('*',row,col+1,row,col,'*')
+			if col < terminal.Width - 1{
+				col++
+			}
 			opType = 1
 			break
 		case MOVE_DOWN:
-			terminal.sendPlaceCharAtShiftWithCondUndo('*',1,0,'*')
+			terminal.sendPlaceCharAtCoordCondUndo('*',row+1,col,row,col,'*')
+			if row < terminal.Height -1{
+				row++
+			}
 			opType = 1
 			break
 		case MOVE_UP:
-			terminal.sendPlaceCharAtShiftWithCondUndo('*',-1,0,'*')
+			terminal.sendPlaceCharAtCoordCondUndo('*',row-1,col,row,col,'*')
+			if row > 0{
+				row --
+			}
 			opType = 1
 			break
 		case '1':
-			if terminal.CurrentData[terminal.Row][terminal.Col].Format == clear{
-				terminal.sendPlaceCharAtShift('1',0,0)
+			if terminal.CurrentData[terminal.Row][terminal.Col].code == '0'{
+				terminal.sendPlaceCharAtCoord('1',row,col)
 			}else{
-				terminal.sendPlaceCharAtShift('0',0,0)
+				terminal.sendPlaceCharAtCoord('0',row,col)
 			}
 			opType = 2
 			break
 		case '2':
-			if terminal.CurrentData[terminal.Row][terminal.Col].Format == clear{
-				terminal.sendPlaceCharAtShift('2',0,0)
+			if terminal.CurrentData[terminal.Row][terminal.Col].code == '0'{
+				terminal.sendPlaceCharAtCoord('2',row,col)
 			}else{
-				terminal.sendPlaceCharAtShift('0',0,0)
+				terminal.sendPlaceCharAtCoord('0',row,col)
 			}
 			opType = 3
 			break
 		case '3':
-			if terminal.CurrentData[terminal.Row][terminal.Col].Format == clear{
-				terminal.sendPlaceCharAtShift('3',0,0)
+			if terminal.CurrentData[terminal.Row][terminal.Col].code == '0'{
+				terminal.sendPlaceCharAtCoord('3',row,col)
 			}else{
-				terminal.sendPlaceCharAtShift('0',0,0)
+				terminal.sendPlaceCharAtCoord('0',row,col)
 			}
 			opType = 4
 			break
 		case ENTER:
-			maze,start,end := parseMazeFromChars(data,'1','0','2','3')
+
+			maze,start,end := terminal.parseMazeFromCurrent('1','0','2','3')
+			if len(path) == 0{
+				for _,coord := range path{
+					//just call an undo
+					terminal.sendPlaceCharAtCoord()
+				}
+			}
 			path = astar(maze,start,end)
 			for i := 1;i<len(path) - 1;i++{
 				terminal.send(redBlock," ",path[i].Row,path[i].Col,true)

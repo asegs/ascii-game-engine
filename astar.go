@@ -254,6 +254,54 @@ func generateMaze(width int,height int,freq float64)([][] * Tile,*Coord,*Coord) 
 	return maze,start,end
 }
 
+func (t * Terminal) parseMazeFromCurrent(wall byte,free byte,start byte,end byte)([][] * Tile,*Coord,*Coord){
+	height := len(t.CurrentData)
+	width := len(t.CurrentData[0])
+	maze := make([][] * Tile, height)
+	startCoord := &Coord{
+		Row: 0,
+		Col: 0,
+	}
+
+	endCoord := &Coord{
+		Row: 0,
+		Col: 0,
+	}
+	for i := 0;i<height;i++{
+		row := make([] * Tile, width)
+		maze[i] = row
+		for b := 0;b<width;b++{
+			maze[i][b] = &Tile{
+				Pos:     &Coord{
+					Row: i,
+					Col: b,
+				},
+				Type:    FREE,
+				Visited: false,
+			}
+			switch t.CurrentData[i][b].code {
+			case wall:
+				maze[i][b].Type = WALL
+				maze[i][b].Visited = true
+				break
+			case start:
+				maze[i][b].Type = START
+				maze[i][b].Visited = false
+				startCoord.Row = i
+				startCoord.Col = b
+				break
+			case end:
+				maze[i][b].Type = END
+				maze[i][b].Visited = false
+				endCoord.Row = i
+				endCoord.Col = b
+				break
+			}
+		}
+	}
+	return maze,startCoord,endCoord
+}
+
 func parseMazeFromChars(data [][] rune,wall rune,free rune,start rune,end rune)([][] * Tile,*Coord,*Coord){
 	height := len(data)
 	width := len(data[0])
