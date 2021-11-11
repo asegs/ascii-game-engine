@@ -219,7 +219,7 @@ func (t * Terminal) writeStyleHere(style * Context,text string){
 }
 
 func (t * Terminal) undoConditional(row int,col int,match byte){
-	if t.CurrentData[row][col].data == match{
+	if t.CurrentData[row][col].code == match{
 		t.undoAtPos(row,col)
 	}
 }

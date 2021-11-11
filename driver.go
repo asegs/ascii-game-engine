@@ -94,13 +94,14 @@ func main(){
 			break
 		case ENTER:
 
-			maze,start,end := terminal.parseMazeFromCurrent('1','0','2','3')
+
 			if path != nil{
 				for _,coord := range path{
 					terminal.sendUndoAtLocationConditional(coord.Row,coord.Col,'x')
 				}
 				path = nil
 			}
+			maze,start,end := terminal.parseMazeFromCurrent('1','0','2','3')
 			path = astar(maze,start,end)
 			for _,coord := range path{
 				terminal.sendPlaceCharAtCoord('x',coord.Row,coord.Col)
