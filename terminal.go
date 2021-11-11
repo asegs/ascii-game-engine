@@ -37,12 +37,24 @@ type Terminal struct {
 	CurrentData [][] * Recorded
 }
 
-func createTerminal(height int,width int)*Terminal{
+func createTerminal(height int,width int,defaultRecorded * Recorded)*Terminal{
 	stored := make([][] * Recorded,height)
 	current := make([][] * Recorded,height)
 	for i:=0;i<height;i++{
 		sRow := make([] * Recorded,width)
 		cRow := make([] * Recorded,width)
+		for b := 0;b<width;b++{
+			sRow[b] = &Recorded{
+				Format: defaultRecorded.Format,
+				data: defaultRecorded.data,
+				code: defaultRecorded.code,
+			}
+			cRow[b] = &Recorded{
+				Format: defaultRecorded.Format,
+				data: defaultRecorded.data,
+				code: defaultRecorded.code,
+			}
+		}
 		stored[i] = sRow
 		current[i] = cRow
 	}
@@ -62,6 +74,7 @@ func createTerminal(height int,width int)*Terminal{
 		}
 		println()
 	}
+	terminal.moveTo(0,0)
 	go terminal.handleRenders()
 	return terminal
 }

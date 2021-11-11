@@ -171,11 +171,11 @@ func converse(index int){
 
 	}
 }
-func main(){
-	initializeNPCS()
-	initializeDialogue()
-	converse(1)
-	converse(3)
-}
+// func main(){
+// 	initializeNPCS()
+// 	initializeDialogue()
+// 	converse(1)
+// 	converse(3)
+// }
 
 //Allow multiple sets of dialogue now
