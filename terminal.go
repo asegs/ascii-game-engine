@@ -253,7 +253,7 @@ func (t * Terminal) sendPlaceCharAtCoord(char byte,row int,col int) {
 			}
 			term.Col ++
 			var character [1] byte
-			character[0] = char
+			character[0] = format.data
 			fmt.Printf(format.Format.Format,character)
 			term.updateAtPos(row,col,format)
 			term.moveCursor(1,LEFT)

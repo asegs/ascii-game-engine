@@ -1,7 +1,7 @@
 package main
-
 const height int = 20
 const width int = 40
+
 
 
 func (terminal * Terminal) assoc(char byte,format * Context,txt byte){
@@ -72,21 +72,21 @@ func main(){
 			}
 			break
 		case '1':
-			if terminal.CurrentData[terminal.Row][terminal.Col].code == '0'{
+			if terminal.StoredData[row][col].code == '0'{
 				terminal.sendPlaceCharAtCoord('1',row,col)
 			}else{
 				terminal.sendPlaceCharAtCoord('0',row,col)
 			}
 			break
 		case '2':
-			if terminal.CurrentData[terminal.Row][terminal.Col].code == '0'{
+			if terminal.StoredData[row][col].code == '0'{
 				terminal.sendPlaceCharAtCoord('2',row,col)
 			}else{
 				terminal.sendPlaceCharAtCoord('0',row,col)
 			}
 			break
 		case '3':
-			if terminal.CurrentData[terminal.Row][terminal.Col].code == '0'{
+			if terminal.StoredData[row][col].code == '0'{
 				terminal.sendPlaceCharAtCoord('3',row,col)
 			}else{
 				terminal.sendPlaceCharAtCoord('0',row,col)
