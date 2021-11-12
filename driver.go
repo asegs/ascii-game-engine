@@ -48,27 +48,27 @@ func main(){
 		dir = <- input.events
 		switch dir {
 		case MOVE_LEFT:
-			terminal.sendPlaceCharAtCoordCondUndo('*',row,col - 1,row,col,'*')
 			if col > 0{
 				col--
+				terminal.sendPlaceCharAtCoordCondUndo('*',row,col,row,col+1,'*')
 			}
 			break
 		case MOVE_RIGHT:
-			terminal.sendPlaceCharAtCoordCondUndo('*',row,col+1,row,col,'*')
 			if col < terminal.Width - 1{
 				col++
+				terminal.sendPlaceCharAtCoordCondUndo('*',row,col,row,col-1,'*')
 			}
 			break
 		case MOVE_DOWN:
-			terminal.sendPlaceCharAtCoordCondUndo('*',row+1,col,row,col,'*')
 			if row < terminal.Height -1{
 				row++
+				terminal.sendPlaceCharAtCoordCondUndo('*',row,col,row-1,col,'*')
 			}
 			break
 		case MOVE_UP:
-			terminal.sendPlaceCharAtCoordCondUndo('*',row-1,col,row,col,'*')
 			if row > 0{
-				row --
+				row--
+				terminal.sendPlaceCharAtCoordCondUndo('*',row,col,row+1,col,'*')
 			}
 			break
 		case '1':
