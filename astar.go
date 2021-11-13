@@ -255,8 +255,8 @@ func generateMaze(width int,height int,freq float64)([][] * Tile,*Coord,*Coord) 
 }
 
 func (t * Terminal) parseMazeFromCurrent(wall byte,free byte,start byte,end byte)([][] * Tile,*Coord,*Coord){
-	height := len(t.CurrentData)
-	width := len(t.CurrentData[0])
+	height := len(t.DataHistory)
+	width := len(t.DataHistory[0])
 	maze := make([][] * Tile, height)
 	startCoord := &Coord{
 		Row: 0,
@@ -279,7 +279,7 @@ func (t * Terminal) parseMazeFromCurrent(wall byte,free byte,start byte,end byte
 				Type:    FREE,
 				Visited: false,
 			}
-			switch t.CurrentData[i][b].code {
+			switch t.DataHistory[i][b][t.Depth - 1].code {
 			case wall:
 				maze[i][b].Type = WALL
 				maze[i][b].Visited = true

@@ -33,40 +33,32 @@ type Terminal struct {
 	Width int
 	CustomFeed chan func(terminal * Terminal)
 	Associations map[byte] * Recorded
-	StoredData [][] * Recorded
-	CurrentData [][] * Recorded
+	DataHistory [][][] * Recorded
+	Depth int
 }
 
-func createTerminal(height int,width int,defaultRecorded * Recorded)*Terminal{
-	stored := make([][] * Recorded,height)
-	current := make([][] * Recorded,height)
+func createTerminal(height int,width int,defaultRecorded * Recorded,history int)*Terminal{
+	stored := make([][][] * Recorded,height)
 	for i:=0;i<height;i++{
-		sRow := make([] * Recorded,width)
-		cRow := make([] * Recorded,width)
+		sRow := make([][] * Recorded,width)
 		for b := 0;b<width;b++{
-			sRow[b] = &Recorded{
-				Format: defaultRecorded.Format,
-				data: defaultRecorded.data,
-				code: defaultRecorded.code,
+			records := make([] * Recorded, history)
+			for n := 0;n < history;n++{
+				records[n] = defaultRecorded
 			}
-			cRow[b] = &Recorded{
-				Format: defaultRecorded.Format,
-				data: defaultRecorded.data,
-				code: defaultRecorded.code,
-			}
+			sRow[b] = records
 		}
 		stored[i] = sRow
-		current[i] = cRow
 	}
 	terminal := &Terminal{
 		Row:  height,
 		Col:  0,
 		CustomFeed: make(chan func(terminal * Terminal),MAX_MESSAGES),
 		Associations: make(map[byte]*Recorded),
-		StoredData: stored,
-		CurrentData: current,
+		DataHistory: stored,
 		Height:height,
 		Width:width,
+		Depth:history,
 	}
 	for i := 0;i<height;i++ {
 		for b := 0;b<width;b++ {
@@ -164,20 +156,25 @@ func (t * Terminal) placeAt(message string, row int, col int,txtLen int){
 }
 
 func (t * Terminal) updateAtPos(row int,col int,record * Recorded){
-	t.StoredData[row][col] = t.CurrentData[row][col]
-	t.CurrentData[row][col] = record
+	for i := 1; i < t.Depth;i++{
+		t.DataHistory[row][col][i - 1] = t.DataHistory[row][col][i]
+	}
+	t.DataHistory[row][col][t.Depth - 1] = record
 }
 
 func (t * Terminal) undoAtPos(row int,col int){
-	t.CurrentData[row][col] = t.StoredData[row][col]
+	for i := t.Depth - 2;i>=0;i--{
+		t.DataHistory[row][col][i + 1] = t.DataHistory[row][col][i]
+	}
+	t.DataHistory[row][col] = t.DataHistory[row][col]
 	t.moveTo(row,col)
 	if t.Col >= width - 1{
 		return
 	}
 	t.Col ++
 	var character [1] byte
-	character[0] = t.CurrentData[row][col].data
-	fmt.Printf(t.CurrentData[row][col].Format.Format,character)
+	character[0] = t.DataHistory[row][col][t.Depth - 1].data
+	fmt.Printf(t.DataHistory[row][col][t.Depth - 1].Format.Format,character)
 	t.moveCursor(1,LEFT)
 
 }
@@ -219,9 +216,37 @@ func (t * Terminal) writeStyleHere(style * Context,text string){
 }
 
 func (t * Terminal) undoConditional(row int,col int,match byte){
-	if t.CurrentData[row][col].code == match{
+	if t.DataHistory[row][col][t.Depth - 1].code == match{
 		t.undoAtPos(row,col)
 	}
+}
+
+func (t * Terminal) placeCharLookup(char byte,row int,col int){
+	if format, ok := t.Associations[char]; ok {
+		t.moveTo(row,col)
+		if t.Col >= width - 1{
+			return
+		}
+		t.Col ++
+		var character [1] byte
+		character[0] = format.data
+		fmt.Printf(format.Format.Format,character)
+		t.updateAtPos(row,col,format)
+		t.moveCursor(1,LEFT)
+	}
+}
+
+
+func (t * Terminal) placeCharRaw(char byte,row int,col int){
+	t.moveTo(row,col)
+	if t.Col >= width - 1{
+		return
+	}
+	t.Col ++
+	var character [1] byte
+	character[0] = t.DataHistory[row][col][t.Depth - 1].data
+	fmt.Printf(t.DataHistory[row][col][t.Depth-1].Format.Format,character)
+	t.moveCursor(1,LEFT)
 }
 
 /*
@@ -246,18 +271,7 @@ func (t * Terminal) sendPrintStyleAtCoord(style * Context,row int,col int,text s
 //sends a function that when called places a key character at a coordinate
 func (t * Terminal) sendPlaceCharAtCoord(char byte,row int,col int) {
 	t.CustomFeed <- func(term *Terminal) {
-		if format, ok := term.Associations[char]; ok {
-			term.moveTo(row,col)
-			if term.Col >= width - 1{
-				return
-			}
-			term.Col ++
-			var character [1] byte
-			character[0] = format.data
-			fmt.Printf(format.Format.Format,character)
-			term.updateAtPos(row,col,format)
-			term.moveCursor(1,LEFT)
-		}
+			t.placeCharLookup(char,row,col)
 	}
 }
 //bake undo into send messages

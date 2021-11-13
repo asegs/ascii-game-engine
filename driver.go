@@ -1,4 +1,6 @@
 package main
+
+
 const height int = 20
 const width int = 40
 
@@ -27,7 +29,7 @@ func main(){
 		Format: clear,
 		data: ' ',
 		code: '0',
-	})
+	},4)
 
 	var dir byte
 
@@ -54,7 +56,7 @@ func main(){
 			}
 			break
 		case MOVE_RIGHT:
-			if col < terminal.Width - 1{
+			if col < terminal.Width - 2{
 				col++
 				terminal.sendPlaceCharAtCoordCondUndo('*',row,col,row,col-1,'*')
 			}
@@ -72,21 +74,21 @@ func main(){
 			}
 			break
 		case '1':
-			if terminal.StoredData[row][col].code == '0'{
+			if terminal.DataHistory[row][col][terminal.Depth - 2].code == '0'{
 				terminal.sendPlaceCharAtCoord('1',row,col)
 			}else{
 				terminal.sendPlaceCharAtCoord('0',row,col)
 			}
 			break
 		case '2':
-			if terminal.StoredData[row][col].code == '0'{
+			if terminal.DataHistory[row][col][terminal.Depth - 2].code == '0'{
 				terminal.sendPlaceCharAtCoord('2',row,col)
 			}else{
 				terminal.sendPlaceCharAtCoord('0',row,col)
 			}
 			break
 		case '3':
-			if terminal.StoredData[row][col].code == '0'{
+			if terminal.DataHistory[row][col][terminal.Depth - 2].code == '0'{
 				terminal.sendPlaceCharAtCoord('3',row,col)
 			}else{
 				terminal.sendPlaceCharAtCoord('0',row,col)
