@@ -1,6 +1,5 @@
 package main
 
-
 const height int = 20
 const width int = 40
 
@@ -12,6 +11,18 @@ func (terminal * Terminal) assoc(char byte,format * Context,txt byte){
 		data:   txt,
 		code: char,
 	})
+}
+
+func (terminal * Terminal) erasePath(p []*Coord){
+	for i := 1;i<len(p) - 1;i++{
+		terminal.sendUndoAtLocationConditional(p[i].Row,p[i].Col,'x')
+	}
+}
+
+func (terminal * Terminal) drawPath(p []*Coord){
+	for i := 1;i<len(p) - 1;i++{
+		terminal.sendPlaceCharAtCoord('x',p[i].Row,p[i].Col)
+	}
 }
 
 func main(){
@@ -74,46 +85,38 @@ func main(){
 			}
 			break
 		case '1':
-			if terminal.DataHistory[row][col][terminal.Depth - 2].code == '0'{
-				terminal.sendPlaceCharAtCoord('1',row,col)
-			}else{
+			if terminal.DataHistory[row][col][terminal.Depth - 2].code == '1'{
 				terminal.sendPlaceCharAtCoord('0',row,col)
+			}else{
+				terminal.sendPlaceCharAtCoord('1',row,col)
 			}
 			break
 		case '2':
-			if terminal.DataHistory[row][col][terminal.Depth - 2].code == '0'{
-				terminal.sendPlaceCharAtCoord('2',row,col)
-			}else{
+			if terminal.DataHistory[row][col][terminal.Depth - 2].code == '2'{
 				terminal.sendPlaceCharAtCoord('0',row,col)
+			}else{
+				terminal.sendPlaceCharAtCoord('2',row,col)
 			}
 			break
 		case '3':
-			if terminal.DataHistory[row][col][terminal.Depth - 2].code == '0'{
-				terminal.sendPlaceCharAtCoord('3',row,col)
-			}else{
+			if terminal.DataHistory[row][col][terminal.Depth - 2].code == '3'{
 				terminal.sendPlaceCharAtCoord('0',row,col)
+			}else{
+				terminal.sendPlaceCharAtCoord('3',row,col)
 			}
 			break
 		case ENTER:
-
-
 			if path != nil{
-				for _,coord := range path{
-					terminal.sendUndoAtLocationConditional(coord.Row,coord.Col,'x')
-				}
+				terminal.erasePath(path)
 				path = nil
 			}
 			maze,start,end := terminal.parseMazeFromCurrent('1','0','2','3')
 			path = astar(maze,start,end)
-			for _,coord := range path{
-				terminal.sendPlaceCharAtCoord('x',coord.Row,coord.Col)
-			}
+			terminal.drawPath(path)
 			break
 		case BACKSLASH:
 			if path != nil{
-				for _,coord := range path{
-					terminal.sendUndoAtLocationConditional(coord.Row,coord.Col,'x')
-				}
+				terminal.erasePath(path)
 				path = nil
 			}
 			break
