@@ -12,6 +12,9 @@ import (
 	"time"
 )
 
+var size = 40
+var brightnessScale = 0.6
+
 func createPixels(filename string)Picture {
 	image.RegisterFormat("jpeg","jpeg",jpeg.Decode,jpeg.DecodeConfig)
 	image.RegisterFormat("png", "png", png.Decode, png.DecodeConfig)
@@ -58,7 +61,6 @@ func getPixels(file io.Reader) ([][][4]int, error) {
 	return pixels, nil
 }
 
-// img.At(x, y).RGBA() returns four uint32 values; we want a Pixel
 func rgbaToPixel(r uint32, g uint32, b uint32, a uint32) [4]int {
 	pixel := [4]int{int(r / 257), int(g / 257), int(b / 257), int(a / 257)}
 	return pixel
@@ -73,8 +75,8 @@ type Picture struct {
 func handler(filename string, inverse bool,extension string)string{
 	fmt.Println(filename)
 	start := time.Now()
-	p := createPixels("E:\\Go\\asciiServer\\images\\"+filename+extension)
-	pictures := vaporize(p,600,int(getPropLength(p,600)/2))
+	p := createPixels("images/"+filename+extension)
+	pictures := vaporize(p,size, getPropLength(p, size)/2)
 	var sb strings.Builder
 	for i:=0;i<len(pictures);i++{
 		for b:=0;b<len(pictures[0]);b++{
@@ -151,11 +153,12 @@ func ascii(picture Picture,inverse bool)rune{
 	if len(picture.ImageData)==0{
 		return ' '
 	}
-	returns := [12]rune{'M','N','m','/','d','y','s','+',':','-','`',' '}
+	returns := [...]rune{'$','@','B','%','8','&','W','M','#','*','o','a','h','k','b','d','p','q','w','m','Z','O','0','Q','L','C','J','U','Y','X','z','c','v','u','n','x','r','j','f','t','/',92,'|','(',')','1','{','}','[',']','?','-','_','+','~','<','>','i','!','l','I',';',':',',','"',',','"','^','`',39,'.',' '}
+
 	imageData := picture.ImageData
 	boxCount := len(imageData)*len(imageData[0])
 	totalColorNum := 0
-	toSubtract := 11
+	toSubtract := len(returns)
 	if inverse{
 		toSubtract = 0
 	}
@@ -167,33 +170,16 @@ func ascii(picture Picture,inverse bool)rune{
 		}
 	}
 	avgDarkness := totalColorNum/(boxCount*3)
-	if avgDarkness<=30{
-		return returns[intAbs(toSubtract-11)]
-	}else if avgDarkness<=45{
-		return returns[intAbs(toSubtract-10)]
-	}else if avgDarkness<=60{
-		return returns[intAbs(toSubtract-9)]
-	}else if avgDarkness<=80{
-		return returns[intAbs(toSubtract-8)]
-	}else if avgDarkness<=100{
-		return returns[intAbs(toSubtract-7)]
-	}else if avgDarkness<=120{
-		return returns[intAbs(toSubtract-6)]
-	}else if avgDarkness<=140{
-		return returns[intAbs(toSubtract-5)]
-	}else if avgDarkness<=160{
-		return returns[intAbs(toSubtract-4)]
-	}else if avgDarkness<=180{
-		return returns[intAbs(toSubtract-3)]
-	}else if avgDarkness<=200{
-		return returns[intAbs(toSubtract-2)]
-	}else if avgDarkness<=220{
-		return returns[intAbs(toSubtract-1)]
-	}else {
-		return returns[toSubtract]
-	}
+	return returns[intAbs(toSubtract-int(float64(avgDarkness) / 255.0 * float64(len(returns)) * brightnessScale))]
+
+
 }
 
 func getPropLength(picture Picture,height int) int{
 	return len(picture.ImageData[0])*height/len(picture.ImageData)
+}
+
+func main(){
+	output := handler("demo_face",false,".jpg")
+	Write("images/output.txt",output)
 }
