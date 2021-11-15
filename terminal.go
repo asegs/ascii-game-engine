@@ -301,6 +301,14 @@ func (t * Terminal) sendUndoAtLocationConditional(row int,col int,match byte){
 	}
 }
 
+func (t * Terminal) assoc(char byte,format * Context,txt byte){
+	t.sendCharAssociation(char,&Recorded{
+		Format: format,
+		data:   txt,
+		code: char,
+	})
+}
+
 //possibility of register happening after first character is sent
 func (t * Terminal) handleRenders(){
 	var custom func (t * Terminal)

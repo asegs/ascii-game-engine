@@ -1,33 +1,17 @@
 package main
-
 const height int = 20
 const width int = 40
-
-
-
-func (terminal * Terminal) assoc(char byte,format * Context,txt byte){
-	terminal.sendCharAssociation(char,&Recorded{
-		Format: format,
-		data:   txt,
-		code: char,
-	})
-}
-
 func (terminal * Terminal) erasePath(p []*Coord){
 	for i := 1;i<len(p) - 1;i++{
 		terminal.sendUndoAtLocationConditional(p[i].Row,p[i].Col,'x')
 	}
 }
-
 func (terminal * Terminal) drawPath(p []*Coord){
 	for i := 1;i<len(p) - 1;i++{
 		terminal.sendPlaceCharAtCoord('x',p[i].Row,p[i].Col)
 	}
 }
-
 func main(){
-
-
 	input := initializeInput()
 	cursor := initContext().addRgbStyleFg(255,0,0).finish()
 	redBlock := initContext().addRgbStyleBg(255,0,0).finish()
@@ -35,28 +19,22 @@ func main(){
 	greenBlock := initContext().addRgbStyleBg(0,255,0).finish()
 	blueBlock := initContext().addRgbStyleBg(0,0,255).finish()
 	clear := initContext().addSimpleStyle(0).finish()
-
 	terminal := createTerminal(height,width,&Recorded{
 		Format: clear,
 		data: ' ',
 		code: '0',
 	},4)
-
 	var dir byte
-
 	var path []*Coord
 	path = nil
-
 	row := 0
 	col := 0
-
 	terminal.assoc('0',clear,' ')
 	terminal.assoc('1',blackBlock,' ')
 	terminal.assoc('2',greenBlock,' ')
 	terminal.assoc('3',blueBlock,' ')
 	terminal.assoc('*',cursor,'*')
 	terminal.assoc('x',redBlock,' ')
-
 	for {
 		dir = <- input.events
 		switch dir {
@@ -127,8 +105,6 @@ func main(){
 				}
 			}
 			break
-
 		}
-
 	}
 }
