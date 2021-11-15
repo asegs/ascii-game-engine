@@ -12,8 +12,8 @@ import (
 	"time"
 )
 
-var size = 40
-var brightnessScale = 0.6
+var size = 400
+var brightnessScale = 1.0
 
 func createPixels(filename string)Picture {
 	image.RegisterFormat("jpeg","jpeg",jpeg.Decode,jpeg.DecodeConfig)
@@ -158,7 +158,7 @@ func ascii(picture Picture,inverse bool)rune{
 	imageData := picture.ImageData
 	boxCount := len(imageData)*len(imageData[0])
 	totalColorNum := 0
-	toSubtract := len(returns)
+	toSubtract := len(returns) - 1
 	if inverse{
 		toSubtract = 0
 	}
@@ -170,7 +170,7 @@ func ascii(picture Picture,inverse bool)rune{
 		}
 	}
 	avgDarkness := totalColorNum/(boxCount*3)
-	return returns[intAbs(toSubtract-int(float64(avgDarkness) / 255.0 * float64(len(returns)) * brightnessScale))]
+	return returns[intAbs(toSubtract-(int(float64(avgDarkness) / 255.0 * float64(len(returns)) * brightnessScale)))]
 
 
 }
