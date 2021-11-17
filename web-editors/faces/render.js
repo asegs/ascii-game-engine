@@ -1,5 +1,7 @@
-const width = 10;
+const width = 20;
 const height = 10;
+const xDim = 10;
+const yDim = 20;
 let styles = [];
 const colors = ["R","G","B"];
 let selected = 0;
@@ -19,24 +21,24 @@ const RGBToHex= (r,g,b)=> {
     return "#" + r + g + b;
 }
 
-const initGrid = (ctx,dim) => {
+const initGrid = (ctx) => {
     for (let i = 0;i < height;i++){
         for (let b = 0;b < width;b++){
             ctx.beginPath();
-            ctx.rect(b * dim, i * dim, dim, dim);
+            ctx.rect(b * xDim, i * yDim, xDim, yDim);
             ctx.stroke();
         }
     }
 }
 
 
-const drawRect = (ctx,dim,idx) => {
+const drawRect = (ctx,idx) => {
     if (idx.x >= width || idx.y >= height){
         return;
     }
     const color = styles[selected];
     ctx.fillStyle = RGBToHex(color[0],color[1],color[2]);
-    ctx.fillRect(dim * idx.x,dim * idx.y,dim,dim);
+    ctx.fillRect(xDim * idx.x,yDim * idx.y,xDim,yDim);
 }
 
 
@@ -47,8 +49,8 @@ const ctx = c.getContext("2d");
 
 function printMousePos(event) {
     const pos = getPos(event,rect);
-    const idx = getTileIdx(pos,20);
-    drawRect(ctx,20,idx);
+    const idx = getTileIdx(pos);
+    drawRect(ctx,idx);
 }
 
 const getPos = (event,rect) => {
@@ -58,10 +60,10 @@ const getPos = (event,rect) => {
     return points;
 }
 
-const getTileIdx = (pos,dim) => {
+const getTileIdx = (pos) => {
     const idx = {};
-    idx.x = parseInt(pos.x / dim);
-    idx.y = parseInt(pos.y / dim);
+    idx.x = parseInt(pos.x / xDim);
+    idx.y = parseInt(pos.y / yDim);
     return idx;
 }
 document.getElementById("canvas").style.border = "thin dotted #000";
