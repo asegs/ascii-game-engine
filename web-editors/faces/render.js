@@ -1,21 +1,23 @@
-const drawTiles = (ctx,n,dim) => {
-    let toggle = false;
-    for (let i = 0;i < n;i++){
-        for (let b = 0;b < n;b++){
-            if (toggle){
-                ctx.fillStyle = "red";
-                ctx.fillRect(b * dim, i * dim, dim , dim);
-            }else{
-                ctx.fillStyle = "green";
-                ctx.fillRect(b * dim, i * dim, dim , dim);
-            }
-            toggle = !toggle;
+const width = 10;
+const height = 5;
+let styles = 0;
+const colors = ["R","G","B"];
+
+const initGrid = (ctx,dim) => {
+    for (let i = 0;i < height;i++){
+        for (let b = 0;b < width;b++){
+            ctx.beginPath();
+            ctx.rect(b * dim, i * dim, dim, dim);
+            ctx.stroke();
         }
     }
 }
 
 
 const drawRect = (ctx,dim,idx) => {
+    if (idx.x >= width || idx.y >= height){
+        return;
+    }
     ctx.fillStyle = "red";
     ctx.fillRect(dim * idx.x,dim * idx.y,dim,dim);
 }
@@ -45,5 +47,27 @@ const getTileIdx = (pos,dim) => {
     idx.y = parseInt(pos.y / dim);
     return idx;
 }
+document.getElementById("canvas").style.border = "thin dotted #000";
 c.addEventListener("click", printMousePos);
-drawTiles(ctx,5,20);
+const controls = document.getElementById("controls")
+const addStyle = document.getElementById("add-style");
+addStyle.onclick = () => {
+    const styleIdx = styles;
+    const colorDiv = document.createElement("div");
+    for (const color of colors){
+        const iC = document.createElement("input");
+        const label = document.createElement("label");
+        iC.type = "number";
+        iC.defaultValue = "0";
+        iC.min = "0";
+        iC.max = "255";
+        iC.id = color+"-input-"+styleIdx;
+        label.htmlFor = color+"-input-"+styleIdx;
+        label.innerText = color + ":";
+        colorDiv.append(label);
+        colorDiv.append(iC);
+    }
+    controls.insertBefore(colorDiv,addStyle);
+    styles++;
+}
+initGrid(ctx,20);
