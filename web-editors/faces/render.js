@@ -1,6 +1,6 @@
 const width = 10;
 const height = 5;
-let styles = 0;
+let styles = [];
 const colors = ["R","G","B"];
 
 const initGrid = (ctx,dim) => {
@@ -52,8 +52,9 @@ c.addEventListener("click", printMousePos);
 const controls = document.getElementById("controls")
 const addStyle = document.getElementById("add-style");
 addStyle.onclick = () => {
-    const styleIdx = styles;
+    const styleIdx = styles.length;
     const colorDiv = document.createElement("div");
+    let ct = 0;
     for (const color of colors){
         const iC = document.createElement("input");
         const label = document.createElement("label");
@@ -61,13 +62,18 @@ addStyle.onclick = () => {
         iC.defaultValue = "0";
         iC.min = "0";
         iC.max = "255";
+        const tempPos = ct;
+        iC.onchange = (event) => {
+            styles[styleIdx][tempPos] = parseInt(event.target.value);
+        }
         iC.id = color+"-input-"+styleIdx;
         label.htmlFor = color+"-input-"+styleIdx;
         label.innerText = color + ":";
         colorDiv.append(label);
         colorDiv.append(iC);
+        ct++;
     }
     controls.insertBefore(colorDiv,addStyle);
-    styles++;
+    styles.push([0,0,0]);
 }
 initGrid(ctx,20);
