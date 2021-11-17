@@ -12,8 +12,9 @@ import (
 	"time"
 )
 
-var size = 40
-var brightnessScale = 0.6
+var size = 400
+var brightnessScale = 0.5
+var contrast = 0.3
 
 func createPixels(filename string)Picture {
 	image.RegisterFormat("jpeg","jpeg",jpeg.Decode,jpeg.DecodeConfig)
@@ -38,6 +39,17 @@ func createPixels(filename string)Picture {
 	return Picture{ImageData: pixels}
 }
 
+func capRGB(v uint32)uint32{
+	//fmt.Println(v)
+	if v > 65536 {
+		return 65536
+	}
+	if v < 0 {
+		return 0
+	}
+	return v
+}
+
 // Get the bi-dimensional pixel array
 func getPixels(file io.Reader) ([][][4]int, error) {
 	img, _, err := image.Decode(file)
@@ -53,7 +65,12 @@ func getPixels(file io.Reader) ([][][4]int, error) {
 	for y := 0; y < height; y++ {
 		var row [][4]int
 		for x := 0; x < width; x++ {
-			row = append(row, rgbaToPixel(img.At(x, y).RGBA()))
+			r,g,b,a := img.At(x, y).RGBA()
+			avg := (r + b + g) / 3
+			r = capRGB( r + uint32(float64(r - avg) * contrast))
+			g = capRGB( g + uint32(float64(g - avg) * contrast))
+			b = capRGB( b + uint32(float64(b - avg) * contrast))
+			row = append(row, rgbaToPixel(r,g,b,a))
 		}
 		pixels = append(pixels, row)
 	}
@@ -158,7 +175,7 @@ func ascii(picture Picture,inverse bool)rune{
 	imageData := picture.ImageData
 	boxCount := len(imageData)*len(imageData[0])
 	totalColorNum := 0
-	toSubtract := len(returns)
+	toSubtract := len(returns) - 1
 	if inverse{
 		toSubtract = 0
 	}
@@ -177,9 +194,4 @@ func ascii(picture Picture,inverse bool)rune{
 
 func getPropLength(picture Picture,height int) int{
 	return len(picture.ImageData[0])*height/len(picture.ImageData)
-}
-
-func main(){
-	output := handler("demo_face",false,".jpg")
-	Write("images/output.txt",output)
 }

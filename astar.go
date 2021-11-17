@@ -256,7 +256,7 @@ func generateMaze(width int,height int,freq float64)([][] * Tile,*Coord,*Coord) 
 
 func (t * Terminal) parseMazeFromCurrent(wall byte,free byte,start byte,end byte)([][] * Tile,*Coord,*Coord){
 	height := len(t.DataHistory)
-	width := len(t.DataHistory[0])
+	width := len(t.DataHistory[0]) - 1
 	maze := make([][] * Tile, height)
 	startCoord := &Coord{
 		Row: 0,
