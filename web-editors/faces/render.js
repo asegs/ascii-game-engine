@@ -68,6 +68,14 @@ const getTileIdx = (pos) => {
     idx.y = parseInt(pos.y / yDim);
     return idx;
 }
+
+const downloadString = (text) => {
+    const link = document.createElement('a');
+    link.download = 'face.txt';
+    const blob = new Blob([text], {type: 'text/plain'});
+    link.href = window.URL.createObjectURL(blob);
+    link.click();
+}
 document.getElementById("canvas").style.border = "thin dotted #000";
 c.addEventListener("click", printMousePos);
 const controls = document.getElementById("controls")
@@ -127,6 +135,20 @@ addStyle.onclick = () => {
     controls.insertBefore(colorDiv,addStyle);
 }
 initGrid(ctx,20);
+const saveFace = document.getElementById("save");
+saveFace.onclick = () => {
+    const body = new Array(width * height + height);
+    let current = 0;
+    for (let i = 0;i<height;i++){
+        for (let b = 0;b<width;b++){
+            body[current] = pixels[i][b] ?? "-1";
+            current++;
+        }
+        body[current] = "\n";
+        current++;
+    }
+    downloadString(body.join(","));
+}
 for (let i = 0 ; i < height ; i++ ){
     pixels[i] = new Array(width);
 }
