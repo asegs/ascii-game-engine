@@ -1,10 +1,11 @@
 const width = 20;
 const height = 10;
-const xDim = 10;
-const yDim = 20;
+const xDim = 20;
+const yDim = 40;
 let styles = [];
 const colors = ["R","G","B"];
 let selected = 0;
+const pixels = new Array(height);
 
 const RGBToHex= (r,g,b)=> {
     r = r.toString(16);
@@ -51,6 +52,7 @@ function printMousePos(event) {
     const pos = getPos(event,rect);
     const idx = getTileIdx(pos);
     drawRect(ctx,idx);
+    pixels[idx.y][idx.x] = selected;
 }
 
 const getPos = (event,rect) => {
@@ -90,6 +92,13 @@ addStyle.onclick = () => {
             if (cBtn){
              cBtn.style.backgroundColor = RGBToHex(colorSlice[0],colorSlice[1],colorSlice[2]);
             }
+            for (let i = 0;i<height;i++){
+                for (let b = 0;b<width;b++){
+                    if (pixels[i][b] === styleIdx){
+                        drawRect(ctx,{x:b,y:i});
+                    }
+                }
+            }
         }
         iC.id = color+"-input-"+styleIdx;
         label.htmlFor = color+"-input-"+styleIdx;
@@ -118,3 +127,6 @@ addStyle.onclick = () => {
     controls.insertBefore(colorDiv,addStyle);
 }
 initGrid(ctx,20);
+for (let i = 0 ; i < height ; i++ ){
+    pixels[i] = new Array(width);
+}
