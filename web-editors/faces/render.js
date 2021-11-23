@@ -21,7 +21,7 @@ const initGrid = (ctx) => {
 
 const highlightBox = (idx,undo) => {
     if (undo){
-        ctx.strokeStyle = "black";
+        ctx.strokeStyle = pixels[idx.y][idx.x] !== -1 ? styles[pixels[idx.y][idx.x]] : "black";
     }else {
         ctx.strokeStyle = "yellow";
     }
