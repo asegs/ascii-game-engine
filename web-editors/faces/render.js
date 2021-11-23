@@ -5,6 +5,9 @@ const yDim = 40;
 let styles = [];
 let selected = 0;
 const pixels = new Array(height);
+let x = 0;
+let y = 0;
+let toggled = false;
 
 const initGrid = (ctx) => {
     for (let i = 0;i < height;i++){
@@ -16,9 +19,20 @@ const initGrid = (ctx) => {
     }
 }
 
+const highlightBox = (idx,undo) => {
+    if (undo){
+        ctx.strokeStyle = "black";
+    }else {
+        ctx.strokeStyle = "yellow";
+    }
+    ctx.beginPath();
+    ctx.rect(idx.x * xDim,idx.y * yDim,xDim,yDim);
+    ctx.stroke();
+}
 
 const drawRect = (ctx,idx, allowUndo) => {
-    if (styles.length === 0 || idx.x >= width || idx.y >= height){
+    if (styles.length === 0){
+        document.getElementById("add-style").focus();
         return;
     }
     const color = styles[selected];
@@ -42,6 +56,13 @@ const ctx = c.getContext("2d");
 function handleClick(event) {
     const pos = getPos(event,rect);
     const idx = getTileIdx(pos);
+    if ( idx.x >= width || idx.y >= height){
+        return;
+    }
+    highlightBox({x:x,y:y},true);
+    x = idx.x;
+    y = idx.y;
+    highlightBox(idx,false)
     drawRect(ctx,idx,true);
 }
 
@@ -109,4 +130,54 @@ saveFace.onclick = () => {
 }
 for (let i = 0 ; i < height ; i++ ){
     pixels[i] = new Array(width).fill(-1);
+}
+
+const handleMovement = (key) => {
+    highlightBox({x:x,y:y},true);
+    switch (key){
+        case "ArrowRight":
+            x ++;
+            break;
+        case "ArrowLeft":
+            x --;
+            break;
+        case "ArrowUp":
+            y --;
+            break;
+        case "ArrowDown":
+            y ++;
+            break;
+    }
+    if (x >= width){
+        x = 0;
+    }else if (x < 0){
+        x = width - 1;
+    }
+    if (y >= height){
+        y = 0;
+    }else if (y < 0){
+        y = height - 1;
+    }
+
+    highlightBox({x:x,y:y},false);
+    if (toggled){
+        drawRect(ctx,{x:x,y:y},false);
+    }
+
+}
+
+window.addEventListener("keydown",(event) => {
+    const key = event.key;
+    if (key.substr(0,5) === "Arrow"){
+        handleMovement(key);
+    }else if (key === " "){
+        drawRect(ctx,{x:x,y:y},true);
+    }
+})
+
+highlightBox({x:x,y:y},false);
+
+const check = document.getElementById("draw-on-move");
+check.onchange = () => {
+    toggled = !toggled;
 }
