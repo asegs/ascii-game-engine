@@ -14,20 +14,35 @@ const initGrid = (ctx) => {
         for (let b = 0;b < width;b++){
             ctx.beginPath();
             ctx.rect(b * xDim, i * yDim, xDim, yDim);
+            ctx.closePath();
             ctx.stroke();
         }
     }
 }
 
 const highlightBox = (idx,undo) => {
-    if (undo){
-        ctx.strokeStyle = pixels[idx.y][idx.x] !== -1 ? styles[pixels[idx.y][idx.x]] : "black";
-    }else {
-        ctx.strokeStyle = "yellow";
-    }
     ctx.beginPath();
-    ctx.rect(idx.x * xDim,idx.y * yDim,xDim,yDim);
-    ctx.stroke();
+    if (undo){
+        ctx.lineWidth = "2";
+        const color = pixels[idx.y][idx.x] !== -1 ? styles[pixels[idx.y][idx.x]] : "white";
+        ctx.beginPath();
+        ctx.rect(idx.x * xDim + 3,idx.y * yDim + 3,xDim - 6,yDim - 6);
+        ctx.closePath();
+        ctx.stroke();
+        drawRawRect(ctx,{x:x,y:y},color);
+        ctx.strokeStyle = "black";
+        ctx.beginPath();
+        ctx.rect(idx.x * xDim,idx.y * yDim,xDim,yDim);
+        ctx.closePath();
+        ctx.stroke();
+    }else {
+        ctx.lineWidth = "2";
+        ctx.strokeStyle = "yellow";
+        ctx.beginPath();
+        ctx.rect(idx.x * xDim + 3,idx.y * yDim + 3,xDim - 6,yDim - 6);
+        ctx.closePath();
+        ctx.stroke();
+    }
 }
 
 const drawRect = (ctx,idx, allowUndo) => {
@@ -45,6 +60,11 @@ const drawRect = (ctx,idx, allowUndo) => {
         pixels[idx.y][idx.x] = selected;
     }
     ctx.fillRect(xDim * idx.x,yDim * idx.y,xDim,yDim);
+}
+
+const drawRawRect = (ctx,idx,color) => {
+    ctx.fillStyle = color;
+    ctx.fillRect(idx.x * xDim,idx.y * yDim,xDim,yDim);
 }
 
 
