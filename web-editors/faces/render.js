@@ -22,23 +22,21 @@ const initGrid = (ctx) => {
 
 const highlightBox = (idx,undo) => {
     ctx.beginPath();
+    ctx.lineWidth = "2";
     if (undo){
-        ctx.lineWidth = "2";
-        const color = pixels[idx.y][idx.x] !== -1 ? styles[pixels[idx.y][idx.x]] : "white";
-        ctx.beginPath();
+        ctx.strokeStyle = pixels[idx.y][idx.x] !== -1 ? styles[pixels[idx.y][idx.x]] : "white";
         ctx.rect(idx.x * xDim + 3,idx.y * yDim + 3,xDim - 6,yDim - 6);
         ctx.closePath();
         ctx.stroke();
-        drawRawRect(ctx,{x:x,y:y},color);
-        ctx.strokeStyle = "black";
-        ctx.beginPath();
-        ctx.rect(idx.x * xDim,idx.y * yDim,xDim,yDim);
-        ctx.closePath();
-        ctx.stroke();
+        if (ctx.strokeStyle === "white"){
+            ctx.strokeStyle = "black";
+            ctx.beginPath();
+            ctx.rect(idx.x * xDim,idx.y * yDim,xDim,yDim);
+            ctx.closePath();
+            ctx.stroke();
+        }
     }else {
-        ctx.lineWidth = "2";
         ctx.strokeStyle = "yellow";
-        ctx.beginPath();
         ctx.rect(idx.x * xDim + 3,idx.y * yDim + 3,xDim - 6,yDim - 6);
         ctx.closePath();
         ctx.stroke();
