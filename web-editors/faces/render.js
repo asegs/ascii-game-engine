@@ -51,7 +51,7 @@ const drawRect = (ctx,idx, allowUndo) => {
     const color = styles[selected];
     if (selected === pixels[idx.y][idx.x] && allowUndo){
         pixels[idx.y][idx.x] = -1;
-        ctx.fillStyle = "#FFF";
+        ctx.fillStyle = "#FFFFFF";
 
     }else{
         ctx.fillStyle = color;
@@ -60,15 +60,8 @@ const drawRect = (ctx,idx, allowUndo) => {
     ctx.fillRect(xDim * idx.x,yDim * idx.y,xDim,yDim);
 }
 
-const drawRawRect = (ctx,idx,color) => {
-    ctx.fillStyle = color;
-    ctx.fillRect(idx.x * xDim,idx.y * yDim,xDim,yDim);
-}
-
-
-
-var c = document.getElementById("canvas");
-var rect = c.getBoundingClientRect();
+const c = document.getElementById("canvas");
+const rect = c.getBoundingClientRect();
 const ctx = c.getContext("2d");
 
 function handleClick(event) {
@@ -127,24 +120,18 @@ addStyle.onclick = () => {
         }
     }
 
-    styles.push("#000");
+    styles.push("#000000");
     controls.insertBefore(picker,addStyle);
     controls.insertBefore(document.createElement("br"),addStyle);
 }
 initGrid(ctx);
 const saveFace = document.getElementById("save");
 saveFace.onclick = () => {
-    const body = new Array(width * height + height);
-    let current = 0;
-    for (let i = 0;i<height;i++){
-        for (let b = 0;b<width;b++){
-            body[current] = pixels[i][b];
-            current++;
-        }
-        body[current] = "\n";
-        current++;
-    }
-    downloadString(body.join(","));
+    const face = {};
+    face['colors'] = styles;
+    face['data'] = pixels;
+
+    downloadString(JSON.stringify(face));
 }
 for (let i = 0 ; i < height ; i++ ){
     pixels[i] = new Array(width).fill(-1);
