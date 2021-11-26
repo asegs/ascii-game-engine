@@ -6,7 +6,6 @@ import (
 	"image/jpeg"
 	"image/png"
 	"io"
-	"log"
 	"os"
 	"strings"
 	"time"
@@ -147,24 +146,7 @@ func intAbs(i int)int{
 	return i
 }
 
-func Write(filename string,body string) {
 
-	f, err := os.Create(filename)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	defer f.Close()
-
-	_, err2 := f.WriteString(body)
-
-	if err2 != nil {
-		log.Fatal(err2)
-	}
-
-	fmt.Printf("Wrote to file: %s\n",filename)
-}
 
 func ascii(picture Picture,inverse bool)rune{
 	if len(picture.ImageData)==0{

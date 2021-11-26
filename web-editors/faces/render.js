@@ -129,7 +129,7 @@ const saveFace = document.getElementById("save");
 saveFace.onclick = () => {
     const face = {};
     face['colors'] = styles;
-    face['data'] = pixels;
+    face['pixels'] = pixels;
 
     downloadString(JSON.stringify(face));
 }

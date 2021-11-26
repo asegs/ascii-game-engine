@@ -244,7 +244,7 @@ func (t * Terminal) placeCharRaw(char byte,row int,col int){
 	}
 	t.Col ++
 	var character [1] byte
-	character[0] = t.DataHistory[row][col][t.Depth - 1].data
+	character[0] = char
 	fmt.Printf(t.DataHistory[row][col][t.Depth-1].Format.Format,character)
 	t.moveCursor(1,LEFT)
 }
