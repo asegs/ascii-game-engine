@@ -24,7 +24,14 @@ func main(){
 		data: ' ',
 		code: '0',
 	},4)
-	terminal.drawFrame(buildFrame("assets/faces/simple_face.txt"))
+	faces := make([] string,2)
+	faces[0] = "assets/faces/simple_face.txt"
+	faces[1] = "assets/faces/altered_face.txt"
+	exps := make([] string,2)
+	exps[0] = "normal"
+	exps[1] = "white"
+	face := buildFace(exps,faces,"guy")
+	terminal.cycleExpressions(face,exps,200,-1)
 	var dir byte
 	var path []*Coord
 	path = nil
