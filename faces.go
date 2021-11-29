@@ -14,6 +14,7 @@ func (t * Terminal) playSingleExpression (face * Face,exp string) {
 }
 
 //delay doesn't consider time to print, also cycles idea is weird, have a current state of face
+//also doesn't terminate
 func (t * Terminal) cycleExpressions (face * Face, exps [] string, msDelay int,cycles int){
 	for cycles == -1 || 0 < cycles {
 		for _,exp := range exps {

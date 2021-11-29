@@ -31,7 +31,7 @@ func main(){
 	exps[0] = "normal"
 	exps[1] = "white"
 	face := buildFace(exps,faces,"guy")
-	terminal.cycleExpressions(face,exps,200,-1)
+	go terminal.cycleExpressions(face,exps,200,-1)
 	var dir byte
 	var path []*Coord
 	path = nil
