@@ -48,10 +48,15 @@ func buildFrame(filename string) * Frame {
 }
 
 func (t * Terminal) drawFrame (frame * Frame){
+	white := initContext().addRgbStyleBg(255,255,255).finish()
 	for i := 0 ; i < len(frame.Pixels) ; i ++ {
 		t.CustomFeed <- func(terminal *Terminal) {
 			for b := 0 ; b < len(frame.Pixels[0]) ; b ++ {
-				//place char at the right coordinates
+				if frame.Pixels[i][b] == -1 {
+					terminal.placeCharFormat(' ',i,b,white,'w')
+				}else {
+					terminal.placeCharFormat(' ',i,b,frame.Colors[frame.Pixels[i][b]],'x')
+				}
 			}
 		}
 	}

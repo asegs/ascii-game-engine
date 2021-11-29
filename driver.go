@@ -24,6 +24,7 @@ func main(){
 		data: ' ',
 		code: '0',
 	},4)
+	terminal.drawFrame(buildFrame("assets/faces/simple_face.txt"))
 	var dir byte
 	var path []*Coord
 	path = nil

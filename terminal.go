@@ -249,9 +249,32 @@ func (t * Terminal) placeCharRaw(char byte,row int,col int){
 	t.moveCursor(1,LEFT)
 }
 
+func (t * Terminal) placeCharFormat(char byte,row int,col int,format * Context,code byte){
+	t.moveTo(row,col)
+	if t.Col >= width - 1 {
+		return
+	}
+	t.Col ++
+	var character [1] byte
+	character[0] = char
+	fmt.Printf(format.Format,character)
+	t.updateAtPos(row,col,&Recorded{
+		Format: format,
+		data:   char,
+		code:   code,
+	})
+	t.moveCursor(1,LEFT)
+}
+
 /*
 Composition functions
  */
+
+func (t * Terminal) sendPlaceCharFormat(char byte, row int, col int, format *Context, code byte) {
+	t.CustomFeed <- func(terminal *Terminal) {
+		terminal.placeCharFormat(char,row,col,format,code)
+	}
+}
 
 //sends a function that associates a fixed char with a style detail when called
 func (t * Terminal) sendCharAssociation(char byte,recorded * Recorded) {
