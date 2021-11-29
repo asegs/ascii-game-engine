@@ -34,7 +34,6 @@ func buildFrame(filename string) * Frame {
 	if err != nil {
 		fmt.Println(err.Error())
 	}
-	fmt.Println(simpleFrame)
 	colors := make([] * Context,len(simpleFrame.Colors))
 	for i,color := range simpleFrame.Colors {
 		r := hexStrToDec(color[1:3])
@@ -49,13 +48,13 @@ func buildFrame(filename string) * Frame {
 }
 
 func (t * Terminal) drawFrame (frame * Frame){
-	white := initContext().addRgbStyleBg(255,255,255).finish()
+	bg := initContext().addSimpleStyle(0).finish()
 	for i := 0 ; i < len(frame.Pixels) ; i ++ {
 		row := i
 		t.CustomFeed <- func(terminal *Terminal) {
 			for b := 0 ; b < len(frame.Pixels[0]) ; b ++ {
 				if frame.Pixels[row][b] == -1 {
-					terminal.placeCharFormat(' ',row,b,white,'w')
+					terminal.placeCharFormat(' ',row,b,bg,'w')
 				}else {
 					terminal.placeCharFormat(' ',row,b,frame.Colors[frame.Pixels[row][b]],'x')
 				}
