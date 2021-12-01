@@ -2,13 +2,11 @@ Driver:
 -Allow toggling of build mode
 -Clear previous path before rendering new one
 
-Terminal:
--Add history, tell terminal to delete a char and replace with what was there before instead of managing, only revert if current key is what you expect
--Transparent cursor, only show * character but show color behind it
-Allow terminal to read 3 main channels:
--Standard writes with coordinates or shift distances, a context, and a body (stores map of coordinate pairs to format and char, also take an optional list of remove coords)
--Pushing pre-styled character at coordinate or shift distance
--Sending composed function that takes only one argument, the terminal, which is then called with the terminal for any arbitrary effect
+Face:
+-Allow different faces to be pushed over channel, can push bundle to loop over until another is received
+
+Map:
+-Create prefabbed map object
 
 ASCII conversion:
 -Look for patterns where there is a high darkness density along either |, /,\, and replace with that char
