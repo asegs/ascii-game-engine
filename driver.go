@@ -25,13 +25,13 @@ func main(){
 		code: '0',
 	},4)
 	faces := make([] string,2)
-	faces[0] = "assets/faces/simple_face.txt"
-	faces[1] = "assets/faces/altered_face.txt"
+	faces[0] = "assets/faces/smile_face.txt"
+	faces[1] = "assets/faces/open_mouth.txt"
 	exps := make([] string,2)
-	exps[0] = "normal"
-	exps[1] = "white"
+	exps[0] = "smile"
+	exps[1] = "open"
 	face := buildFace(exps,faces,"guy")
-	go terminal.cycleExpressions(face,exps,200,-1)
+	go terminal.cycleExpressions(face,exps,600,-1)
 	var dir byte
 	var path []*Coord
 	path = nil

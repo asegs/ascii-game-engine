@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 )
@@ -21,10 +22,20 @@ type StdIn struct {
 	events chan byte
 }
 
+func tput(arg string) error {
+	cmd := exec.Command("tput", arg)
+	cmd.Stdout = os.Stdout
+	return cmd.Run()
+}
+
 func initializeInput() * StdIn {
 	exec.Command("stty", "-F", "/dev/tty", "cbreak", "min", "1").Run()
 	// do not display entered characters on the screen
 	exec.Command("stty", "-F", "/dev/tty", "-echo").Run()
+	err := tput("civis")
+	if err != nil {
+		fmt.Println(err.Error())
+	}
 	scanner := make(chan byte,1000)
 	input := &StdIn{events: scanner}
 	go input.scanForInput()
@@ -41,6 +52,7 @@ func (s * StdIn) scanForInput(){
 	// restore the echoing state when exiting
 	defer exec.Command("stty", "-F", "/dev/tty", "echo").Run()
 	defer exec.Command("clear").Run()
+	defer tput("cnorm")
 	var buf = make([]byte, 1)
 	var c byte
 
