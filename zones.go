@@ -30,7 +30,7 @@ func (z * Zoning) zonesIntersect (a * Zone, b * Zone) bool {
 	return (a.X <= b.X + b.Width) && (a.X + a.Width >= b.X) && (a.Y <= b.Y + b.Height) && (a.Y + a.Height >= b.Y)
 }
 
-func (z * Zoning) createObject (Y int, X int, Height int, Width int, CursorAllowed bool) error {
+func (z * Zoning) createZone (Y int, X int, Height int, Width int, CursorAllowed bool) (* Zone , error) {
 	newZone := &Zone{
 		Y:             Y,
 		X:             X,
@@ -41,10 +41,10 @@ func (z * Zoning) createObject (Y int, X int, Height int, Width int, CursorAllow
 	for _,zone := range z.Zones {
 		if z.zonesIntersect(zone,newZone){
 			//specify which zone
-			return errors.New("zone intersects with preexisting zone")
+			return nil,errors.New("zone intersects with preexisting zone")
 		}
 	}
 	z.Zones = append(z.Zones,newZone)
-	return nil
+	return newZone,nil
 }
 
