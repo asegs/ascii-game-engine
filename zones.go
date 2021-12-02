@@ -1,12 +1,16 @@
 package main
 
-import "errors"
+import (
+	"errors"
+	"time"
+)
 
 type Zoning struct {
 	Zones [] * Zone
 	Height int
 	Width int
 	CursorZone * Zone
+	Input * StdIn
 }
 
 type Zone struct {
@@ -16,14 +20,17 @@ type Zone struct {
 	Width int
 	CursorAllowed bool
 	Events chan byte
+	CursorY int
+	CursorX int
 }
 
-func initZones (height int,width int) * Zoning{
+func initZones (height int,width int, input * StdIn) * Zoning{
 	return &Zoning{
 		Zones:  make([] * Zone, 0),
 		Height: height,
 		Width:  width,
 		CursorZone: nil,
+		Input: input,
 	}
 }
 
@@ -39,6 +46,8 @@ func (z * Zoning) createZone (Y int, X int, Height int, Width int, CursorAllowed
 		Width:         Width,
 		CursorAllowed: CursorAllowed,
 		Events: make(chan byte,1000),
+		CursorY: 0,
+		CursorX: 0,
 	}
 	for _,zone := range z.Zones {
 		if z.zonesIntersect(zone,newZone){
@@ -51,10 +60,22 @@ func (z * Zoning) createZone (Y int, X int, Height int, Width int, CursorAllowed
 }
 
 func (z * Zoning) cursorEnterZone(zone * Zone) error {
+	if zone == nil {
+		return errors.New("bad zone")
+	}
 	if !zone.CursorAllowed {
 		return errors.New("cursor not allowed in zone")
 	}
 	z.CursorZone = zone
 	return nil
+}
+
+func (z * Zoning) pipeToZone () {
+	for true {
+		for z.CursorZone == nil {
+			time.Sleep(10 * time.Millisecond)
+		}
+		z.CursorZone.Events <- <- z.Input.events
+	}
 }
 
