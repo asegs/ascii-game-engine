@@ -6,8 +6,7 @@ type Zoning struct {
 	Zones [] * Zone
 	Height int
 	Width int
-	CursorY int
-	CursorX int
+	CursorZone * Zone
 }
 
 type Zone struct {
@@ -16,6 +15,7 @@ type Zone struct {
 	Height int
 	Width int
 	CursorAllowed bool
+	Events chan byte
 }
 
 func initZones (height int,width int) * Zoning{
@@ -23,6 +23,7 @@ func initZones (height int,width int) * Zoning{
 		Zones:  make([] * Zone, 0),
 		Height: height,
 		Width:  width,
+		CursorZone: nil,
 	}
 }
 
@@ -37,6 +38,7 @@ func (z * Zoning) createZone (Y int, X int, Height int, Width int, CursorAllowed
 		Height:        Height,
 		Width:         Width,
 		CursorAllowed: CursorAllowed,
+		Events: make(chan byte,1000),
 	}
 	for _,zone := range z.Zones {
 		if z.zonesIntersect(zone,newZone){
@@ -46,5 +48,13 @@ func (z * Zoning) createZone (Y int, X int, Height int, Width int, CursorAllowed
 	}
 	z.Zones = append(z.Zones,newZone)
 	return newZone,nil
+}
+
+func (z * Zoning) cursorEnterZone(zone * Zone) error {
+	if !zone.CursorAllowed {
+		return errors.New("cursor not allowed in zone")
+	}
+	z.CursorZone = zone
+	return nil
 }
 
