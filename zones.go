@@ -71,11 +71,23 @@ func (z * Zoning) cursorEnterZone(zone * Zone) error {
 }
 
 func (z * Zoning) pipeToZone () {
+	z.waitUntilZoneLoaded()
 	for true {
-		for z.CursorZone == nil {
-			time.Sleep(10 * time.Millisecond)
-		}
 		z.CursorZone.Events <- <- z.Input.events
 	}
 }
 
+func (z * Zone) getRealCoords () (int,int) {
+	return z.Y + z.CursorY,z.X + z.CursorX
+}
+
+func (z * Zoning) cursorMoveValid (x int, y int) bool {
+	z.waitUntilZoneLoaded()
+	return x >= z.CursorZone.X && x < z.CursorZone.X + z.CursorZone.Width && y >= z.CursorZone.Y && y < z.CursorZone.Y + z.CursorZone.Height
+}
+
+func (z * Zoning) waitUntilZoneLoaded () {
+	for z.CursorZone == nil {
+		time.Sleep(10 * time.Millisecond)
+	}
+}
