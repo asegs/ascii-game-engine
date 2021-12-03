@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 )
 
 const height int = 20
@@ -17,7 +18,18 @@ func (terminal * Terminal) drawPath(p []*Coord){
 	}
 }
 
+func getNthOccurrence (str string,substr string) {
+
+}
+
+func composeNewContext (bg * Context,fg * Context) * Context {
+	bgIdx := strings.Index(bg.Format,"[48")
+	fgStartIdx := strings.Index(fg.Format,"[38")
+	return &Context{Format: bg.Format[0:bgIdx] + }
+}
+
 func (terminal * Terminal) drawFgOverBg (row int,col int){
+
 	//for example, when placing cursor over square, keep background color same
 	//this means that you have to somehow get the color of the background with the color
 	//of the new foreground and rewrite, composing new context
