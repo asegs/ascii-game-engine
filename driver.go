@@ -18,14 +18,28 @@ func (terminal * Terminal) drawPath(p []*Coord){
 	}
 }
 
-func getNthOccurrence (str string,substr string) {
-
+func getNthOccurrence (str string,substr string,n int) int{
+	deleted := 0
+	for i := 0; i < n ; i++ {
+		occurrenceIdx := strings.Index(str,substr)
+		if occurrenceIdx == -1 {
+			return -1
+		}
+		deleted += occurrenceIdx + len(substr)
+		str = str[occurrenceIdx + len(substr):]
+		if i == n-1 {
+			return deleted
+		}
+	}
+	//if it ever gets here...you did something insane (indexed by 1 here, not 0)
+	return -1
 }
 
 func composeNewContext (bg * Context,fg * Context) * Context {
 	bgIdx := strings.Index(bg.Format,"[48")
-	fgStartIdx := strings.Index(fg.Format,"[38")
-	return &Context{Format: bg.Format[0:bgIdx] + }
+	fgStartIdx := strings.Index(fg.Format,"[38;2;") + 1
+	fgEndIdx := getNthOccurrence(fg.Format,";",5) + 1
+	return &Context{Format: bg.Format[0:bgIdx] + fg.Format[fgStartIdx:fgEndIdx] + bg.Format[bgIdx:]}
 }
 
 func (terminal * Terminal) drawFgOverBg (row int,col int){
