@@ -55,8 +55,6 @@ func main(){
 	var dir byte
 	var path []*Coord
 	path = nil
-	row := mapZone.Y
-	col := mapZone.X
 	terminal.assoc('0',clear,' ')
 	terminal.assoc('1',blackBlock,' ')
 	terminal.assoc('2',greenBlock,' ')
@@ -65,50 +63,35 @@ func main(){
 	terminal.assoc('x',redBlock,' ')
 	for {
 		dir = <- mapZone.Events
+		realX,realY := mapZone.getRealCoords()
+		if 128 <= dir && dir <= 131 {
+			accepted := zoning.moveInDirection(dir)
+			if accepted {
+				newX,newY := mapZone.getRealCoords()
+				terminal.sendPlaceCharAtCoordCondUndo('*',newY,newX,realY,realX,'*')
+			}
+			continue
+		}
 		switch dir {
-		case MOVE_LEFT:
-			if col > mapZone.X{
-				col--
-				terminal.sendPlaceCharAtCoordCondUndo('*',row,col,row,col+1,'*')
-			}
-			break
-		case MOVE_RIGHT:
-			if col < mapZone.X + mapZone.Width - 2{
-				col++
-				terminal.sendPlaceCharAtCoordCondUndo('*',row,col,row,col-1,'*')
-			}
-			break
-		case MOVE_DOWN:
-			if row < mapZone.Y + mapZone.Height - 1{
-				row++
-				terminal.sendPlaceCharAtCoordCondUndo('*',row,col,row-1,col,'*')
-			}
-			break
-		case MOVE_UP:
-			if row > mapZone.Y{
-				row--
-				terminal.sendPlaceCharAtCoordCondUndo('*',row,col,row+1,col,'*')
-			}
-			break
 		case '1':
-			if terminal.DataHistory[row][col][terminal.Depth - 2].code == '1'{
-				terminal.sendPlaceCharAtCoord('0',row,col)
+			if terminal.DataHistory[realY][realX][terminal.Depth - 2].code == '1'{
+				terminal.sendPlaceCharAtCoord('0',realY,realX)
 			}else{
-				terminal.sendPlaceCharAtCoord('1',row,col)
+				terminal.sendPlaceCharAtCoord('1',realY,realX)
 			}
 			break
 		case '2':
-			if terminal.DataHistory[row][col][terminal.Depth - 2].code == '2'{
-				terminal.sendPlaceCharAtCoord('0',row,col)
+			if terminal.DataHistory[realY][realX][terminal.Depth - 2].code == '2'{
+				terminal.sendPlaceCharAtCoord('0',realY,realX)
 			}else{
-				terminal.sendPlaceCharAtCoord('2',row,col)
+				terminal.sendPlaceCharAtCoord('2',realY,realX)
 			}
 			break
 		case '3':
-			if terminal.DataHistory[row][col][terminal.Depth - 2].code == '3'{
-				terminal.sendPlaceCharAtCoord('0',row,col)
+			if terminal.DataHistory[realY][realX][terminal.Depth - 2].code == '3'{
+				terminal.sendPlaceCharAtCoord('0',realY,realX)
 			}else{
-				terminal.sendPlaceCharAtCoord('3',row,col)
+				terminal.sendPlaceCharAtCoord('3',realY,realX)
 			}
 			break
 		case ENTER:
@@ -127,8 +110,8 @@ func main(){
 			}
 			break
 		case BACKSPACE:
-			for i := 0;i<height;i++{
-				for b := 0;b<width;b++{
+			for i := mapZone.Y;i<mapZone.Y + mapZone.Height;i++{
+				for b := mapZone.X;b<mapZone.X + mapZone.Width;b++{
 					terminal.sendPlaceCharAtCoord('0',i,b)
 				}
 			}

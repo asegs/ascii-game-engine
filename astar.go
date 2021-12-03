@@ -48,7 +48,7 @@ type Tile struct {
 	Visited bool
 }
 
-var terms4Axis [4] * Coord = [4]*Coord{
+var terms4Axis = [4]*Coord{
 	{
 		Row: 0,
 		Col: -1,
@@ -67,7 +67,7 @@ var terms4Axis [4] * Coord = [4]*Coord{
 	},
 }
 
-var terms8Axis [8] * Coord = [8] * Coord{
+var terms8Axis = [8] * Coord{
 	{
 		Row: 0,
 		Col: -1,
@@ -188,10 +188,10 @@ func getCoordsForPair(pos * Coord, mod * Coord)* Coord{
 
 func bioticErode(maze  [][] * Tile ){
 	for row,wholeRow := range maze{
-		for col,_ := range wholeRow {
+		for col := range wholeRow {
 			surroundingWalls := 0
 			for _,term := range terms8Axis{
-				if !tileGood(maze,getCoordsForPair(&Coord{Row: row, Col: col,},term)){
+				if !tileGood(maze,getCoordsForPair(&Coord{Row: row, Col: col},term)){
 					surroundingWalls++
 				}
 			}

@@ -83,31 +83,61 @@ func (z * Zoning) pipeToZone () {
 }
 
 func (z * Zone) getRealCoords () (int,int) {
-	return z.Y + z.CursorY,z.X + z.CursorX
+	return z.X + z.CursorX,z.Y + z.CursorY
+}
+
+func (z * Zone) getRealNewCoords (x int,y int) (int,int) {
+	return z.X + x,z.Y +y
 }
 
 func (z * Zoning) getValidCursorMove (x int, y int) (bool,int,int) {
 	z.waitUntilZoneLoaded()
-	realX := x
-	realY := y
-	if x < z.CursorZone.X {
-		realX = z.CursorZone.X
+	realX,realY := z.CursorZone.getRealNewCoords(x,y)
+	forcedX,forcedY := realX,realY
+	if realX < z.CursorZone.X {
+		forcedX = z.CursorZone.X
 	} else if x >= z.CursorZone.X + z.CursorZone.Width {
-		realX = z.CursorZone.X + z.CursorZone.Width - 1
+		forcedX = z.CursorZone.X + z.CursorZone.Width - 1
 	}
 	if y < z.CursorZone.Y {
-		realY = z.CursorZone.Y
+		forcedY = z.CursorZone.Y
 	} else if y >= z.CursorZone.Y + z.CursorZone.Height {
-		realY = z.CursorZone.Y + z.CursorZone.Height - 1
+		forcedY = z.CursorZone.Y + z.CursorZone.Height - 1
 	}
-	if realX == x && realY == y {
+	if realX == forcedX && realY == forcedY {
 		return true,x,y
 	}
-	return false,realX,realY
+	return false,forcedX - z.CursorZone.X,forcedY - z.CursorZone.Y
 }
 
 func (z * Zoning) waitUntilZoneLoaded () {
 	for z.CursorZone == nil {
 		time.Sleep(10 * time.Millisecond)
 	}
+}
+
+func (z * Zone) moveToCoord (x int, y int) {
+	z.CursorX = x
+	z.CursorY = y
+}
+
+func (z * Zoning) moveInDirection (direction byte) bool {
+	moveAccepted,newX,newY := false,0,0
+	switch direction {
+	case MOVE_LEFT:
+		moveAccepted,newX,newY = z.getValidCursorMove(z.CursorZone.CursorX - 1,z.CursorZone.CursorY)
+		break
+	case MOVE_RIGHT:
+		moveAccepted,newX,newY = z.getValidCursorMove(z.CursorZone.CursorX + 1,z.CursorZone.CursorY)
+		break
+	case MOVE_UP:
+		moveAccepted,newX,newY = z.getValidCursorMove(z.CursorZone.CursorX,z.CursorZone.CursorY-1)
+		break
+	case MOVE_DOWN:
+		moveAccepted,newX,newY = z.getValidCursorMove(z.CursorZone.CursorX,z.CursorZone.CursorY+1)
+		break
+	}
+	z.CursorZone.CursorX = newX
+	z.CursorZone.CursorY = newY
+	return moveAccepted
 }
