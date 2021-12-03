@@ -16,6 +16,14 @@ func (terminal * Terminal) drawPath(p []*Coord){
 		terminal.sendPlaceCharAtCoord('x',p[i].Row,p[i].Col)
 	}
 }
+
+func (terminal * Terminal) drawFgOverBg (row int,col int){
+	//for example, when placing cursor over square, keep background color same
+	//this means that you have to somehow get the color of the background with the color
+	//of the new foreground and rewrite, composing new context
+}
+
+
 func main(){
 	input := initializeInput()
 	cursor := initContext().addRgbStyleFg(255,0,0).finish()
