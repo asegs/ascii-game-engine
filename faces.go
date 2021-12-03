@@ -7,17 +7,17 @@ type Face struct {
 	Expressions map[string] * Frame
 }
 
-func (t * Terminal) playSingleExpression (face * Face,exp string) {
+func (t * Terminal) playSingleExpression (face * Face,exp string,zone * Zone) {
 	if frame, ok := face.Expressions[exp]; ok {
-		t.drawFrame(frame)
+		t.drawFrame(frame,zone.Y,zone.X)
 	}
 }
 
 //delay doesn't consider time to print, also cycles idea is weird, have a current state of face
-func (t * Terminal) cycleExpressions (face * Face, exps [] string, msDelay int,cycles int){
+func (t * Terminal) cycleExpressions (face * Face, exps [] string, msDelay int,cycles int,zone * Zone){
 	for cycles == -1 || 0 < cycles {
 		for _,exp := range exps {
-			t.playSingleExpression(face,exp)
+			t.playSingleExpression(face,exp,zone)
 			time.Sleep(time.Millisecond * time.Duration(msDelay))
 		}
 		if cycles != -1 {

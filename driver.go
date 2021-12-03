@@ -1,4 +1,9 @@
 package main
+
+import (
+	"fmt"
+)
+
 const height int = 20
 const width int = 40
 func (terminal * Terminal) erasePath(p []*Coord){
@@ -24,6 +29,21 @@ func main(){
 		data: ' ',
 		code: '0',
 	},4)
+	zoning := initZones(height,width,input)
+	mapZone,err := zoning.createZone(0,0,height,20,true)
+	if err != nil {
+		fmt.Println("creating map error: " + err.Error())
+		return
+	}
+	err = zoning.cursorEnterZone(mapZone)
+	if err != nil {
+		fmt.Println("error entering zone: " + err.Error())
+	}
+	faceZone,err := zoning.createZone(0,20,10,20,false)
+	if err != nil {
+		fmt.Println("creating faces error: " + err.Error())
+		return
+	}
 	faces := make([] string,2)
 	faces[0] = "assets/faces/smile_face.txt"
 	faces[1] = "assets/faces/open_mouth.txt"
@@ -31,12 +51,12 @@ func main(){
 	exps[0] = "smile"
 	exps[1] = "open"
 	face := buildFace(exps,faces,"guy")
-	go terminal.cycleExpressions(face,exps,600,-1)
+	go terminal.cycleExpressions(face,exps,600,-1,faceZone)
 	var dir byte
 	var path []*Coord
 	path = nil
-	row := 0
-	col := 0
+	row := mapZone.Y
+	col := mapZone.X
 	terminal.assoc('0',clear,' ')
 	terminal.assoc('1',blackBlock,' ')
 	terminal.assoc('2',greenBlock,' ')
@@ -44,28 +64,28 @@ func main(){
 	terminal.assoc('*',cursor,'*')
 	terminal.assoc('x',redBlock,' ')
 	for {
-		dir = <- input.events
+		dir = <- mapZone.Events
 		switch dir {
 		case MOVE_LEFT:
-			if col > 0{
+			if col > mapZone.X{
 				col--
 				terminal.sendPlaceCharAtCoordCondUndo('*',row,col,row,col+1,'*')
 			}
 			break
 		case MOVE_RIGHT:
-			if col < terminal.Width - 2{
+			if col < mapZone.X + mapZone.Width - 2{
 				col++
 				terminal.sendPlaceCharAtCoordCondUndo('*',row,col,row,col-1,'*')
 			}
 			break
 		case MOVE_DOWN:
-			if row < terminal.Height -1{
+			if row < mapZone.Y + mapZone.Height - 1{
 				row++
 				terminal.sendPlaceCharAtCoordCondUndo('*',row,col,row-1,col,'*')
 			}
 			break
 		case MOVE_UP:
-			if row > 0{
+			if row > mapZone.Y{
 				row--
 				terminal.sendPlaceCharAtCoordCondUndo('*',row,col,row+1,col,'*')
 			}
