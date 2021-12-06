@@ -42,11 +42,12 @@ func composeNewContext (bg * Context,fg * Context) * Context {
 	return &Context{Format: bg.Format[0:bgIdx] + fg.Format[fgStartIdx:fgEndIdx] + bg.Format[bgIdx:]}
 }
 
-func (terminal * Terminal) drawFgOverBg (row int,col int){
-
-	//for example, when placing cursor over square, keep background color same
-	//this means that you have to somehow get the color of the background with the color
-	//of the new foreground and rewrite, composing new context
+func (terminal * Terminal) drawFgOverBg (row int,col int,zone * Zone,cursor * Context,oldX int,oldY int){
+	trueX,trueY := zone.getRealNewCoords(row,col)
+	oldStyle := terminal.DataHistory[trueY][trueX][terminal.Depth - 1].Format
+	composedStyle := composeNewContext(oldStyle,cursor)
+	terminal.sendPlaceCharFormat('*',row,col,composedStyle,'*')
+	terminal.sendUndoAtLocationConditional(oldY,oldX,'*')
 }
 
 
@@ -102,7 +103,8 @@ func main(){
 			accepted := zoning.moveInDirection(dir)
 			if accepted {
 				newX,newY := mapZone.getRealCoords()
-				terminal.sendPlaceCharAtCoordCondUndo('*',newY,newX,realY,realX,'*')
+				terminal.drawFgOverBg(newY,newX,mapZone,cursor,realX,realY)
+				//terminal.sendPlaceCharAtCoordCondUndo('*',newY,newX,realY,realX,'*')
 			}
 			continue
 		}
