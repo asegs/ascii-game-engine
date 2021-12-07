@@ -5,8 +5,8 @@ import (
 	"time"
 )
 
-const height int = 20
-const width int = 40
+const height int = 40
+const width int = 100
 func (terminal * Terminal) erasePath(p []*Coord){
 	for i := 1;i<len(p) - 1;i++{
 		terminal.sendUndoAtLocationConditional(p[i].Row,p[i].Col,'x')
@@ -50,7 +50,7 @@ func main(){
 		code: '0',
 	},4)
 	zoning := initZones(height,width,input)
-	mapZone,err := zoning.createZone(0,0,height,20,true)
+	mapZone,err := zoning.createZone(0,0,height,width - 20,true)
 	if err != nil {
 		fmt.Println("creating map error: " + err.Error())
 		return
@@ -59,7 +59,7 @@ func main(){
 	if err != nil {
 		fmt.Println("error entering zone: " + err.Error())
 	}
-	faceZone,err := zoning.createZone(0,20,10,20,false)
+	faceZone,err := zoning.createZone(0,width - 20,10,20,false)
 	if err != nil {
 		fmt.Println("creating faces error: " + err.Error())
 		return
@@ -92,7 +92,6 @@ func main(){
 			if accepted {
 				newX,newY := mapZone.getRealCoords()
 				terminal.drawFgOverBg(newY, newX, cursor, realX, realY)
-				//terminal.sendPlaceCharAtCoordCondUndo('*',newY,newX,realY,realX,'*')
 			}
 			continue
 		}
