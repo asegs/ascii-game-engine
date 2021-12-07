@@ -145,13 +145,18 @@ func main(){
 
 
 
-func follower (t * Terminal) {
+func follower (t * Terminal,polo chan * Coord) {
 	row := 0
 	col := 0
 	path := make([] * Coord,0)
+	target := &Coord{}
 	for true {
+		if len(polo) > 0 {
+			target = <- polo
+		}else {
+			target = t.getCoordsForCursor('*')
+		}
 		maze,_,_ := t.parseMazeFromCurrent('1','0','2','3')
-		target := t.getCoordsForCursor('*')
 		if target == nil {
 			time.Sleep(250 * time.Millisecond)
 			continue
