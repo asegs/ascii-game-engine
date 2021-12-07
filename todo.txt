@@ -12,3 +12,8 @@ ASCII conversion:
 -Look for patterns where there is a high darkness density along either |, /,\, and replace with that char
 -Parse gif/mp4 into this format and get sized ascii frames
 -Composed function to render frame, sent every 1000/FPS milliseconds - previous render time
+
+Terminal:
+-Redraw cursor character when placing a character (because we're just placing a character there)
+-System views cursor as cursor and nothing else when placed on a wall or other object (because it is still registered as
+ cursor object, may be fine because no real pathfinding should allow some people to be in walls)
