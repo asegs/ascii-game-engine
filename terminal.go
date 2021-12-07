@@ -399,4 +399,18 @@ func (t * Terminal) handleRenders(){
 	}
 }
 
+func (t * Terminal) getCoordsForCursor(cursor byte) * Coord{
+	for row,items := range t.DataHistory {
+		for col, item := range items {
+			if item[t.Depth - 1].code == cursor {
+				return &Coord{
+					Row: row,
+					Col: col,
+				}
+			}
+		}
+	}
+	return nil
+}
+
 

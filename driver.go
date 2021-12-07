@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 )
 
 const height int = 20
@@ -29,7 +30,6 @@ func composeNewContext (bg * Context,fg * Context) * Context {
 func (terminal * Terminal) drawFgOverBg(row int, col int, cursor *Context, oldX int, oldY int) {
 	oldStyle := terminal.DataHistory[row][col][terminal.Depth - 1].Format
 	composedStyle := composeNewContext(oldStyle,cursor)
-	Write("program.log",fmt.Sprintf("%v\n",composedStyle.Modifiers))
 	terminal.sendPlaceCharFormat('*',row,col,composedStyle,'*')
 	terminal.sendUndoAtLocationConditional(oldY,oldX,'*')
 }
@@ -42,6 +42,7 @@ func main(){
 	blackBlock := initContext().addRgbStyleBg(0,0,0).compile()
 	greenBlock := initContext().addRgbStyleBg(0,255,0).compile()
 	blueBlock := initContext().addRgbStyleBg(0,0,255).compile()
+	hunter := initContext().addRgbStyleFg(255,255,255).compile()
 	clear := initContext().addSimpleStyle(0).compile()
 	terminal := createTerminal(height,width,&Recorded{
 		Format: clear,
@@ -80,6 +81,9 @@ func main(){
 	terminal.assoc('3',blueBlock,' ')
 	terminal.assoc('*',cursor,'*')
 	terminal.assoc('x',redBlock,' ')
+	terminal.assoc('?',hunter,'?')
+	
+	go follower(terminal)
 	for {
 		dir = <- mapZone.Events
 		realX,realY := mapZone.getRealCoords()
@@ -137,5 +141,36 @@ func main(){
 			}
 			break
 		}
+	}
+}
+
+
+
+func follower (t * Terminal) {
+	row := 0
+	col := 0
+	path := make([] * Coord,0)
+	for true {
+		maze,_,_ := t.parseMazeFromCurrent('1','0','2','3')
+		target := t.getCoordsForCursor('*')
+		if target == nil {
+			time.Sleep(250 * time.Millisecond)
+			continue
+		}
+		path = astar(maze,&Coord{
+			Row: row,
+			Col: col,
+		},&Coord{
+			Row: target.Row,
+			Col: target.Col,
+		})
+		if len(path) > 2 {
+			t.sendPlaceCharAtCoordCondUndo('?',path[1].Row,path[1].Col,row,col,'?')
+			row = path[1].Row
+			col = path[1].Col
+		}
+		time.Sleep(250 * time.Millisecond)
+
+
 	}
 }
