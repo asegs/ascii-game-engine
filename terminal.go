@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 )
 
 type Direction rune
@@ -18,6 +19,7 @@ const RESET string = "\033[0m"
 
 type Context struct {
 	Format string
+	Modifiers [] string
 }
 
 type Recorded struct {
@@ -182,26 +184,82 @@ func (t * Terminal) undoAtPos(row int,col int){
 
 
 func initContext () * Context {
-	return &Context{Format: "\033["}
+	return &Context{
+		Format:    "",
+		Modifiers: make([] string,0),
+	}
 }
 
 func (ctx * Context) addSimpleStyle(styleConst int) * Context{
-	ctx.Format = ctx.Format + fmt.Sprintf("%d;",styleConst)
+	ctx.Modifiers = append(ctx.Modifiers,fmt.Sprintf("%d;",styleConst))
 	return ctx
 }
 
 func (ctx * Context) addRgbStyleFg(r int,g int,b int) * Context{
-	ctx.Format = ctx.Format + fmt.Sprintf("38;2;%d;%d;%d;",r,g,b)
+	ctx.Modifiers = append(ctx.Modifiers,fmt.Sprintf("38;2;%d;%d;%d;",r,g,b))
 	return ctx
 }
 
 func (ctx * Context) addRgbStyleBg(r int, g int,b int) * Context{
-	ctx.Format = ctx.Format + fmt.Sprintf("48;2;%d;%d;%d;",r,g,b)
+	ctx.Modifiers = append(ctx.Modifiers,fmt.Sprintf("48;2;%d;%d;%d;",r,g,b))
 	return ctx
 }
 
-func (ctx * Context) finish() * Context {
-	ctx.Format = ctx.Format[0:len(ctx.Format) - 1] + "m%s\033[0m"
+//only removes 1, maybe fine
+func (ctx * Context) removeRgbStyle (fg bool) * Context {
+	key := "38;2"
+	if !fg {
+		key = "48;2"
+	}
+	for i,modifier := range ctx.Modifiers {
+		if strings.Contains(modifier,key) {
+			if i == len(ctx.Modifiers) - 1 {
+				ctx.Modifiers = ctx.Modifiers[0:i]
+			}else {
+				ctx.Modifiers = append(ctx.Modifiers[0:i],ctx.Modifiers[i+1:]...)
+			}
+			return ctx
+		}
+	}
+	return ctx
+}
+
+func (ctx * Context) copyContext () * Context {
+	newMods := make([]string,len(ctx.Modifiers))
+	for i,modifier := range ctx.Modifiers {
+		newMods[i] = modifier
+	}
+	return &Context{
+		Format:    ctx.Format,
+		Modifiers: newMods,
+	}
+}
+
+func (ctx * Context) getColorInfo (fg bool) string {
+	key := "38;2"
+	if !fg {
+		key = "48;2"
+	}
+	for _,modifier := range ctx.Modifiers {
+		if strings.Contains(modifier,key) {
+			return modifier
+		}
+	}
+	return ""
+}
+
+func (ctx * Context) addStyleRaw (modifier string) * Context {
+	ctx.Modifiers = append(ctx.Modifiers,modifier)
+	return ctx
+}
+
+func (ctx * Context) compile () * Context{
+	newFmt := "\033["
+	for _,modifier := range ctx.Modifiers {
+		newFmt += modifier
+	}
+	newFmt = newFmt[0:len(newFmt) - 1] + "m%s\033[0m"
+	ctx.Format = newFmt
 	return ctx
 }
 
@@ -340,3 +398,5 @@ func (t * Terminal) handleRenders(){
 		custom(t)
 	}
 }
+
+

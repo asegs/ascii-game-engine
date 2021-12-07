@@ -39,7 +39,7 @@ func buildFrame(filename string) * Frame {
 		r := hexStrToDec(color[1:3])
 		g := hexStrToDec(color[3:5])
 		b := hexStrToDec(color[5:7])
-		colors[i] = initContext().addRgbStyleBg(r,g,b).finish()
+		colors[i] = initContext().addRgbStyleBg(r,g,b).compile()
 	}
 	return &Frame{
 		Colors: colors,
@@ -48,7 +48,7 @@ func buildFrame(filename string) * Frame {
 }
 
 func (t * Terminal) drawFrame (frame * Frame,y int,x int){
-	bg := initContext().addSimpleStyle(0).finish()
+	bg := initContext().addSimpleStyle(0).compile()
 	for i := y ; i < len(frame.Pixels) + y ; i ++ {
 		row := i
 		t.CustomFeed <- func(terminal *Terminal) {

@@ -67,5 +67,5 @@ func Write(filename string, body string) {
 		fmt.Println(err2.Error())
 	}
 
-	fmt.Printf("Wrote to file: %s\n", filename)
+	//fmt.Printf("Wrote to file: %s\n", filename)
 }

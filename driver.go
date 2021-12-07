@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strings"
 )
 
 const height int = 20
@@ -18,34 +17,19 @@ func (terminal * Terminal) drawPath(p []*Coord){
 	}
 }
 
-func getNthOccurrence (str string,substr string,n int) int{
-	deleted := 0
-	for i := 0; i < n ; i++ {
-		occurrenceIdx := strings.Index(str,substr)
-		if occurrenceIdx == -1 {
-			return -1
-		}
-		deleted += occurrenceIdx + len(substr)
-		str = str[occurrenceIdx + len(substr):]
-		if i == n-1 {
-			return deleted
-		}
-	}
-	//if it ever gets here...you did something insane (indexed by 1 here, not 0)
-	return -1
-}
 
 func composeNewContext (bg * Context,fg * Context) * Context {
-	bgIdx := strings.Index(bg.Format,"[48")
-	fgStartIdx := strings.Index(fg.Format,"[38;2;") + 1
-	fgEndIdx := getNthOccurrence(fg.Format,";",5) + 1
-	return &Context{Format: bg.Format[0:bgIdx] + fg.Format[fgStartIdx:fgEndIdx] + bg.Format[bgIdx:]}
+	newCtx := bg.copyContext()
+	newCtx.removeRgbStyle(true)
+	newCtx.addStyleRaw(fg.getColorInfo(true))
+	newCtx.compile()
+	return newCtx
 }
 
-func (terminal * Terminal) drawFgOverBg (row int,col int,zone * Zone,cursor * Context,oldX int,oldY int){
-	trueX,trueY := zone.getRealNewCoords(row,col)
-	oldStyle := terminal.DataHistory[trueY][trueX][terminal.Depth - 1].Format
+func (terminal * Terminal) drawFgOverBg(row int, col int, cursor *Context, oldX int, oldY int) {
+	oldStyle := terminal.DataHistory[row][col][terminal.Depth - 1].Format
 	composedStyle := composeNewContext(oldStyle,cursor)
+	Write("program.log",fmt.Sprintf("%v\n",composedStyle.Modifiers))
 	terminal.sendPlaceCharFormat('*',row,col,composedStyle,'*')
 	terminal.sendUndoAtLocationConditional(oldY,oldX,'*')
 }
@@ -53,12 +37,12 @@ func (terminal * Terminal) drawFgOverBg (row int,col int,zone * Zone,cursor * Co
 
 func main(){
 	input := initializeInput()
-	cursor := initContext().addRgbStyleFg(255,0,0).finish()
-	redBlock := initContext().addRgbStyleBg(255,0,0).finish()
-	blackBlock := initContext().addRgbStyleBg(0,0,0).finish()
-	greenBlock := initContext().addRgbStyleBg(0,255,0).finish()
-	blueBlock := initContext().addRgbStyleBg(0,0,255).finish()
-	clear := initContext().addSimpleStyle(0).finish()
+	cursor := initContext().addRgbStyleFg(255,0,0).compile()
+	redBlock := initContext().addRgbStyleBg(255,0,0).compile()
+	blackBlock := initContext().addRgbStyleBg(0,0,0).compile()
+	greenBlock := initContext().addRgbStyleBg(0,255,0).compile()
+	blueBlock := initContext().addRgbStyleBg(0,0,255).compile()
+	clear := initContext().addSimpleStyle(0).compile()
 	terminal := createTerminal(height,width,&Recorded{
 		Format: clear,
 		data: ' ',
@@ -103,7 +87,7 @@ func main(){
 			accepted := zoning.moveInDirection(dir)
 			if accepted {
 				newX,newY := mapZone.getRealCoords()
-				terminal.drawFgOverBg(newY,newX,mapZone,cursor,realX,realY)
+				terminal.drawFgOverBg(newY, newX, cursor, realX, realY)
 				//terminal.sendPlaceCharAtCoordCondUndo('*',newY,newX,realY,realX,'*')
 			}
 			continue
