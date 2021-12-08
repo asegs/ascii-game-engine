@@ -1,9 +1,11 @@
 Driver:
 -Allow toggling of build mode
 -Clear previous path before rendering new one
+-Send location also when within n tiles of hunter
 
 Face:
 -Allow different faces to be pushed over channel, can push bundle to loop over until another is received
+-I want to be able to do "face <- "expression"" and have it play that expression
 
 Map:
 -Create prefabbed map object
