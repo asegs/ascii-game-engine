@@ -83,7 +83,9 @@ func main(){
 	terminal.assoc('x',redBlock,' ')
 	terminal.assoc('?',hunter,'?')
 	
-	go follower(terminal)
+	//go follower(terminal)
+	polo := make(chan * Coord,1000)
+	go marcoPolo(terminal,polo,'0')
 	for {
 		dir = <- mapZone.Events
 		realX,realY := mapZone.getRealCoords()
@@ -139,24 +141,81 @@ func main(){
 				}
 			}
 			break
+		case 'e':
+			polo <- &Coord{
+				Row: realY,
+				Col: realX,
+			}
 		}
 	}
 }
 
 
 
-func follower (t * Terminal,polo chan * Coord) {
+func marcoPolo (t * Terminal,polo chan * Coord,validTerritory byte) {
 	row := 0
 	col := 0
 	path := make([] * Coord,0)
 	target := &Coord{}
+	target = nil
 	for true {
 		if len(polo) > 0 {
 			target = <- polo
-		}else {
-			target = t.getCoordsForCursor('*')
 		}
+
+		if target == nil {
+			time.Sleep(250 * time.Millisecond)
+			continue
+		}
+		//check if moving onto invalid
+		if len(path) >= 1 {
+			contentAtMove := t.DataHistory[path[0].Row][path[0].Col][t.Depth - 1]
+			if contentAtMove.code != validTerritory {
+				maze,_,_ := t.parseMazeFromCurrent('1','0','2','3')
+				path = astar(maze,&Coord{
+					Row: row,
+					Col: col,
+				},&Coord{
+					Row: target.Row,
+					Col: target.Col,
+				})
+				if len(path) > 1 {
+					path = path[1:]
+				}
+			}
+		}
+		if len(path) >= 2 {
+			t.sendPlaceCharAtCoordCondUndo('?',path[1].Row,path[1].Col,row,col,'?')
+			row = path[1].Row
+			col = path[1].Col
+			path = path[1:]
+		}else {
+			maze,_,_ := t.parseMazeFromCurrent('1','0','2','3')
+			path = astar(maze,&Coord{
+				Row: row,
+				Col: col,
+			},&Coord{
+				Row: target.Row,
+				Col: target.Col,
+			})
+			if len(path) > 1 {
+				path = path[1:]
+			}
+		}
+		time.Sleep(250 * time.Millisecond)
+
+
+	}
+}
+
+
+func follower (t * Terminal) {
+	row := 0
+	col := 0
+	path := make([] * Coord,0)
+	for true {
 		maze,_,_ := t.parseMazeFromCurrent('1','0','2','3')
+		target := t.getCoordsForCursor('*')
 		if target == nil {
 			time.Sleep(250 * time.Millisecond)
 			continue
