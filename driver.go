@@ -158,9 +158,11 @@ func marcoPolo (t * Terminal,polo chan * Coord,validTerritory byte) {
 	path := make([] * Coord,0)
 	target := &Coord{}
 	target = nil
+	newTarget := false
 	for true {
 		if len(polo) > 0 {
 			target = <- polo
+			newTarget = true
 		}
 
 		if target == nil {
@@ -170,7 +172,10 @@ func marcoPolo (t * Terminal,polo chan * Coord,validTerritory byte) {
 		//check if moving onto invalid
 		if len(path) >= 1 {
 			contentAtMove := t.DataHistory[path[0].Row][path[0].Col][t.Depth - 1]
-			if contentAtMove.code != validTerritory {
+			if contentAtMove.code != validTerritory || newTarget{
+				if newTarget {
+					newTarget = false
+				}
 				maze,_,_ := t.parseMazeFromCurrent('1','0','2','3')
 				path = astar(maze,&Coord{
 					Row: row,
@@ -185,9 +190,9 @@ func marcoPolo (t * Terminal,polo chan * Coord,validTerritory byte) {
 			}
 		}
 		if len(path) >= 2 {
-			t.sendPlaceCharAtCoordCondUndo('?',path[1].Row,path[1].Col,row,col,'?')
-			row = path[1].Row
-			col = path[1].Col
+			t.sendPlaceCharAtCoordCondUndo('?',path[0].Row,path[0].Col,row,col,'?')
+			row = path[0].Row
+			col = path[0].Col
 			path = path[1:]
 		}else {
 			maze,_,_ := t.parseMazeFromCurrent('1','0','2','3')
