@@ -73,3 +73,7 @@ func (n * Network) readUDPConn () {
 		}
 	}
 }
+
+func (n * Network) broadcast (char byte) {
+	n.Outbound <- string(char)
+}
