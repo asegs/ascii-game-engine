@@ -16,6 +16,7 @@ const (
 	MOVE_UP = 128
 	BACKSPACE = 127
 	BACKSLASH = 92
+	TAB = 9
 )
 const LOCAL_PORT int = 0
 
