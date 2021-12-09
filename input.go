@@ -22,6 +22,15 @@ type StdIn struct {
 	events chan byte
 }
 
+type NetworkedMsg struct {
+	Msg byte
+	From int
+}
+
+type NetworkedStdIn struct {
+	events chan * NetworkedMsg
+}
+
 func tput(arg string) error {
 	cmd := exec.Command("tput", arg)
 	cmd.Stdout = os.Stdout
@@ -41,6 +50,20 @@ func initializeInput() * StdIn {
 	go input.scanForInput()
 	return input
 
+}
+
+func initializeNetworkedInput () * NetworkedStdIn {
+	exec.Command("stty", "-F", "/dev/tty", "cbreak", "min", "1").Run()
+	// do not display entered characters on the screen
+	exec.Command("stty", "-F", "/dev/tty", "-echo").Run()
+	err := tput("civis")
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	scanner := make(chan * NetworkedMsg,1000)
+	input := &NetworkedStdIn{events: scanner}
+	go input.scanForInput()
+	return input
 }
 
 
@@ -74,6 +97,42 @@ func (s * StdIn) scanForInput(){
 			ranksToMovement = 0
 		}else{
 			s.events <- c
+		}
+	}
+}
+
+func (ns * NetworkedStdIn) scanForInput(){
+	// restore the echoing state when exiting
+	defer exec.Command("stty", "-F", "/dev/tty", "echo").Run()
+	defer exec.Command("clear").Run()
+	defer func() {
+		err := tput("cnorm")
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+	}()
+	var buf = make([]byte, 1)
+	var c byte
+
+	ranksToMovement := 0
+	for true{
+		os.Stdin.Read(buf)
+		c = buf[0]
+		if c == ESCAPE{
+			ranksToMovement ++
+		}else if c == BRACKET && ranksToMovement == 1{
+			ranksToMovement ++
+		}else if ranksToMovement == 2 && 65 <= c && c <= 68{
+			ns.events <- &NetworkedMsg{
+				Msg:  c + 63,
+				From: 0,
+			}
+			ranksToMovement = 0
+		}else{
+			ns.events <- &NetworkedMsg{
+				Msg:  c,
+				From: 0,
+			}
 		}
 	}
 }
