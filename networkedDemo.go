@@ -21,7 +21,12 @@ func (terminal * Terminal) drawFgOverBg(row int, col int, cursor *Context, oldX 
 }
 
 func main () {
-	input := initializeNetworkedInput()
+	input := initializeInput()
+	network,err := initNetwork(10001,input)
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
 	cursor := initContext().addRgbStyleFg(255,0,0).compile()
 	redBlock := initContext().addRgbStyleBg(255,0,0).compile()
 	blackBlock := initContext().addRgbStyleBg(0,0,0).compile()
@@ -40,7 +45,7 @@ func main () {
 		fmt.Println("creating map error: " + err.Error())
 		return
 	}
-	err = zoning.cursorEnterZone(mapZone)
+	err = zoning.cursorEnterZone(mapZone,0)
 	if err != nil {
 		fmt.Println("error entering zone: " + err.Error())
 	}
@@ -57,7 +62,6 @@ func main () {
 	exps[1] = "open"
 	face := buildFace(exps,faces,"guy")
 	go terminal.cycleExpressions(face,exps,600,-1,faceZone)
-	var dir byte
 	var path []*Coord
 	path = nil
 	terminal.assoc('0',clear,' ')
@@ -67,4 +71,12 @@ func main () {
 	terminal.assoc('*',cursor,'*')
 	terminal.assoc('x',redBlock,' ')
 	terminal.assoc('?',hunter,'?')
+
+	var dir * NetworkedMsg
+	for {
+		dir = <- mapZone.Events
+		if dir.From == LOCAL_PORT {
+			network.broadcast(dir.Msg)
+		}
+	}
 }
