@@ -9,8 +9,8 @@ type Zoning struct {
 	Zones [] * Zone
 	Height int
 	Width int
-	CursorZone * Zone
-	Input * StdIn
+	CursorZoneMap map[int] * Zone
+	Input * NetworkedStdIn
 }
 
 type Zone struct {
@@ -19,17 +19,16 @@ type Zone struct {
 	Height int
 	Width int
 	CursorAllowed bool
-	Events chan byte
-	CursorY int
-	CursorX int
+	Events chan * NetworkedMsg
+	CursorMap map[int] * Coord
 }
 
-func initZones (height int,width int, input * StdIn) * Zoning{
+func initZones (height int,width int, input * NetworkedStdIn) * Zoning{
 	z := &Zoning{
 		Zones:  make([] * Zone, 0),
 		Height: height,
 		Width:  width,
-		CursorZone: nil,
+		CursorZoneMap: make(map[int] * Zone),
 		Input: input,
 	}
 	go z.pipeToZone()
@@ -47,9 +46,8 @@ func (z * Zoning) createZone (Y int, X int, Height int, Width int, CursorAllowed
 		Height:        Height,
 		Width:         Width,
 		CursorAllowed: CursorAllowed,
-		Events: make(chan byte,1000),
-		CursorY: 0,
-		CursorX: 0,
+		Events: make(chan * NetworkedMsg,1000),
+		CursorMap: make(map[int] * Coord),
 	}
 	if Y + Height > z.Height || Y < 0 || X + Width > z.Width || X < 0 {
 		return nil,errors.New("zone does not fit into terminal")
@@ -64,80 +62,107 @@ func (z * Zoning) createZone (Y int, X int, Height int, Width int, CursorAllowed
 	return newZone,nil
 }
 
-func (z * Zoning) cursorEnterZone(zone * Zone) error {
+
+
+func (z * Zoning) cursorEnterZone(zone * Zone,port int) error {
 	if zone == nil {
 		return errors.New("bad zone")
 	}
 	if !zone.CursorAllowed {
 		return errors.New("cursor not allowed in zone")
 	}
-	z.CursorZone = zone
+	z.CursorZoneMap[port] = zone
 	return nil
 }
 
 func (z * Zoning) pipeToZone () {
-	z.waitUntilZoneLoaded()
+	var e * NetworkedMsg
 	for true {
-		z.CursorZone.Events <- <- z.Input.events
+		e = <- z.Input.events
+		z.waitUntilZoneLoaded(e.From)
+		z.CursorZoneMap[e.From].Events <- e
 	}
 }
 
-func (z * Zone) getRealCoords () (int,int) {
-	return z.X + z.CursorX,z.Y + z.CursorY
+func (z * Zone) getRealCoords (port int) (int,int) {
+	var loc *Coord
+	if val, ok := z.CursorMap[port]; ok {
+		loc = val
+	}else {
+		z.CursorMap[port] = &Coord{
+			Row: 0,
+			Col: 0,
+		}
+		loc = z.CursorMap[port]
+	}
+	return z.X + loc.Col,z.Y + loc.Row
 }
 
 func (z * Zone) getRealNewCoords (x int,y int) (int,int) {
 	return z.X + x,z.Y +y
 }
 
-func (z * Zoning) getValidCursorMove (x int, y int) (bool,int,int) {
-	z.waitUntilZoneLoaded()
-	realX,realY := z.CursorZone.getRealNewCoords(x,y)
+func (z * Zoning) getValidCursorMove (x int, y int,port int) (bool,int,int) {
+	z.waitUntilZoneLoaded(port)
+	zone := z.CursorZoneMap[port]
+	realX,realY := zone.getRealNewCoords(x,y)
 	forcedX,forcedY := realX,realY
-	if realX < z.CursorZone.X {
-		forcedX = z.CursorZone.X
-	} else if x >= z.CursorZone.X + z.CursorZone.Width {
-		forcedX = z.CursorZone.X + z.CursorZone.Width - 1
+	if realX < zone.X {
+		forcedX = zone.X
+	} else if x >= zone.X + zone.Width {
+		forcedX = zone.X + zone.Width - 1
 	}
-	if y < z.CursorZone.Y {
-		forcedY = z.CursorZone.Y
-	} else if y >= z.CursorZone.Y + z.CursorZone.Height {
-		forcedY = z.CursorZone.Y + z.CursorZone.Height - 1
+	if y < zone.Y {
+		forcedY = zone.Y
+	} else if y >= zone.Y + zone.Height {
+		forcedY = zone.Y + zone.Height - 1
 	}
 	if realX == forcedX && realY == forcedY {
 		return true,x,y
 	}
-	return false,forcedX - z.CursorZone.X,forcedY - z.CursorZone.Y
+	return false,forcedX - zone.X,forcedY - zone.Y
 }
 
-func (z * Zoning) waitUntilZoneLoaded () {
-	for z.CursorZone == nil {
+func (z * Zoning) waitUntilZoneLoaded (port int) {
+	for z.CursorZoneMap[port] == nil {
 		time.Sleep(10 * time.Millisecond)
 	}
 }
 
-func (z * Zone) moveToCoord (x int, y int) {
-	z.CursorX = x
-	z.CursorY = y
+func (z * Zone) moveToCoord (x int, y int,port int) {
+	z.CursorMap[port].Col = x
+	z.CursorMap[port].Row = y
 }
 
-func (z * Zoning) moveInDirection (direction byte) bool {
+func (z * Zoning) moveInDirection (direction byte,port int) bool {
+	z.waitUntilZoneLoaded(port)
 	moveAccepted,newX,newY := false,0,0
-	switch direction {
-	case MOVE_LEFT:
-		moveAccepted,newX,newY = z.getValidCursorMove(z.CursorZone.CursorX - 1,z.CursorZone.CursorY)
-		break
-	case MOVE_RIGHT:
-		moveAccepted,newX,newY = z.getValidCursorMove(z.CursorZone.CursorX + 1,z.CursorZone.CursorY)
-		break
-	case MOVE_UP:
-		moveAccepted,newX,newY = z.getValidCursorMove(z.CursorZone.CursorX,z.CursorZone.CursorY-1)
-		break
-	case MOVE_DOWN:
-		moveAccepted,newX,newY = z.getValidCursorMove(z.CursorZone.CursorX,z.CursorZone.CursorY+1)
-		break
+	var loc * Coord
+	zone := z.CursorZoneMap[port]
+	if val, ok := zone.CursorMap[port]; ok {
+		loc = val
+	}else {
+		zone.CursorMap[port] = &Coord{
+			Row: 0,
+			Col: 0,
+		}
+		loc = zone.CursorMap[port]
 	}
-	z.CursorZone.CursorX = newX
-	z.CursorZone.CursorY = newY
+	switch direction {
+		case MOVE_LEFT:
+			moveAccepted,newX,newY = z.getValidCursorMove(loc.Col - 1,loc.Row,port)
+			break
+		case MOVE_RIGHT:
+			moveAccepted,newX,newY = z.getValidCursorMove(loc.Col + 1,loc.Row,port)
+			break
+		case MOVE_UP:
+			moveAccepted,newX,newY = z.getValidCursorMove(loc.Col,loc.Row-1,port)
+			break
+		case MOVE_DOWN:
+			moveAccepted,newX,newY = z.getValidCursorMove(loc.Col,loc.Row+1,port)
+			break
+	}
+	loc.Col = newX
+	loc.Row = newY
 	return moveAccepted
 }
