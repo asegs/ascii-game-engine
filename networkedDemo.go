@@ -41,6 +41,11 @@ func main () {
 		fmt.Println(err.Error())
 		return
 	}
+	err = network.addConnection([]byte{192,168,1,129})
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
 	cursor := initContext().addRgbStyleFg(255,0,0).compile()
 	redBlock := initContext().addRgbStyleBg(255,0,0).compile()
 	blackBlock := initContext().addRgbStyleBg(0,0,0).compile()
@@ -85,13 +90,21 @@ func main () {
 	terminal.assoc('*',cursor,'*')
 	terminal.assoc('x',redBlock,' ')
 	terminal.assoc('?',hunter,'?')
-
+	go follower(terminal)
 	var dir * NetworkedMsg
 	for {
 		dir = <- mapZone.Events
 		if dir.From == LOCAL_PORT {
 			network.broadcast(dir.Msg)
 		}
+		if dir.Msg == TAB {
+			err := zoning.cursorEnterZone(mapZone,dir.From)
+			if err != nil {
+				//do something
+			}
+			continue
+		}
+
 		realX,realY := mapZone.getRealCoords(dir.From)
 		if 128 <= dir.Msg && dir.Msg <= 131 {
 			accepted := zoning.moveInDirection(dir.Msg,dir.From)
@@ -103,53 +116,48 @@ func main () {
 		}
 		switch dir.Msg {
 		case '1':
-			if terminal.DataHistory[realY][realX][terminal.Depth - 2].code == '1'{
-				terminal.sendPlaceCharAtCoord('0',realY,realX)
-			}else{
-				terminal.sendPlaceCharAtCoord('1',realY,realX)
+			if terminal.DataHistory[realY][realX][terminal.Depth-2].code == '1' {
+				terminal.sendPlaceCharAtCoord('0', realY, realX)
+			} else {
+				terminal.sendPlaceCharAtCoord('1', realY, realX)
 			}
 			break
 		case '2':
-			if terminal.DataHistory[realY][realX][terminal.Depth - 2].code == '2'{
-				terminal.sendPlaceCharAtCoord('0',realY,realX)
-			}else{
-				terminal.sendPlaceCharAtCoord('2',realY,realX)
+			if terminal.DataHistory[realY][realX][terminal.Depth-2].code == '2' {
+				terminal.sendPlaceCharAtCoord('0', realY, realX)
+			} else {
+				terminal.sendPlaceCharAtCoord('2', realY, realX)
 			}
 			break
 		case '3':
-			if terminal.DataHistory[realY][realX][terminal.Depth - 2].code == '3'{
-				terminal.sendPlaceCharAtCoord('0',realY,realX)
-			}else{
-				terminal.sendPlaceCharAtCoord('3',realY,realX)
+			if terminal.DataHistory[realY][realX][terminal.Depth-2].code == '3' {
+				terminal.sendPlaceCharAtCoord('0', realY, realX)
+			} else {
+				terminal.sendPlaceCharAtCoord('3', realY, realX)
 			}
 			break
 		case ENTER:
-			if path != nil{
+			if path != nil {
 				terminal.erasePath(path)
 				path = nil
 			}
-			maze,start,end := terminal.parseMazeFromCurrent('1','0','2','3')
-			path = astar(maze,start,end)
+			maze, start, end := terminal.parseMazeFromCurrent('1', '0', '2', '3')
+			path = astar(maze, start, end)
 			terminal.drawPath(path)
 			break
 		case BACKSLASH:
-			if path != nil{
+			if path != nil {
 				terminal.erasePath(path)
 				path = nil
 			}
 			break
 		case BACKSPACE:
-			for i := mapZone.Y;i<mapZone.Y + mapZone.Height;i++{
-				for b := mapZone.X;b<mapZone.X + mapZone.Width;b++{
-					terminal.sendPlaceCharAtCoord('0',i,b)
+			for i := mapZone.Y; i < mapZone.Y+mapZone.Height; i++ {
+				for b := mapZone.X; b < mapZone.X+mapZone.Width; b++ {
+					terminal.sendPlaceCharAtCoord('0', i, b)
 				}
 			}
 			break
-		case TAB:
-			err := zoning.cursorEnterZone(mapZone,dir.From)
-			if err != nil {
-				//do something
-			}
 		}
 	}
 }
