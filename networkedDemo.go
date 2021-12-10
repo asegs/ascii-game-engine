@@ -1,9 +1,23 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 const height int = 40
 const width int = 100
+
+func (terminal * Terminal) erasePath(p []*Coord){
+	for i := 1;i<len(p) - 1;i++{
+		terminal.sendUndoAtLocationConditional(p[i].Row,p[i].Col,'x')
+	}
+}
+func (terminal * Terminal) drawPath(p []*Coord){
+	for i := 1;i<len(p) - 1;i++{
+		terminal.sendPlaceCharAtCoord('x',p[i].Row,p[i].Col)
+	}
+}
 
 func composeNewContext (bg * Context,fg * Context) * Context {
 	newCtx := bg.copyContext()
@@ -78,5 +92,94 @@ func main () {
 		if dir.From == LOCAL_PORT {
 			network.broadcast(dir.Msg)
 		}
+		realX,realY := mapZone.getRealCoords(dir.From)
+		if 128 <= dir.Msg && dir.Msg <= 131 {
+			accepted := zoning.moveInDirection(dir.Msg,dir.From)
+			if accepted {
+				newX,newY := mapZone.getRealCoords(dir.From)
+				terminal.drawFgOverBg(newY, newX, cursor, realX, realY)
+			}
+			continue
+		}
+		switch dir.Msg {
+		case '1':
+			if terminal.DataHistory[realY][realX][terminal.Depth - 2].code == '1'{
+				terminal.sendPlaceCharAtCoord('0',realY,realX)
+			}else{
+				terminal.sendPlaceCharAtCoord('1',realY,realX)
+			}
+			break
+		case '2':
+			if terminal.DataHistory[realY][realX][terminal.Depth - 2].code == '2'{
+				terminal.sendPlaceCharAtCoord('0',realY,realX)
+			}else{
+				terminal.sendPlaceCharAtCoord('2',realY,realX)
+			}
+			break
+		case '3':
+			if terminal.DataHistory[realY][realX][terminal.Depth - 2].code == '3'{
+				terminal.sendPlaceCharAtCoord('0',realY,realX)
+			}else{
+				terminal.sendPlaceCharAtCoord('3',realY,realX)
+			}
+			break
+		case ENTER:
+			if path != nil{
+				terminal.erasePath(path)
+				path = nil
+			}
+			maze,start,end := terminal.parseMazeFromCurrent('1','0','2','3')
+			path = astar(maze,start,end)
+			terminal.drawPath(path)
+			break
+		case BACKSLASH:
+			if path != nil{
+				terminal.erasePath(path)
+				path = nil
+			}
+			break
+		case BACKSPACE:
+			for i := mapZone.Y;i<mapZone.Y + mapZone.Height;i++{
+				for b := mapZone.X;b<mapZone.X + mapZone.Width;b++{
+					terminal.sendPlaceCharAtCoord('0',i,b)
+				}
+			}
+			break
+		case TAB:
+			err := zoning.cursorEnterZone(mapZone,dir.From)
+			if err != nil {
+				//do something
+			}
+		}
+	}
+}
+
+
+func follower (t * Terminal) {
+	row := 0
+	col := 0
+	path := make([] * Coord,0)
+	for true {
+		maze,_,_ := t.parseMazeFromCurrent('1','0','2','3')
+		target := t.getCoordsForCursor('*')
+		if target == nil {
+			time.Sleep(250 * time.Millisecond)
+			continue
+		}
+		path = astar(maze,&Coord{
+			Row: row,
+			Col: col,
+		},&Coord{
+			Row: target.Row,
+			Col: target.Col,
+		})
+		if len(path) > 2 {
+			t.sendPlaceCharAtCoordCondUndo('?',path[1].Row,path[1].Col,row,col,'?')
+			row = path[1].Row
+			col = path[1].Col
+		}
+		time.Sleep(250 * time.Millisecond)
+
+
 	}
 }
