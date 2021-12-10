@@ -11,7 +11,7 @@ type Message struct {
 }
 
 type Network struct {
-	Outbound chan string
+	Outbound chan byte
 	Connections [] * net.UDPConn
 	Port int
 	Input * NetworkedStdIn
@@ -24,7 +24,7 @@ func initNetwork (port int,input * NetworkedStdIn) (* Network,error) {
 		return nil,err
 	}
 	network := &Network{
-		Outbound:    make(chan string, 1000),
+		Outbound:    make(chan byte, 1000),
 		Connections: make([] * net.UDPConn,0),
 		Port: port,
 		Input: input,
@@ -49,12 +49,14 @@ func (n * Network) addConnection (IP [] byte) error {
 }
 
 func (n * Network) sendToConnections () {
-	var message string
+	var message byte
+	fmtMessage := make([]byte,1)
 	for true {
 		message = <- n.Outbound
+		fmtMessage[0] = message
 		for _,conn := range n.Connections {
 			//returns number of chars sent, err
-			_,err := conn.Write([]byte(message))
+			_,err := conn.Write(fmtMessage)
 			if err != nil {
 				fmt.Println(err.Error())
 			}
@@ -82,5 +84,5 @@ func (n * Network) readUDPConn () {
 }
 
 func (n * Network) broadcast (char byte) {
-	n.Outbound <- string(char)
+	n.Outbound <- char
 }
