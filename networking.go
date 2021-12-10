@@ -1,6 +1,9 @@
 package main
 
-import "net"
+import (
+	"fmt"
+	"net"
+)
 
 type Message struct {
 	Text string
@@ -28,6 +31,7 @@ func initNetwork (port int,input * NetworkedStdIn) (* Network,error) {
 		Server: ServerConn,
 	}
 	go network.sendToConnections()
+	go network.readUDPConn()
 	return network,nil
 }
 
@@ -50,7 +54,10 @@ func (n * Network) sendToConnections () {
 		message = <- n.Outbound
 		for _,conn := range n.Connections {
 			//returns number of chars sent, err
-			_,_ = conn.Write([]byte(message))
+			_,err := conn.Write([]byte(message))
+			if err != nil {
+				fmt.Println(err.Error())
+			}
 		}
 	}
 }
