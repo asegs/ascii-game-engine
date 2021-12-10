@@ -68,6 +68,7 @@ func main () {
 	if err != nil {
 		fmt.Println("error entering zone: " + err.Error())
 	}
+	zoning.setDefaultZone(mapZone)
 	faceZone,err := zoning.createZone(0,width - 20,10,20,false)
 	if err != nil {
 		fmt.Println("creating faces error: " + err.Error())

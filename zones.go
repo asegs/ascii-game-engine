@@ -11,6 +11,7 @@ type Zoning struct {
 	Width int
 	CursorZoneMap map[int] * Zone
 	Input * NetworkedStdIn
+	Default * Zone
 }
 
 type Zone struct {
@@ -30,6 +31,7 @@ func initZones (height int,width int, input * NetworkedStdIn) * Zoning{
 		Width:  width,
 		CursorZoneMap: make(map[int] * Zone),
 		Input: input,
+		Default: nil,
 	}
 	go z.pipeToZone()
 	return z
@@ -124,8 +126,16 @@ func (z * Zoning) getValidCursorMove (x int, y int,port int) (bool,int,int) {
 }
 
 func (z * Zoning) waitUntilZoneLoaded (port int) {
-	for z.CursorZoneMap[port] == nil {
-		time.Sleep(10 * time.Millisecond)
+
+	for true{
+		if _, ok := z.CursorZoneMap[port]; ok || z.Default != nil {
+			if !ok {
+				z.CursorZoneMap[port] = z.Default
+			}
+			return
+		}else{
+			time.Sleep(10 * time.Millisecond)
+		}
 	}
 }
 
@@ -165,4 +175,8 @@ func (z * Zoning) moveInDirection (direction byte,port int) bool {
 	loc.Col = newX
 	loc.Row = newY
 	return moveAccepted
+}
+
+func (z * Zoning) setDefaultZone (zone * Zone) {
+	z.Default = zone
 }
