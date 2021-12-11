@@ -9,4 +9,5 @@ Main Features:
  - Symbolic Mapping for Maps
  - Concurrent Input Handling and Display ✅
  - No Dependencies
- - Easy networking over UDP
+ - Easy P2P networking over UDP ✅
+ - Support for audio and sound effects
