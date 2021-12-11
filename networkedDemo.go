@@ -163,6 +163,22 @@ func main () {
 	}
 }
 
+func getClosestCoords(coords [] * Coord,me * Coord) * Coord{
+	if len(coords) == 0 {
+		return nil
+	}
+	closestDistance := pythagDistance(coords[0],me)
+	closestIdx := 0
+	for i := 1 ; i < len(coords) ; i ++ {
+		newDist := pythagDistance(coords[i],me)
+		if newDist < closestDistance {
+			closestDistance = newDist
+			closestIdx = i
+		}
+	}
+	return coords[closestIdx]
+}
+
 
 func follower (t * Terminal) {
 	row := 0
@@ -170,7 +186,11 @@ func follower (t * Terminal) {
 	path := make([] * Coord,0)
 	for true {
 		maze,_,_ := t.parseMazeFromCurrent('1','0','2','3')
-		target := t.getCoordsForCursor('*')
+		targets := t.getCoordsForCursor('*')
+		target := getClosestCoords(targets,&Coord{
+			Row: row,
+			Col: col,
+		})
 		if target == nil {
 			time.Sleep(250 * time.Millisecond)
 			continue

@@ -399,18 +399,20 @@ func (t * Terminal) handleRenders(){
 	}
 }
 
-func (t * Terminal) getCoordsForCursor(cursor byte) * Coord{
+func (t * Terminal) getCoordsForCursor(cursor byte) [] * Coord{
+	cursors := make([] * Coord,0)
 	for row,items := range t.DataHistory {
 		for col, item := range items {
 			if item[t.Depth - 1].code == cursor {
-				return &Coord{
+				cursors = append(cursors,&Coord{
 					Row: row,
 					Col: col,
-				}
+				})
 			}
 		}
 	}
-	return nil
+	return cursors
 }
+
 
 
