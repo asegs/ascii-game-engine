@@ -5,11 +5,6 @@ import (
 	"net"
 )
 
-type Message struct {
-	Text string
-	Addr * net.UDPAddr
-}
-
 type Network struct {
 	Outbound chan byte
 	Connections [] * net.UDPConn
