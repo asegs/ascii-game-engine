@@ -1,7 +1,7 @@
 //The width (horizontal number of tiles) in the editor
-const width = 20;
+const width = 30;
 //The height (vertical number of tiles) in the editor
-const height = 10;
+const height = 15;
 //The horizontal width of each tile
 const xDim = 20;
 //The vertical height of each tile
@@ -18,6 +18,30 @@ let x = 0;
 let y = 0;
 //Controls if moving the selected tile draws that color (try it out!)
 let toggled = false;
+
+const Frame = (name) => {
+    const bgs = new Array(height);
+    const fgs = new Array(height);
+    const txt = new Array(height);
+    const colors = [];
+    for (let i = 0; i < height ; i++) {
+        bgs[i] = new Array(width);
+        fgs[i] = new Array(width);
+        txt[i] = new Array(width)
+        for (let b = 0 ; b < width ; b++) {
+            bgs[i] = -1;
+            fgs[i] = -1;
+            txt[i] = ' ';
+        }
+    }
+    return {
+        name:name,
+        colors: colors,
+        bgs:bgs,
+        fgs:fgs,
+        txt:txt
+    }
+}
 
 /*
 Draws the initial black lined grid of tiles on a canvas (ctx)

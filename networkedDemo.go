@@ -59,7 +59,7 @@ func main () {
 		code: '0',
 	},4)
 	zoning := initZones(height,width,input)
-	mapZone,err := zoning.createZone(0,0,height,width - 20,true)
+	mapZone,err := zoning.createZone(0,0,height,width - 30,true)
 	if err != nil {
 		fmt.Println("creating map error: " + err.Error())
 		return
@@ -69,7 +69,7 @@ func main () {
 		fmt.Println("error entering zone: " + err.Error())
 	}
 	zoning.setDefaultZone(mapZone)
-	faceZone,err := zoning.createZone(0,width - 20,10,20,false)
+	faceZone,err := zoning.createZone(0,width - 30,15,20,false)
 	if err != nil {
 		fmt.Println("creating faces error: " + err.Error())
 		return
