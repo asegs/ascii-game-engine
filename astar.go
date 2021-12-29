@@ -8,6 +8,7 @@ import (
 
 type TileType int
 
+//Defines what the types of a maze tile can be.
 const (
 	FREE TileType = iota
 	WALL
@@ -15,19 +16,38 @@ const (
 	END
 )
 
+//Used for generating biotic maps, how many erosion cycles are made.
+//Move to map gen package
 const EROSIONS int = 10
+//If a tile has less than MIN_TO_ERODE neighbors, it is cleared.
 const MIN_TO_ERODE int= 2
+//If a tile has more than MAX_TO_ERODE neighbors, it is filled.
 const MAX_TO_ERODE int = 4
+
+//If the path can include diagonal movements.
 const DIAG bool = false
 
+//The source of map generation randomness.
 var source = rand.NewSource(time.Now().UnixNano())
+//The random object used.
 var random = rand.New(source)
 
+//A holder for a map coordinate.
 type Coord struct {
 	Row int
 	Col int
 }
 
+/**
+A PriorityQueue Node that tracks a lot of state:
+PathParent: The Node on the map that led to this Node.
+Arrival: How many steps from the start Node it was to this Node.
+Remaining: The heuristic estimate of how many more steps will be needed to reach the end Node.
+Pos: The Coord position of the Node on the map.
+Left: The Node to the left on the PriorityQueue tree.
+Right: The Node to the right on the PriorityQueue tree.
+GraphParent: The parent Node on the PriorityQueue tree of this Node.
+ */
 type Node struct {
 	PathParent * Node
 	Arrival int
@@ -38,35 +58,25 @@ type Node struct {
 	GraphParent * Node
 }
 
+//Just a wrapper for a Head Node.
 type PriorityQueue struct {
 	 Head * Node
 }
 
+/**
+A representation of a map tile:
+Pos: The coordinates of the Tile.
+Type: The TileType (FREE,WALL,START,END) of the Tile.
+Visited: If the Tile has already been visited.
+ */
 type Tile struct {
 	Pos * Coord
 	Type TileType
 	Visited bool
 }
 
-var terms4Axis = [4]*Coord{
-	{
-		Row: 0,
-		Col: -1,
-	},
-	{
-		Row: -1,
-		Col: 0,
-	},
-	{
-		Row: 0,
-		Col: 1,
-	},
-	{
-		Row: 1,
-		Col: 0,
-	},
-}
-
+//The possible moves that a path could take given diagonal movement.
+//The first four are only lateral moves.
 var terms8Axis = [8] * Coord{
 	{
 		Row: 0,
