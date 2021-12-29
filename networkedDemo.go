@@ -10,7 +10,7 @@ const width int = 100
 
 func (terminal * Terminal) erasePath(p []*Coord){
 	for i := 1;i<len(p) - 1;i++{
-		terminal.sendUndoAtLocationConditional(p[i].Row,p[i].Col,'x')
+		terminal.sendUndoAtLocationConditional(p[i].Row,p[i].Col,'x',true)
 	}
 }
 func (terminal * Terminal) drawPath(p []*Coord){
@@ -31,7 +31,7 @@ func (terminal * Terminal) drawFgOverBg(row int, col int, cursor *Context, oldX 
 	oldStyle := terminal.DataHistory[row][col][terminal.Depth - 1].Format
 	composedStyle := composeNewContext(oldStyle,cursor)
 	terminal.sendPlaceCharFormat('*',row,col,composedStyle,'*')
-	terminal.sendUndoAtLocationConditional(oldY,oldX,'*')
+	terminal.sendUndoAtLocationConditional(oldY,oldX,'*',true)
 }
 
 func main () {
@@ -55,9 +55,9 @@ func main () {
 	clear := initContext().addSimpleStyle(0).compile()
 	terminal := createTerminal(height,width,&Recorded{
 		Format: clear,
-		data: ' ',
-		code: '0',
-	},4)
+		ShownSymbol: ' ',
+		BackgroundCode: '0',
+	},8)
 	zoning := initZones(height,width,input)
 	mapZone,err := zoning.createZone(0,0,height,width - 30,true)
 	if err != nil {
@@ -117,21 +117,21 @@ func main () {
 		}
 		switch dir.Msg {
 		case '1':
-			if terminal.DataHistory[realY][realX][terminal.Depth-2].code == '1' {
+			if terminal.DataHistory[realY][realX][terminal.Depth-2].BackgroundCode == '1' {
 				terminal.sendPlaceCharAtCoord('0', realY, realX)
 			} else {
 				terminal.sendPlaceCharAtCoord('1', realY, realX)
 			}
 			break
 		case '2':
-			if terminal.DataHistory[realY][realX][terminal.Depth-2].code == '2' {
+			if terminal.DataHistory[realY][realX][terminal.Depth-2].BackgroundCode == '2' {
 				terminal.sendPlaceCharAtCoord('0', realY, realX)
 			} else {
 				terminal.sendPlaceCharAtCoord('2', realY, realX)
 			}
 			break
 		case '3':
-			if terminal.DataHistory[realY][realX][terminal.Depth-2].code == '3' {
+			if terminal.DataHistory[realY][realX][terminal.Depth-2].BackgroundCode == '3' {
 				terminal.sendPlaceCharAtCoord('0', realY, realX)
 			} else {
 				terminal.sendPlaceCharAtCoord('3', realY, realX)
@@ -203,7 +203,7 @@ func follower (t * Terminal) {
 			Col: target.Col,
 		})
 		if len(path) > 2 {
-			t.sendPlaceCharAtCoordCondUndo('?',path[1].Row,path[1].Col,row,col,'?')
+			t.sendPlaceCharAtCoordCondUndo('?',path[1].Row,path[1].Col,row,col,'?',true)
 			row = path[1].Row
 			col = path[1].Col
 		}

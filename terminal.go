@@ -24,8 +24,8 @@ type Context struct {
 
 type Recorded struct {
 	Format * Context
-	data byte
-	code byte
+	ShownSymbol byte
+	BackgroundCode byte
 }
 
 type Terminal struct {
@@ -136,6 +136,7 @@ func (t * Terminal) printRender(message string,txtLen int){
 	t.moveCursor(txtLen,LEFT)
 }
 
+//all written text will not have a background ID symbol
 func (t * Terminal) trimAndUpdateString(style * Context, text string) string{
 	over := len(text) + t.Col - (t.Width - 1)
 	if over > 0{
@@ -144,8 +145,8 @@ func (t * Terminal) trimAndUpdateString(style * Context, text string) string{
 	for i := 0;i<len(text);i++{
 		t.updateAtPos(t.Row,t.Col + i,&Recorded{
 			Format: style,
-			data:   text[i],
-			code: text[i],
+			ShownSymbol:   text[i],
+			BackgroundCode: ' ',
 		})
 	}
 	return text
@@ -175,7 +176,7 @@ func (t * Terminal) undoAtPos(row int,col int){
 	}
 	t.Col ++
 	var character [1] byte
-	character[0] = t.DataHistory[row][col][t.Depth - 1].data
+	character[0] = t.DataHistory[row][col][t.Depth - 1].ShownSymbol
 	fmt.Printf(t.DataHistory[row][col][t.Depth - 1].Format.Format,character)
 	t.moveCursor(1,LEFT)
 
@@ -273,9 +274,15 @@ func (t * Terminal) writeStyleHere(style * Context,text string){
 	t.printRender(fmt.Sprintf(style.Format,text),len(text))
 }
 
-func (t * Terminal) undoConditional(row int,col int,match byte){
-	if t.DataHistory[row][col][t.Depth - 1].code == match{
-		t.undoAtPos(row,col)
+func (t * Terminal) undoConditional(row int,col int,match byte,matchForeground bool){
+	if matchForeground {
+		if t.DataHistory[row][col][t.Depth - 1].ShownSymbol == match{
+			t.undoAtPos(row,col)
+		}
+	}else{
+		if t.DataHistory[row][col][t.Depth - 1].BackgroundCode == match{
+			t.undoAtPos(row,col)
+		}
 	}
 }
 
@@ -287,7 +294,7 @@ func (t * Terminal) placeCharLookup(char byte,row int,col int){
 		}
 		t.Col ++
 		var character [1] byte
-		character[0] = format.data
+		character[0] = format.ShownSymbol
 		fmt.Printf(format.Format.Format,character)
 		t.updateAtPos(row,col,format)
 		t.moveCursor(1,LEFT)
@@ -307,7 +314,7 @@ func (t * Terminal) placeCharRaw(char byte,row int,col int){
 	t.moveCursor(1,LEFT)
 }
 
-func (t * Terminal) placeCharFormat(char byte,row int,col int,format * Context,code byte){
+func (t * Terminal) placeCharFormat(char byte,row int,col int,format * Context,bgCode byte){
 	t.moveTo(row,col)
 	if t.Col >= width - 1 {
 		return
@@ -318,8 +325,8 @@ func (t * Terminal) placeCharFormat(char byte,row int,col int,format * Context,c
 	fmt.Printf(format.Format,character)
 	t.updateAtPos(row,col,&Recorded{
 		Format: format,
-		data:   char,
-		code:   code,
+		ShownSymbol:   char,
+		BackgroundCode:   bgCode,
 	})
 	t.moveCursor(1,LEFT)
 }
@@ -357,10 +364,10 @@ func (t * Terminal) sendPlaceCharAtCoord(char byte,row int,col int) {
 }
 //bake undo into send messages
 
-func (t * Terminal) sendPlaceCharAtCoordCondUndo(char byte,row int,col int,lastRow int,lastCol int,match byte) {
+func (t * Terminal) sendPlaceCharAtCoordCondUndo(char byte,row int,col int,lastRow int,lastCol int,match byte,matchFg bool) {
 	t.CustomFeed <- func(term *Terminal) {
 		if format, ok := term.Associations[char]; ok {
-			term.undoConditional(lastRow,lastCol,match)
+			term.undoConditional(lastRow,lastCol,match,matchFg)
 			term.moveTo(row,col)
 			if term.Col >= width - 1{
 				return
@@ -376,17 +383,17 @@ func (t * Terminal) sendPlaceCharAtCoordCondUndo(char byte,row int,col int,lastR
 }
 
 //composes function that when called undoes a cell if it matches a character
-func (t * Terminal) sendUndoAtLocationConditional(row int,col int,match byte){
+func (t * Terminal) sendUndoAtLocationConditional(row int,col int,match byte,matchFg bool){
 	t.CustomFeed <- func(term *Terminal) {
-		term.undoConditional(row,col,match)
+		term.undoConditional(row,col,match,matchFg)
 	}
 }
 
-func (t * Terminal) assoc(char byte,format * Context,txt byte){
+func (t * Terminal) assoc(char byte,format * Context,fg byte){
 	t.sendCharAssociation(char,&Recorded{
 		Format: format,
-		data:   txt,
-		code: char,
+		ShownSymbol: fg,
+		BackgroundCode: char,
 	})
 }
 
@@ -403,7 +410,7 @@ func (t * Terminal) getCoordsForCursor(cursor byte) [] * Coord{
 	cursors := make([] * Coord,0)
 	for row,items := range t.DataHistory {
 		for col, item := range items {
-			if item[t.Depth - 1].code == cursor {
+			if item[t.Depth - 1].ShownSymbol == cursor {
 				cursors = append(cursors,&Coord{
 					Row: row,
 					Col: col,
