@@ -3,162 +3,109 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"strconv"
 	"strings"
 )
+/**
+Lets use JSON here and have some sort of online builder.
+Some sort of format like:
+{
+	NPCs: ["---","---",...]
+	Dialogues: [
+		{
+			Speaker: 1,
+			Text: "......",
+			Children: [...]
+		}
+	]
+}
 
-const MAX_ITEMS = 25
-const MAX_DIALOGUES = 25
-const USER_DATA_SIZE = 3
+Sounds like very deeply recursive JSON.
+ */
 
-var NPCMap map[int]NPC
-var DialogueMap map[int]*dialogue
+
+
 
 type NPC struct {
 	name string
-	male bool
 	description string
 	id int
-	//Other attributes
 }
 
-type item struct{
-	id int64
-	name string
-	value int64
-	damage int32
-	description string
-	//NEED OTHERS
-}
-
-type event struct{
-	code int32
-	feedback string
-	id int64
-	parameter_changed string
-	parameter_change_amount int64
-	items_to_gain [MAX_ITEMS]item
-	//Handle both item gains/losses and numerical changes
-}
-
-type dialogue struct{
+type Dialogue struct{
 	speaker NPC
 	text string
 	childrenCount int
-	children [MAX_DIALOGUES]*dialogue
+	children []*Dialogue
 	order int
 	id int
 }
 
+type DialogueSystem struct {
+	Dialogues map[string] * Dialogue
+	NPCMap map[int] * NPC
+}
+
+func initDialogueSystem (speakersDirectoryName string, dialogueDirectoryName string) (* DialogueSystem,error) {
+	ds := &DialogueSystem{
+		Dialogues: make(map[string] * Dialogue),
+		NPCMap: make(map[int] * NPC),
+	}
+	speakersDirectory,err := os.Open(speakersDirectoryName)
+	if err != nil {
+		return nil, err
+	}
+	//read through speakers directory, parse files into NPCMap
+
+	dialogueDirectory,err := os.Open(dialogueDirectoryName)
+	if err != nil {
+		return nil, err
+	}
+
+	//read through dialogue directory, parse files into dialogues
+	return ds,nil
+}
+
 
 func getOrder(s string)(string,int){
-	terms := strings.Split(s,"^")
-	for i:=0;i<len(terms);i++{
-		if len(terms[i])>1{
-			return terms[i],i
+	counter := 0
+	for i,char := range s {
+		if char == '^' {
+			counter ++
+		}else {
+			return s[i:],counter
 		}
 	}
-	fmt.Println("No message on string: "+s)
+	//Empty line
 	return "",-1
 }
 
-func initializeNPCS(){
-	NPCMap = make(map[int]NPC)
-	data,err := ioutil.ReadFile("speakers.speakers")
-	if err!=nil{
-		fmt.Println("Speakers file damaged or missing")
-		return
-	}
-	speakersFile := string(data)
-	people := strings.Split(speakersFile,"~~~")
-	for i := 1;i<len(people);i+=2{
-		NPCID,err := strconv.Atoi(people[i])
-		if err!=nil{
-			fmt.Println("Invalid ID "+ people[i])
-		}
-		NPCDetails := people[i+1]
-		NPCDetailsSlice := strings.Split(NPCDetails,"\n")[1:]
-		male,err := strconv.ParseBool(strings.TrimSpace(NPCDetailsSlice[1]))
-		if err!=nil{
-			fmt.Println("There are only two genders ;)")
-		}
-		npc1 := NPC{NPCDetailsSlice[0],male,NPCDetailsSlice[2],NPCID}
-		NPCMap[NPCID] = npc1
-
+func insertDialogue (root * Dialogue, key string, order int,speaker NPC,id int) {
+	if order == 1 {
+		root.children = append(root.children,&Dialogue{speaker,key,0,make([] * Dialogue,0),order,id})
+		root.childrenCount++
+	}else {
+		insertDialogue(root.children[root.childrenCount - 1],key,order - 1,speaker,id)
 	}
 }
 
-func insert(root *dialogue,key string,order int,speaker NPC,id int){
-	var addy *dialogue
-	addy = root
-	for order>1{
-		addy = addy.children[addy.childrenCount-1]
-		order--
-	}
-	var emptyArr [MAX_DIALOGUES]*dialogue
-	fresh := dialogue{speaker,key,0,emptyArr,order,id}
-	addy.children[addy.childrenCount] = &fresh
-	addy.childrenCount++
-}
-
-
-func initializeDialogue(){
-	DialogueMap = make(map[int]*dialogue)
-	data,err := ioutil.ReadFile("dialogue.dialogue")
-	if err!=nil{
-		fmt.Println("Dialogue file damaged or missing")
-		return
-	}
-	dialogueFile := string(data)
-	sections := strings.Split(dialogueFile,"~~~")
-	for i := 1;i<len(sections);i+=2{
-		//header := strings.Split(sections[i],"<i>")
-		//section_name := header[0]
-		//section_id,err := strconv.Atoi(string(header[1]))
-		//if err!=nil{
-			//fmt.Println("Invalid ID "+ header[1])
-		//}
-		body := sections[i+1]
-		lines := strings.Split(body,"\n")
-		//to handle forced newline, check for newline in future
-		for b := 1;b<len(lines)-1;b++{
-			line := lines[b]
-			broken_line := strings.Split(line,"<s>")
-			message := broken_line[0]
-			speaker_id,err := strconv.Atoi(broken_line[1])
-			if err!=nil{
-				fmt.Println("The message speaker id was improperly configured "+broken_line[1])
-			}
-			npc_unit := NPCMap[speaker_id]
-			var children [MAX_DIALOGUES]*dialogue
-			cleanMessage,order := getOrder(message)
-			if b==1{
-				DialogueMap[i] = &dialogue{npc_unit,cleanMessage,0,children,order,b}
-				continue
-			}
-			insert(DialogueMap[i],cleanMessage,order,npc_unit,b)
-		}
-	}
-}
-
-
-func converse(index int){
-	var addy *dialogue
-	addy = DialogueMap[index]
-	fmt.Println(addy.speaker.description)
+func (d * Dialogue) converse(){
+	root := d
+	fmt.Println(root.speaker.description)
 	for true{
-		fmt.Println(addy.speaker.name)
-		fmt.Println(addy.text+"\n")
-		if addy.childrenCount==0{
+		fmt.Println(root.speaker.name)
+		fmt.Println(root.text+"\n")
+		if root.childrenCount==0{
 			return
 		}
-		if addy.speaker.id==0{
-			addy = addy.children[0]
+		if root.speaker.id==0{
+			root = root.children[0]
 			continue
 		}
 		fmt.Println("\n///////////////\nChoose the best option: ")
-		for i:=0;i<addy.childrenCount;i++{
-			fmt.Println(strconv.Itoa(i)+": "+addy.children[i].text)
+		for i:=0;i<root.childrenCount;i++{
+			fmt.Println(strconv.Itoa(i)+": "+root.children[i].text)
 		}
 		fmt.Println("///////////////")
     var input string
@@ -167,7 +114,7 @@ func converse(index int){
 		if err!=nil{
 			fmt.Println("Not a valid choice!")
 		}
-		addy = addy.children[choice]
+		root = root.children[choice]
 
 	}
 }

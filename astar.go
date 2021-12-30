@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"math/rand"
 	"time"
 )
@@ -112,83 +111,124 @@ var terms8Axis = [8] * Coord{
 	},
 }
 
+//Estimates the remaining distance to the end from a given Tile.
 func (n * Node) estimate()int{
 	return square(n.Arrival) + n.Remaining
 }
 
+//Checks to see if two coordinates are in the same position.
 func (c * Coord) matches (c1 * Coord) bool {
 	return c.Row == c1.Row && c.Col == c1.Col
 }
 
-
-//logically speaking, shouldn't need to return anything
+/**
+Inserts a Tile Node into the PriorityQueue recursively.
+parent: the Node to insert the new Node under.
+node: the Node to insert into the PriorityQueue.
+ */
 func insertNodeHelper(parent * Node,node * Node){
+	//If the parent is the child node:
 	if parent.Pos.matches(node.Pos){
-		if node.estimate() < parent.estimate(){
+		//If the node was found in a faster way than last time:
+		if node.Arrival < parent.Arrival{
+			//Set the path that the parent came from to whatever the child came from.
 			parent.PathParent = node.PathParent
+			//Set the arrival time at the parent to the faster one of the child.
 			parent.Arrival = node.Arrival
 		}
 		return
 	}
+	//If the child is farther from the end than parent:
 	if node.estimate() >= parent.estimate(){
+		//If the parent has no right Node, add the child.
 		if parent.Right == nil{
 			node.GraphParent = parent
 			parent.Right = node
 			return
 		}
+		//Else if it does, insert it under the right Node recursively.
 		insertNodeHelper(parent.Right, node)
-	}else{
+	//If the child is closer to the end than the parent:
+	} else{
+		//If the parent has no left Node, add the child.
 		if parent.Left == nil{
 			node.GraphParent = parent
 			parent.Left = node
 			return
 		}
+		//Else if it does, insert it under the left Node recursively.
 		insertNodeHelper(parent.Left, node)
 	}
 }
 
+/**
+Inserts a Node into a PriorityQueue and handles the empty queue edge case.
+ */
 func (queue * PriorityQueue) insert(node * Node){
+	//If the queue has nothing in it, set the head to the child Node.
 	if queue.Head == nil {
 		queue.Head = node
+	//If the queue has a head, insert the child Node under the head.
 	}else {
 		insertNodeHelper(queue.Head, node)
 	}
 }
 
+/**
+Takes the Node with the shortest estimate under the parent.
+ */
 func takeClosestHelper(parent * Node) * Node {
+	//If the parent has no left Node:
 	if parent.Left == nil {
+		//If the parent has a right Node, connects it to it's parent's left Node and removes itself.
 		if parent.Right != nil {
 			parentRoot := parent.GraphParent
 			parentRoot.Left = parent.Right
 			parent.Right.GraphParent = parentRoot
+		//If the parent has no right node, just sets its own parent's left to nil and removes itself.
 		}else{
 			parent.GraphParent.Left = nil
 		}
 		return parent
 	}
+	//If left is not nil, recursively call this function again with the left node.
 	return takeClosestHelper(parent.Left)
 }
 
+
+/**
+Removes the Node with the least distance (arrival + estimated) to the end from a PriorityQueue.  Returns it.
+Also handles some edge cases.
+ */
 func (queue * PriorityQueue) pop () * Node {
+	//If the queue is empty, return nil
 	if queue.Head == nil {
 		return queue.Head
 	}
+	//If the queue has no left, return the head after setting the head's right as the new head.
 	if queue.Head.Left == nil {
 		toReturn := queue.Head
-		if queue.Head.Right != nil {
-			queue.Head = queue.Head.Right
-		}else{
-			queue.Head = nil
-		}
+		queue.Head = queue.Head.Right
 		return toReturn
 	}
+	//If the queue has a left, get the farthest left element recursively.
 	return takeClosestHelper(queue.Head)
 }
 
+/**
+Checks if a given tile is valid for maze exploration.
+First checks if it is within the given bounds (x and y).
+Next checks if the tile has already been visited.
+ */
 func tileGood(maze [][] * Tile, pos * Coord)bool{
 	return 0 <= pos.Row && pos.Row < len(maze) && 0 <= pos.Col && pos.Col < len(maze[0]) && !maze[pos.Row][pos.Col].Visited
 }
 
+/**
+Applies a coordinate shift to a pair of coordinates and returns a new Coord.
+
+For example: (12,15),(1,0) returns (13,15).
+ */
 func getCoordsForPair(pos * Coord, mod * Coord)* Coord{
 	return &Coord{
 		Row: pos.Row + mod.Row,
@@ -196,6 +236,14 @@ func getCoordsForPair(pos * Coord, mod * Coord)* Coord{
 	}
 }
 
+/**
+Applies simple biotic rules to soften edges of the maze.
+Coordinates surrounded with mostly free space turn into free space.
+Coordinates surrounded with mostly walls turn into walls.
+
+Tiles bordering out of bounds spaces are counted as bordering walls there.
+Doesn't validate for start/end, these would be added later.  Could check!
+ */
 func bioticErode(maze  [][] * Tile ){
 	for row,wholeRow := range maze{
 		for col := range wholeRow {
@@ -216,6 +264,10 @@ func bioticErode(maze  [][] * Tile ){
 	}
 }
 
+/**
+Randomly generates a maze of a certain size with a wall frequency.
+Returns the maze as well as the start and end positions.
+ */
 func generateMaze(width int,height int,freq float64)([][] * Tile,*Coord,*Coord) {
 	maze := make([][] * Tile,height)
 	for i := 0;i<height;i++{
@@ -264,23 +316,31 @@ func generateMaze(width int,height int,freq float64)([][] * Tile,*Coord,*Coord) 
 	return maze,start,end
 }
 
-func (t * Terminal) parseMazeFromCurrent(wall byte,free byte,start byte,end byte)([][] * Tile,*Coord,*Coord){
+/**
+Reads the terminal space and returns a parsed map.
+Takes the symbol that represents a wall, the start, and the end.
+Returns a maze array (2d) and the start/end coordinates.
+ */
+func (t * Terminal) parseMazeFromCurrent(wall byte, start byte, end byte) ([][]*Tile, *Coord, *Coord) {
+	//The dimensions of the terminals memory
 	height := len(t.DataHistory)
 	width := len(t.DataHistory[0]) - 1
 	maze := make([][] * Tile, height)
+	//Create default start and end coords
 	startCoord := &Coord{
 		Row: 0,
 		Col: 0,
 	}
-
 	endCoord := &Coord{
 		Row: 0,
 		Col: 0,
 	}
+	//Reads through each tile in the array and switches on the background code to set the maze
 	for i := 0;i<height;i++{
 		row := make([] * Tile, width)
 		maze[i] = row
 		for b := 0;b<width;b++{
+			//Default is free space.
 			maze[i][b] = &Tile{
 				Pos:     &Coord{
 					Row: i,
@@ -289,7 +349,7 @@ func (t * Terminal) parseMazeFromCurrent(wall byte,free byte,start byte,end byte
 				Type:    FREE,
 				Visited: false,
 			}
-			switch t.DataHistory[i][b][t.Depth - 1].code {
+			switch t.DataHistory[i][b][t.Depth - 1].BackgroundCode {
 			case wall:
 				maze[i][b].Type = WALL
 				maze[i][b].Visited = true
@@ -312,7 +372,10 @@ func (t * Terminal) parseMazeFromCurrent(wall byte,free byte,start byte,end byte
 	return maze,startCoord,endCoord
 }
 
-func parseMazeFromChars(data [][] rune,wall rune,free rune,start rune,end rune)([][] * Tile,*Coord,*Coord){
+/**
+Very similar to above function, but it takes the array of characters as an argument.  Might refactor and combine these two.
+ */
+func parseMazeFromChars(data [][]rune, wall rune, start rune, end rune) ([][]*Tile, *Coord, *Coord) {
 	height := len(data)
 	width := len(data[0])
 	maze := make([][] * Tile, height)
@@ -360,14 +423,22 @@ func parseMazeFromChars(data [][] rune,wall rune,free rune,start rune,end rune)(
 	return maze,startCoord,endCoord
 }
 
+//Quickly squares two numbers.
 func square(n int)int{
 	return n*n
 }
 
+/**
+Finds the non square rooted distance between two Coordinates.
+ */
 func pythagDistance(c1 * Coord,c2 * Coord)int{
 	return square(c1.Row - c2.Row) + square(c1.Col - c2.Col)
 }
 
+/**
+For a given maze and coordinate, gets an array of all adjacent coordinates.
+If a coordinate is invalid, fills its array slot with nil.
+ */
 func getAdjacentValidTiles(maze [][] * Tile,pos * Coord) [] * Coord  {
 	resultSize := 4
 	if DIAG{
@@ -385,6 +456,10 @@ func getAdjacentValidTiles(maze [][] * Tile,pos * Coord) [] * Coord  {
 	return adjacents
 }
 
+/**
+Given an end Node with a path parent leading backwards down the correct path,
+returns an array of Nodes composing the path.
+ */
 func unwrapPath(end * Node)  [] * Coord {
 	path := make([] * Coord,end.Arrival + 1)
 	for end != nil {
@@ -397,7 +472,11 @@ func unwrapPath(end * Node)  [] * Coord {
 	return path
 }
 
+/**
+Performs the A* pathfinding algorithm on a maze of Tiles.  Returns the path as an array.
+ */
 func astar(maze [][] * Tile,start * Coord,end * Coord) [] * Coord {
+	//Creates the start node.
 	s := &Node{
 		PathParent:  nil,
 		Arrival:     0,
@@ -407,27 +486,37 @@ func astar(maze [][] * Tile,start * Coord,end * Coord) [] * Coord {
 		Right:       nil,
 		GraphParent: nil,
 	}
+	//Creates the PriorityQueue with the start Node as the head.
 	queue := PriorityQueue{Head: s}
+	//Defines a variable to track current position.
 	var position * Node
+	//Defines a variable to track the current maze data.
 	var mazeData * Tile
-	maxAdj := 4
-	if DIAG{
-		maxAdj = 8
-	}
-	adjacent := make([] * Coord,maxAdj)
+	//Creates a reused array of coords the size of maxAdj.
+	var adjacent [] * Coord
+	//While the queue has Nodes in it:
 	for queue.Head != nil {
+		//Get the closest node as position.
 		position = queue.pop()
+		//Get the details about that node as mazeData.
 		mazeData = maze[position.Pos.Row][position.Pos.Col]
+		//If this Node has already been explored, skip it and let it die.
+		//This happens when two tiles adjacent to this one have both been considered.
 		if mazeData.Visited{
 			continue
 		}
+		//If the new Node is the end Node:
 		if position.Pos.matches(end){
+			//Return the path that landed at the end Node.
 			return unwrapPath(position)
 		}
+		//Marks the tile as visited.
 		mazeData.Visited = true
+		//Gets all adjacent spots to the current position.
 		adjacent = getAdjacentValidTiles(maze,position.Pos)
 		for _,tile := range adjacent{
 			if tile != nil{
+				//For all valid adjacent Nodes, insert them into the PriorityQueue.
 				queue.insert(&Node{
 					PathParent:  position,
 					Arrival:     position.Arrival + 1,
@@ -442,58 +531,3 @@ func astar(maze [][] * Tile,start * Coord,end * Coord) [] * Coord {
 	}
 	return nil
 }
-
-func printRed(txt string){
-	fmt.Printf("\033[48;2;255;0;0m%s\033[0m",txt)
-}
-
-func printBlue(txt string){
-	fmt.Printf("\033[48;2;0;208;233m%s\033[0m",txt)
-}
-
-func printGreen(txt string){
-	fmt.Printf("\033[48;2;9;152;13m%s\033[0m",txt)
-}
-
-func printBlack(txt string){
-	fmt.Printf("\033[48;2;0;0;0m%s\033[0m",txt)
-}
-
-func printNormal(txt string){
-	fmt.Printf("\033[48;2;255;255;255m%s\033[0m",txt)
-}
-
-func inPath(c * Coord,path [] * Coord) bool{
-	for _,item := range path{
-		if item.Row == c.Row && item.Col == c.Col{
-			return true
-		}
-	}
-	return false
-}
-
-func display(maze [][] * Tile,path [] * Coord){
-	for _,wholeRow := range maze {
-		for _,item := range wholeRow {
-			if item.Type == START{
-				printBlue(" ")
-			}else if item.Type == END {
-				printGreen(" ")
-			}else if item.Type == WALL {
-				printBlack(" ")
-			}else if inPath(item.Pos,path){
-				printRed(" ")
-			}else{
-				printNormal(" ")
-			}
-		}
-		println()
-	}
-}
-
-//func main(){
-//	maze,start,end := generateMaze(180,40,0.3)
-//	pth := 	astar(maze,start,end)
-//	display(maze,pth)
-//
-//}

@@ -142,7 +142,7 @@ func main () {
 				terminal.erasePath(path)
 				path = nil
 			}
-			maze, start, end := terminal.parseMazeFromCurrent('1', '0', '2', '3')
+			maze, start, end := terminal.parseMazeFromCurrent('1', '2', '3')
 			path = astar(maze, start, end)
 			terminal.drawPath(path)
 			break
@@ -185,7 +185,7 @@ func follower (t * Terminal) {
 	col := 0
 	path := make([] * Coord,0)
 	for true {
-		maze,_,_ := t.parseMazeFromCurrent('1','0','2','3')
+		maze,_,_ := t.parseMazeFromCurrent('1', '2', '3')
 		targets := t.getCoordsForCursor('*')
 		target := getClosestCoords(targets,&Coord{
 			Row: row,
