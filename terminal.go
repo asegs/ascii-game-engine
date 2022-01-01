@@ -5,6 +5,7 @@ import (
 	"strings"
 )
 
+//An abstraction for the characters needed to move the cursor on the xy plane.
 type Direction rune
 const (
 	LEFT Direction = 'D'
@@ -13,10 +14,18 @@ const (
 	UP = 'A'
 )
 
+//The maximum number of custom functions the terminal can hold in memory via channel.
 const MAX_MESSAGES int = 1000
 
+//The char sequence to RESET the cursor style.
 const RESET string = "\033[0m"
 
+/**
+A format string that contains a "%s" for the text to place in between style escape chars.
+Format: The string that has the current "compiled" format, for example:
+	"\033[38;2;200;12;181;m%s\033[0m"
+Modifiers: The array of style modifiers, some seen in the example above, to apply when the Context is compiled.
+ */
 type Context struct {
 	Format string
 	Modifiers [] string
