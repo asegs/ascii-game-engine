@@ -60,6 +60,7 @@ CustomFeed: The channel by which composed functions come in to be applied.
 Associations: A quick lookup of Recorded objects mapped from characters.
 DataHistory: A table of what state each cell is in and a Depth length history of previous states.
 Depth: The length of the history stored for each cell.
+DefaultRecorded: The default Recorded Context for a given cell.
  */
 type Terminal struct {
 	Row int
@@ -70,6 +71,7 @@ type Terminal struct {
 	Associations map[byte] * Recorded
 	DataHistory [][][] * Recorded
 	Depth int
+	DefaultRecorded * Recorded
 }
 
 /**
@@ -106,6 +108,7 @@ func createTerminal(height int,width int,defaultRecorded * Recorded,history int)
 		Height:height,
 		Width:width,
 		Depth:history,
+		DefaultRecorded: defaultRecorded,
 	}
 	terminal.moveTo(0,0)
 	go terminal.handleRenders()
@@ -189,7 +192,12 @@ func (t * Terminal) printRender(message string,txtLen int){
 	t.moveCursor(txtLen,LEFT)
 }
 
-//all written text will not have a background ID symbol
+/**
+Takes a string of text, writes it to the end of the line and then cuts off the rest.
+Updates the proper blocks of memory to track the current state.
+
+One issue is the background code for each cell will never be anything other than ' '.
+ */
 func (t * Terminal) trimAndUpdateString(style * Context, text string) string{
 	over := len(text) + t.Col - (t.Width - 1)
 	if over > 0{
@@ -205,12 +213,21 @@ func (t * Terminal) trimAndUpdateString(style * Context, text string) string{
 	return text
 }
 
+/**
+Places a string at a given location using printRender.
+Used after substituting message for format character and compiling Context.
+ */
 func (t * Terminal) placeAt(message string, row int, col int,txtLen int){
 	t.moveTo(row,col)
 	t.printRender(message,txtLen)
 
 }
 
+
+/**
+Shifts every history item for a current cell back one and inserts a new current one.
+Loses the oldest item forever.
+ */
 func (t * Terminal) updateAtPos(row int,col int,record * Recorded){
 	for i := 1; i < t.Depth;i++{
 		t.DataHistory[row][col][i - 1] = t.DataHistory[row][col][i]
@@ -218,11 +235,18 @@ func (t * Terminal) updateAtPos(row int,col int,record * Recorded){
 	t.DataHistory[row][col][t.Depth - 1] = record
 }
 
+/**
+Replaces the current terminal state at a given coordinate with the previous one, discards the current state.
+Sets the oldest state to the default state.
+Prints the data at the previous state and performs all standard printing operations.
+
+Could possibly use printRender.
+ */
 func (t * Terminal) undoAtPos(row int,col int){
 	for i := t.Depth - 2;i>=0;i--{
 		t.DataHistory[row][col][i + 1] = t.DataHistory[row][col][i]
 	}
-	t.DataHistory[row][col] = t.DataHistory[row][col]
+	t.DataHistory[row][col][0] = t.DefaultRecorded
 	t.moveTo(row,col)
 	if t.Col >= width - 1{
 		return
@@ -236,30 +260,45 @@ func (t * Terminal) undoAtPos(row int,col int){
 }
 
 
-
+/**
+Creates a new Context.  Has no traits to begin with, just prints text.
+ */
 func initContext () * Context {
 	return &Context{
-		Format:    "",
+		Format:    "%s",
 		Modifiers: make([] string,0),
 	}
 }
 
+/**
+Adds a basic style (preset color, flashing, etc.) to the modifiers array.
+ */
 func (ctx * Context) addSimpleStyle(styleConst int) * Context{
 	ctx.Modifiers = append(ctx.Modifiers,fmt.Sprintf("%d;",styleConst))
 	return ctx
 }
 
+/**
+Adds a background color to the modifiers array.
+ */
 func (ctx * Context) addRgbStyleFg(r int,g int,b int) * Context{
 	ctx.Modifiers = append(ctx.Modifiers,fmt.Sprintf("38;2;%d;%d;%d;",r,g,b))
 	return ctx
 }
 
+/**
+Adds a foreground color to the modifiers array.
+*/
 func (ctx * Context) addRgbStyleBg(r int, g int,b int) * Context{
 	ctx.Modifiers = append(ctx.Modifiers,fmt.Sprintf("48;2;%d;%d;%d;",r,g,b))
 	return ctx
 }
 
-//only removes 1, maybe fine
+/**
+Removes the first RGB style from the modifiers array.
+Often used for composing new styles.
+Takes a boolean to remove the foreground style or background style.
+ */
 func (ctx * Context) removeRgbStyle (fg bool) * Context {
 	key := "38;2"
 	if !fg {
@@ -278,6 +317,9 @@ func (ctx * Context) removeRgbStyle (fg bool) * Context {
 	return ctx
 }
 
+/**
+Makes a deep copy of a context.  Often used for composing new styles on the fly.
+ */
 func (ctx * Context) copyContext () * Context {
 	newMods := make([]string,len(ctx.Modifiers))
 	for i,modifier := range ctx.Modifiers {
@@ -289,6 +331,11 @@ func (ctx * Context) copyContext () * Context {
 	}
 }
 
+/**
+Returns the color modifier for a certain Context.
+Either the foreground or background color based on the boolean.
+If none exists, returns empty string.
+ */
 func (ctx * Context) getColorInfo (fg bool) string {
 	key := "38;2"
 	if !fg {
@@ -302,11 +349,25 @@ func (ctx * Context) getColorInfo (fg bool) string {
 	return ""
 }
 
+/**
+Adds a raw style (typed out/string) to a given Context.
+Often used to pass color info styles pulled directly from another Context.
+ */
 func (ctx * Context) addStyleRaw (modifier string) * Context {
 	ctx.Modifiers = append(ctx.Modifiers,modifier)
 	return ctx
 }
 
+/**
+Builds the format string according to the current style modifiers.
+First starts off with the proper escape code.
+Next adds each style from the modifiers list.
+Next deletes the final semicolon and replaces it with an 'm'.
+Next adds an %s for use in printf.
+Finally adds a RESET escape code to turn off the escape code for future writes.
+
+Sets format equal to this string.
+ */
 func (ctx * Context) compile () * Context{
 	newFmt := "\033["
 	for _,modifier := range ctx.Modifiers {
@@ -317,16 +378,21 @@ func (ctx * Context) compile () * Context{
 	return ctx
 }
 
+
+/**
+Writes text with an associated style at a certain pair of coordinates.
+ */
 func (t * Terminal) writeStyleAt(style * Context,text string,row int,col int){
 	text = t.trimAndUpdateString(style,text)
 	t.placeAt(fmt.Sprintf(style.Format,text),row,col,len(text))
 }
 
-func (t * Terminal) writeStyleHere(style * Context,text string){
-	text = t.trimAndUpdateString(style,text)
-	t.printRender(fmt.Sprintf(style.Format,text),len(text))
-}
+/**
+Performs an undo on a certain cell on the terminal given that a certain byte matches the expected value.
+Can be used to match foreground values or background using boolean.
 
+The reason for the conditional is that if something has already overwritten the space, it should not be reset upon leaving it.
+ */
 func (t * Terminal) undoConditional(row int,col int,match byte,matchForeground bool){
 	if matchForeground {
 		if t.DataHistory[row][col][t.Depth - 1].ShownSymbol == match{
@@ -339,6 +405,9 @@ func (t * Terminal) undoConditional(row int,col int,match byte,matchForeground b
 	}
 }
 
+/**
+
+ */
 func (t * Terminal) placeCharLookup(char byte,row int,col int){
 	if format, ok := t.Associations[char]; ok {
 		t.moveTo(row,col)
@@ -404,8 +473,7 @@ func (t * Terminal) sendCharAssociation(char byte,recorded * Recorded) {
 //sends a function that moves to a coordinate and prints text with a style when called
 func (t * Terminal) sendPrintStyleAtCoord(style * Context,row int,col int,text string) {
 	t.CustomFeed <- func(term *Terminal) {
-		term.moveTo(row,col)
-		term.writeStyleHere(style,text)
+		term.writeStyleAt(style,text,row,col)
 	}
 }
 
