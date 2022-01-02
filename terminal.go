@@ -500,8 +500,11 @@ func (t * Terminal) sendPlaceCharAtCoord(char byte,row int,col int) {
 			t.placeCharLookup(char,row,col)
 	}
 }
-//bake undo into send messages
 
+/**
+Composes and queues a function that checks to see if a character has a mapping.
+If so, performs a conditional undo with matchFg and writes the character at the new location.
+ */
 func (t * Terminal) sendPlaceCharAtCoordCondUndo(char byte,row int,col int,lastRow int,lastCol int,match byte,matchFg bool) {
 	t.CustomFeed <- func(term *Terminal) {
 		if format, ok := term.Associations[char]; ok {
@@ -520,13 +523,19 @@ func (t * Terminal) sendPlaceCharAtCoordCondUndo(char byte,row int,col int,lastR
 	}
 }
 
-//composes function that when called undoes a cell if it matches a character
+/**
+Composed and queues a function that conditionally undoes a character at a given location.
+ */
 func (t * Terminal) sendUndoAtLocationConditional(row int,col int,match byte,matchFg bool){
 	t.CustomFeed <- func(term *Terminal) {
 		term.undoConditional(row,col,match,matchFg)
 	}
 }
 
+/**
+Composes and queues a function that associates a character with a Recorded reference.
+The character associated is used as the background code.
+ */
 func (t * Terminal) assoc(char byte,format * Context,fg byte){
 	t.sendCharAssociation(char,&Recorded{
 		Format: format,
@@ -535,7 +544,10 @@ func (t * Terminal) assoc(char byte,format * Context,fg byte){
 	})
 }
 
-//possibility of register happening after first character is sent
+/**
+Runs a loop pulling functions from the function queue and running them on the given terminal.
+Only will perform functions sequentially.
+ */
 func (t * Terminal) handleRenders(){
 	var custom func (t * Terminal)
 	for true{
@@ -544,6 +556,10 @@ func (t * Terminal) handleRenders(){
 	}
 }
 
+/**
+Find the tile of the terminal where the foreground matches the provided symbol.
+Return the Coord instance at which this is true.
+ */
 func (t * Terminal) getCoordsForCursor(cursor byte) [] * Coord{
 	cursors := make([] * Coord,0)
 	for row,items := range t.DataHistory {
