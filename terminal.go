@@ -406,7 +406,8 @@ func (t * Terminal) undoConditional(row int,col int,match byte,matchForeground b
 }
 
 /**
-
+If a character exists in the association table, writes the proper format for that char.
+Does it at a given location.
  */
 func (t * Terminal) placeCharLookup(char byte,row int,col int){
 	if format, ok := t.Associations[char]; ok {
@@ -423,7 +424,9 @@ func (t * Terminal) placeCharLookup(char byte,row int,col int){
 	}
 }
 
-
+/**
+Writes a certain character with no style at a particular location.
+ */
 func (t * Terminal) placeCharRaw(char byte,row int,col int){
 	t.moveTo(row,col)
 	if t.Col >= width - 1{
@@ -436,6 +439,11 @@ func (t * Terminal) placeCharRaw(char byte,row int,col int){
 	t.moveCursor(1,LEFT)
 }
 
+/**
+Places a certain unassociated character with a provided format.
+Requires the data to create a recording, including the format Context, as well as foreground and background values.
+Adds the character to the history with a new Recorded value created from the aforementioned data.
+ */
 func (t * Terminal) placeCharFormat(char byte,row int,col int,format * Context,bgCode byte){
 	t.moveTo(row,col)
 	if t.Col >= width - 1 {
@@ -457,13 +465,18 @@ func (t * Terminal) placeCharFormat(char byte,row int,col int,format * Context,b
 Composition functions
  */
 
+/**
+Composes and queues a function that places a character with a format at a specific position.
+ */
 func (t * Terminal) sendPlaceCharFormat(char byte, row int, col int, format *Context, code byte) {
 	t.CustomFeed <- func(terminal *Terminal) {
 		terminal.placeCharFormat(char,row,col,format,code)
 	}
 }
 
-//sends a function that associates a fixed char with a style detail when called
+/**
+Composes and queues a function that associates a Recorded reference with a character.
+ */
 func (t * Terminal) sendCharAssociation(char byte,recorded * Recorded) {
 	t.CustomFeed <- func(term *Terminal) {
 		term.Associations[char] = recorded
