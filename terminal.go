@@ -22,6 +22,7 @@ const RESET string = "\033[0m"
 
 /**
 A format string that contains a "%s" for the text to place in between style escape chars.
+Can be compiled to update this format string from style modifiers unlimited times.
 Format: The string that has the current "compiled" format, for example:
 	"\033[38;2;200;12;181;m%s\033[0m"
 Modifiers: The array of style modifiers, some seen in the example above, to apply when the Context is compiled.
@@ -31,12 +32,35 @@ type Context struct {
 	Modifiers [] string
 }
 
+/**
+The current state of a tile on the terminal.
+Format: The context that wrote that pixel.
+ShownSymbol: The foreground text character.
+BackgroundCode: The symbol describing the style of the background.
+
+For example:
+	Format: Pointer to context, like "draw red background with white foreground".
+	ShownSymbol: '@' to show player.
+	BackgroundCode: '1' to indicate wall.
+ */
 type Recorded struct {
 	Format * Context
 	ShownSymbol byte
 	BackgroundCode byte
 }
 
+/**
+The local variables of the terminal instance.
+
+Row: What row the cursor is on.
+Col: What column the cursor is on.
+Height: The max height of the terminal.
+Width: The max width of the terminal.
+CustomFeed: The channel by which composed functions come in to be applied.
+Associations: A quick lookup of Recorded objects mapped from characters.
+DataHistory: A table of what state each cell is in and a Depth length history of previous states.
+Depth: The length of the history stored for each cell.
+ */
 type Terminal struct {
 	Row int
 	Col int
@@ -48,17 +72,29 @@ type Terminal struct {
 	Depth int
 }
 
+/**
+Initializes a terminal instance with a given height and width, the defaultRecorded value to be saved in memory and the history depth.
+
+Writes the empty box of the given size to the terminal to clear a space.
+Writes the necessary terminal cells into memory.
+Moves the cursor back to the top left.
+Starts the background thread to receive functions and apply them.
+
+Finally, returns the reference to the terminal object.
+ */
 func createTerminal(height int,width int,defaultRecorded * Recorded,history int)*Terminal{
 	stored := make([][][] * Recorded,height)
 	for i:=0;i<height;i++{
 		sRow := make([][] * Recorded,width)
 		for b := 0;b<width;b++{
+			print(" ")
 			records := make([] * Recorded, history)
 			for n := 0;n < history;n++{
 				records[n] = defaultRecorded
 			}
 			sRow[b] = records
 		}
+		println()
 		stored[i] = sRow
 	}
 	terminal := &Terminal{
@@ -71,17 +107,15 @@ func createTerminal(height int,width int,defaultRecorded * Recorded,history int)
 		Width:width,
 		Depth:history,
 	}
-	for i := 0;i<height;i++ {
-		for b := 0;b<width;b++ {
-			print(" ")
-		}
-		println()
-	}
 	terminal.moveTo(0,0)
 	go terminal.handleRenders()
 	return terminal
 }
 
+/**
+Given a Direction, or text character, moves the cursor n times in the given direction dir.
+Changes the state of the terminal to match the new position.
+ */
 func (t * Terminal) moveCursor(n int,dir Direction){
 	fmt.Printf("\033[%d%c",n,dir)
 	switch dir {
@@ -100,7 +134,11 @@ func (t * Terminal) moveCursor(n int,dir Direction){
 	}
 }
 
-
+/**
+Given a new pair of coordinates, calculates the difference in current position to the new position.
+If the new position is out of bounds, sets it to the max value in that direction.
+Uses moveCursor to update cursor position by going over the difference in the right direction.
+ */
 func (t * Terminal) moveTo(newRow int,newCol int){
 	if newRow >= t.Height{
 		newRow = t.Height - 1
@@ -130,6 +168,9 @@ func (t * Terminal) moveTo(newRow int,newCol int){
 	}
 }
 
+/**
+Clears n tiles (replaces with nothing) at the given coordinates.  Doesn't update in memory, and not used.
+ */
 func (t * Terminal) wipeNTilesAt(tiles int, row int, col int){
 	t.moveTo(row,col)
 	println(RESET)
@@ -139,6 +180,9 @@ func (t * Terminal) wipeNTilesAt(tiles int, row int, col int){
 	}
 }
 
+/**
+Writes a string to the terminal, shifts the cursor over back to the start after writing.
+ */
 func (t * Terminal) printRender(message string,txtLen int){
 	t.Col += txtLen
 	print(message)
