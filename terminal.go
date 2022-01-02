@@ -483,14 +483,18 @@ func (t * Terminal) sendCharAssociation(char byte,recorded * Recorded) {
 	}
 }
 
-//sends a function that moves to a coordinate and prints text with a style when called
+/**
+Composes and queues a function prints text with a given style Context.
+*/
 func (t * Terminal) sendPrintStyleAtCoord(style * Context,row int,col int,text string) {
 	t.CustomFeed <- func(term *Terminal) {
 		term.writeStyleAt(style,text,row,col)
 	}
 }
 
-//sends a function that when called places a key character at a coordinate
+/**
+Composes and queues a function that looks up a certain character in the map and prints it with the associated Recorded object.
+ */
 func (t * Terminal) sendPlaceCharAtCoord(char byte,row int,col int) {
 	t.CustomFeed <- func(term *Terminal) {
 			t.placeCharLookup(char,row,col)
