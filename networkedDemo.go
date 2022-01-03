@@ -35,6 +35,7 @@ func (terminal * Terminal) drawFgOverBg(row int, col int, cursor *Context, oldX 
 }
 
 func main () {
+	go HandleLog()
 	input := initializeInput()
 	network,err := initNetwork(10001,input)
 	if err != nil {

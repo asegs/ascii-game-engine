@@ -2,10 +2,8 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strconv"
-	"strings"
 )
 /**
 Lets use JSON here and have some sort of online builder.
@@ -52,13 +50,13 @@ func initDialogueSystem (speakersDirectoryName string, dialogueDirectoryName str
 		Dialogues: make(map[string] * Dialogue),
 		NPCMap: make(map[int] * NPC),
 	}
-	speakersDirectory,err := os.Open(speakersDirectoryName)
+	_,err := os.Open(speakersDirectoryName)
 	if err != nil {
 		return nil, err
 	}
 	//read through speakers directory, parse files into NPCMap
 
-	dialogueDirectory,err := os.Open(dialogueDirectoryName)
+	_,err = os.Open(dialogueDirectoryName)
 	if err != nil {
 		return nil, err
 	}

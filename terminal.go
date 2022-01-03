@@ -397,10 +397,14 @@ func (t * Terminal) undoConditional(row int,col int,match byte,matchForeground b
 	if matchForeground {
 		if t.DataHistory[row][col][t.Depth - 1].ShownSymbol == match{
 			t.undoAtPos(row,col)
+		}else{
+			LogString("Didn't perform undo due to overwrite.")
 		}
 	}else{
 		if t.DataHistory[row][col][t.Depth - 1].BackgroundCode == match{
 			t.undoAtPos(row,col)
+		}else{
+			LogString("Didn't perform undo due to overwrite.")
 		}
 	}
 }
@@ -551,7 +555,7 @@ Only will perform functions sequentially.
 func (t * Terminal) handleRenders(){
 	var custom func (t * Terminal)
 	for true{
-	 custom = <- t.CustomFeed//could send normally, let's make this performance critical though
+	 custom = <- t.CustomFeed
 		custom(t)
 	}
 }
