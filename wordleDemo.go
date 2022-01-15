@@ -56,6 +56,8 @@ func checkLetterValidity (history [] [] LetterHistory, letter byte, place int) V
 				return NotPresent
 			} else if item.Validity ==  WrongPlace && item.Letter == letter && i == place {
 				return WrongPlace
+			} else if item.Validity == RightPlace && item.Letter != letter && i == place && item.Letter != 0 {
+				return WrongPlace
 			}
 		}
 	}
@@ -121,6 +123,7 @@ func main()  {
 	invalid := initContext().addRgbStyleBg(128, 128, 128).addRgbStyleFg(0,0,0).compile()
 	clear := initContext().addSimpleStyle(0).compile()
 	struck := initContext().addSimpleStyle(9).addRgbStyleBg(128, 128, 128).addRgbStyleFg(0,0,0).compile()
+	tempStruck := initContext().addSimpleStyle(9).addRgbStyleBg(245, 201, 105).addRgbStyleFg(0,0,0).compile()
 	terminal := createTerminal(wHeight,wWidth,&Recorded{
 		Format:         clear,
 		ShownSymbol:    ' ',
@@ -150,7 +153,7 @@ func main()  {
 			properCtx := valid
 			switch validity {
 			case WrongPlace:
-				properCtx = wrongPlace
+				properCtx = tempStruck
 				break
 			case NotPresent:
 				properCtx = struck
@@ -164,7 +167,7 @@ func main()  {
 			properCtx := valid
 			switch validity {
 			case WrongPlace:
-				properCtx = wrongPlace
+				properCtx = tempStruck
 				break
 			case NotPresent:
 				properCtx = struck
@@ -178,7 +181,7 @@ func main()  {
 			properCtx := valid
 			switch validity {
 			case WrongPlace:
-				properCtx = wrongPlace
+				properCtx = tempStruck
 				break
 			case NotPresent:
 				properCtx = struck

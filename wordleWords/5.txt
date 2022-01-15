@@ -1997,11 +1997,8 @@ laden
 ladle
 lager
 lagos
-laird
 lairs
-laity
 lakes
-lamas
 lambs
 lamed
 lamps
@@ -2026,12 +2023,10 @@ latex
 lathe
 laths
 latin
-lauds
 laugh
 lavas
 lawns
 laxer
-layby
 layer
 lazed
 leach
@@ -3718,11 +3713,8 @@ teeny
 teeth
 telex
 tells
-telly
-tempi
 tempo
 tempt
-tench
 tends
 tenet
 tenon
