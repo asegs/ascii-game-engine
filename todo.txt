@@ -16,6 +16,16 @@ ASCII conversion:
 -Composed function to render frame, sent every 1000/FPS milliseconds - previous render time
 
 Terminal:
--Redraw cursor character when placing a character (because we're just placing a character there)
--System views cursor as cursor and nothing else when placed on a wall or other object (because it is still registered as
- cursor object, may be fine because no real pathfinding should allow some people to be in walls)
+
+
+Wordle:
+-Strikethrough yellow on virtual keyboard
+-Autofill known green letters or don't allow anything else for green letters
+-Don't show yellow for characters that have already been discovered if there are no more
+    For example: real word is shove
+    Guess is heave
+    First e in heave should be gray
+
+    If word is abyss
+    And guess is stars
+    First s in stars should be yellow
