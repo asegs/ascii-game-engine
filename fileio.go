@@ -43,12 +43,12 @@ func ReadFile(filename string) ([]byte, error) {
 	return readAll(f, n)
 }
 
-func ReadToString(filename string) string {
+func ReadToString(filename string) (string,error) {
 	s,err:=ReadFile(filename)
 	if err != nil {
-		panic(err)
+		return "",err
 	}
-	return string(s)
+	return string(s),err
 }
 
 func Write(filename string, body string) {

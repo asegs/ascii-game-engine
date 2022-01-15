@@ -34,7 +34,7 @@ func (terminal * Terminal) drawFgOverBg(row int, col int, cursor *Context, oldX 
 	terminal.sendUndoAtLocationConditional(oldY,oldX,'*',true)
 }
 
-func main () {
+func runNetworked () {
 	go HandleLog()
 	input := initializeInput()
 	network,err := initNetwork(10001,input)
@@ -108,7 +108,7 @@ func main () {
 		}
 
 		realX,realY := mapZone.getRealCoords(dir.From)
-		if 128 <= dir.Msg && dir.Msg <= 131 {
+		if MOVE_UP <= dir.Msg && dir.Msg <= MOVE_LEFT {
 			accepted := zoning.moveInDirection(dir.Msg,dir.From)
 			if accepted {
 				newX,newY := mapZone.getRealCoords(dir.From)
