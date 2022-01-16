@@ -223,28 +223,25 @@ func main()  {
 					break
 				}
 				terminal.sendPlaceCharFormat(result.Letter,guessCount,i,properCtx,'0')
-				if success || guessCount > defGuesses {
-					if success {
-						terminal.sendPrintStyleAtCoord(valid,guessCount + 1,0,"Correct!")
-					} else {
-						terminal.sendPrintStyleAtCoord(invalid,guessCount + 1,0,"Out of guesses!  Word was: " + toGuess)
-					}
-					fmt.Println()
-					fmt.Println()
-					fmt.Println()
-					time.Sleep(5 * time.Second)
-					return
+			}
+			if success || guessCount > defGuesses {
+				if success {
+					terminal.sendPrintStyleAtCoord(valid,guessCount + 1,0,"Correct!")
+				} else {
+					terminal.sendPrintStyleAtCoord(invalid,guessCount + 1,0,"Out of guesses!  Word was: " + toGuess)
 				}
+				fmt.Println()
+				fmt.Println()
+				fmt.Println()
+				time.Sleep(5 * time.Second)
+				return
 			}
 			guessCount ++
 			currentWord = ""
 			currentHistory = append(currentHistory,results)
 
 		}else if msg.Msg == BACKSLASH {
-				terminal.sendPrintStyleAtCoord(invalid,guessCount + 1,0,"Out of guesses!  Word was: " + toGuess)
-				fmt.Println()
-				fmt.Println()
-				fmt.Println()
+				terminal.sendPrintStyleAtCoord(invalid,guessCount + 2,0,"Out of guesses!  Word was: " + toGuess)
 				time.Sleep(5 * time.Second)
 				return
 			}
