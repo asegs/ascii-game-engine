@@ -82,12 +82,30 @@ func wordInOptions (options [] string, word string) bool {
 	return false
 }
 
-func makeGuess (realWord string, guess string) (bool, [] LetterHistory) {
+func wrongPlaceCheckRemainingLetters (realWord string, letter uint8, previousResults [] LetterHistory) bool {
+	if previousResults == nil {
+		return true
+	}
+	for i,history := range previousResults {
+		if history.Validity != RightPlace {
+			if realWord[i] == letter {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func makeGuess (realWord string, guess string, previousResults [] LetterHistory) (bool, [] LetterHistory) {
 	guessStatus := make( [] LetterHistory,len(realWord))
 	for i := 0 ; i < len(realWord) ; i++ {
 		validity := RightPlace
 		if realWord[i] != guess[i] && letterInWord(realWord, rune(guess[i])) {
-			validity = WrongPlace
+			if wrongPlaceCheckRemainingLetters(realWord,guess[i],previousResults){
+				validity = WrongPlace
+			}else{
+				validity = NotPresent
+			}
 		}else if !letterInWord(realWord,rune(guess[i])) {
 			validity = NotPresent
 		}
@@ -211,7 +229,13 @@ func main()  {
 				currentWord = ""
 				continue
 			}
-			success,results := makeGuess(toGuess,currentWord)
+			var prev [] LetterHistory
+			if guessCount == 0 {
+				prev = nil
+			}else {
+				prev = currentHistory[guessCount - 1]
+			}
+			success,results := makeGuess(toGuess,currentWord,prev)
 			for i,result := range results {
 				properCtx := valid
 				switch result.Validity {
