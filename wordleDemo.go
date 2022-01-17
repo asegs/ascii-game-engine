@@ -117,8 +117,7 @@ func makeGuess (realWord string, guess string, previousResults [] LetterHistory)
 	return realWord == guess,guessStatus
 }
 
-func main()  {
-	go HandleLog()
+func runWordleDemo()  {
 	words,err := getAllWords(defLen,"wordleWords")
 	if err != nil {
 		LogString(err.Error())

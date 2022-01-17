@@ -19,13 +19,4 @@ Terminal:
 
 
 Wordle:
--Strikethrough yellow on virtual keyboard
 -Autofill known green letters or don't allow anything else for green letters
--Don't show yellow for characters that have already been discovered if there are no more
-    For example: real word is shove
-    Guess is heave
-    First e in heave should be gray
-
-    If word is abyss
-    And guess is stars
-    First s in stars should be yellow
