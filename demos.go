@@ -15,7 +15,6 @@ func main () {
 	reader.Scan()
 	text := reader.Text()
 	if text == "W" {
-		fmt.Println("WHAT")
 		runWordleDemo()
 	}else if text == "N" {
 		runNetworked()
