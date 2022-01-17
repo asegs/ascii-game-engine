@@ -12,9 +12,8 @@ func inPunctuation (letter uint8) bool {
 }
 
 func makeMultilineString(body string,maxWidth int) [] string {
-	maxWidth ++
 	toReturn := make([] string,0)
-	if maxWidth <= 2 {
+	if maxWidth <= 1 {
 		return toReturn
 	}
 	lengthHandled := 0
@@ -23,17 +22,17 @@ func makeMultilineString(body string,maxWidth int) [] string {
 		for lengthHandled < bodyLength && body[lengthHandled] == ' ' {
 			lengthHandled ++
 		}
-		newLength := lengthHandled + maxWidth - 1
+		newLength := lengthHandled + maxWidth
 		if newLength >= bodyLength {
 			toReturn = append(toReturn,body[lengthHandled:])
 			lengthHandled = newLength
 		}else {
-			if inPunctuation(body[newLength]) {
+			if inPunctuation(body[newLength - 1]) {
 				toReturn = append(toReturn,body[lengthHandled:newLength])
 				lengthHandled = newLength
 			}else {
 				newLength --
-				if inPunctuation(body[newLength]){
+				if inPunctuation(body[newLength - 1]){
 					toReturn = append(toReturn,body[lengthHandled:newLength+1])
 					lengthHandled = newLength + 1
 				}else {
