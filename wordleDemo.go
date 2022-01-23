@@ -234,6 +234,7 @@ func runWordleDemo()  {
 			}else {
 				prev = currentHistory[guessCount - 1]
 			}
+			LogString("Previous: " + fmt.Sprintf("%v",currentHistory))
 			success,results := makeGuess(toGuess,currentWord,prev)
 			for i,result := range results {
 				properCtx := valid
@@ -259,9 +260,9 @@ func runWordleDemo()  {
 				time.Sleep(5 * time.Second)
 				return
 			}
+			currentHistory[guessCount] = results
 			guessCount ++
 			currentWord = ""
-			currentHistory = append(currentHistory,results)
 
 		}else if msg.Msg == BACKSLASH {
 				terminal.sendPrintStyleAtCoord(invalid,guessCount + 2,0,"Out of guesses!  Word was: " + toGuess)

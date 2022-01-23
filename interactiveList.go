@@ -59,7 +59,7 @@ func printArr (words [] string){
 	}
 }
 
-func main () {
+func mainInteractive () {
 	for i := 1 ; i < 40 ; i ++ {
 		printArr(makeMultilineString("Hello my dearest friend, I need to ask you a favor.",i))
 	}
