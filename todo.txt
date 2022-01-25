@@ -16,7 +16,7 @@ ASCII conversion:
 -Composed function to render frame, sent every 1000/FPS milliseconds - previous render time
 
 Terminal:
-
+-When writing to zones, don't force user to write to terminal after converting to real coords, let them write to the zone at that position
 
 Wordle:
 -Autofill known green letters or don't allow anything else for green letters

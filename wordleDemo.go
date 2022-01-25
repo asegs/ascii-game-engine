@@ -14,6 +14,9 @@ const wWidth int = 100
 const defLen int = 5
 const defGuesses int = 6
 
+const topPercent int = 0
+const botPercent int = 20
+
 type Validity int
 
 const (
@@ -30,7 +33,15 @@ type LetterHistory struct {
 var s1 = rand.NewSource(time.Now().UnixNano())
 var r1 = rand.New(s1)
 
-func getAllWords (size int,directory string) ([] string,error) {
+func getAllWords (size int,directory string,topBound int,bottomBound int) ([] string,error) {
+	if topBound > bottomBound {
+		if topBound < 100 {
+			bottomBound = topBound + 1
+		}else {
+			topBound = 99
+			bottomBound = 100
+		}
+	}
 	numberAsString := strconv.Itoa(size)
 	filename := directory+"/"+numberAsString+".txt"
 	wordsText,err := ReadToString(filename)
@@ -38,7 +49,12 @@ func getAllWords (size int,directory string) ([] string,error) {
 		LogString("No words of this length found!")
 		return nil,err
 	}
-	return strings.Split(wordsText,"\n"),nil
+	words := strings.Split(wordsText,"\n")
+	wordsLen := len(words)
+	upperSplit := int(float64(topBound) / 100 * float64(wordsLen))
+	lowerSplit := int(float64(bottomBound) / 100 * float64(wordsLen))
+	return words[upperSplit:lowerSplit],nil
+
 }
 
 func pickRandomly (words [] string) (string,error) {
@@ -82,6 +98,8 @@ func wordInOptions (options [] string, word string) bool {
 	return false
 }
 
+//check current guess as well to see if the green is there
+//such as "crock" when real word is "cigar"
 func wrongPlaceCheckRemainingLetters (realWord string, letter uint8, previousResults [] LetterHistory) bool {
 	if previousResults == nil {
 		return true
@@ -118,7 +136,7 @@ func makeGuess (realWord string, guess string, previousResults [] LetterHistory)
 }
 
 func runWordleDemo()  {
-	words,err := getAllWords(defLen,"wordleWords")
+	words,err := getAllWords(defLen,"wordleWords",topPercent,botPercent)
 	if err != nil {
 		LogString(err.Error())
 		return
