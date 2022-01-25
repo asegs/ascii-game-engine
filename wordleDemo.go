@@ -14,8 +14,6 @@ const wWidth int = 100
 const defLen int = 5
 const defGuesses int = 6
 
-const topPercent int = 0
-const botPercent int = 20
 
 type Validity int
 
@@ -135,7 +133,7 @@ func makeGuess (realWord string, guess string, previousResults [] LetterHistory)
 	return realWord == guess,guessStatus
 }
 
-func runWordleDemo()  {
+func runWordleDemo(topPercent int, botPercent int)  {
 	words,err := getAllWords(defLen,"wordleWords",topPercent,botPercent)
 	if err != nil {
 		LogString(err.Error())
