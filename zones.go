@@ -12,6 +12,7 @@ type Zoning struct {
 	CursorZoneMap map[int] * Zone
 	Input * NetworkedStdIn
 	Default * Zone
+	Terminal * Terminal
 }
 
 type Zone struct {
@@ -22,9 +23,10 @@ type Zone struct {
 	CursorAllowed bool
 	Events chan * NetworkedMsg
 	CursorMap map[int] * Coord
+	Parent * Zoning
 }
 
-func initZones (height int,width int, input * NetworkedStdIn) * Zoning{
+func initZones (height int,width int, input * NetworkedStdIn, term * Terminal) * Zoning{
 	z := &Zoning{
 		Zones:  make([] * Zone, 0),
 		Height: height,
@@ -32,6 +34,7 @@ func initZones (height int,width int, input * NetworkedStdIn) * Zoning{
 		CursorZoneMap: make(map[int] * Zone),
 		Input: input,
 		Default: nil,
+		Terminal: term,
 	}
 	go z.pipeToZone()
 	return z
@@ -50,6 +53,8 @@ func (z * Zoning) createZone (Y int, X int, Height int, Width int, CursorAllowed
 		CursorAllowed: CursorAllowed,
 		Events: make(chan * NetworkedMsg,1000),
 		CursorMap: make(map[int] * Coord),
+		Parent: z,
+
 	}
 	if Y + Height > z.Height || Y < 0 || X + Width > z.Width || X < 0 {
 		return nil,errors.New("zone does not fit into terminal")
@@ -179,4 +184,41 @@ func (z * Zoning) moveInDirection (direction byte,port int) bool {
 
 func (z * Zoning) setDefaultZone (zone * Zone) {
 	z.Default = zone
+}
+
+//Wrapper functions for zones, no direct terminal control
+
+func (z * Zone) sendPlaceCharFormat(char byte, row int, col int, format *Context, code byte){
+	nCol,nRow := z.getRealNewCoords(col,row)
+	z.Parent.Terminal.sendPlaceCharFormat(char,nRow,nCol,format,code)
+}
+
+func (z * Zone) sendCharAssociation(char byte,recorded * Recorded) {
+	z.Parent.Terminal.sendCharAssociation(char,recorded)
+}
+
+func (z * Zone) sendPrintStyleAtCoord(style * Context,row int,col int,text string){
+	nCol,nRow := z.getRealNewCoords(col,row)
+	z.Parent.Terminal.sendPrintStyleAtCoord(style,nRow,nCol,text)
+}
+
+func (z * Zone) sendPlaceCharAtCoord(char byte,row int,col int) {
+	nCol,nRow := z.getRealNewCoords(col,row)
+	z.Parent.Terminal.sendPlaceCharAtCoord(char,nRow,nCol)
+}
+
+func (z * Zone) sendPlaceCharAtCoordCondUndo(char byte,row int,col int,lastRow int,lastCol int,match byte,matchFg bool) {
+	nCol,nRow := z.getRealNewCoords(col,row)
+	nLastCol,nLastRow := z.getRealNewCoords(lastCol,lastRow)
+	z.Parent.Terminal.sendPlaceCharAtCoordCondUndo(char,nRow,nCol,nLastRow,nLastCol,match,matchFg)
+}
+
+func (z * Zone) sendUndoAtLocationConditional(row int,col int,match byte,matchFg bool) {
+	nCol,nRow := z.getRealNewCoords(col,row)
+	z.Parent.Terminal.sendUndoAtLocationConditional(nRow,nCol,match,matchFg)
+}
+
+func (z * Zone) sendRawFmtString(raw string,effectiveSize int, row int, col int) {
+	nCol,nRow := z.getRealNewCoords(col,row)
+	z.Parent.Terminal.sendRawFmtString(raw,effectiveSize,nRow,nCol)
 }

@@ -579,5 +579,15 @@ func (t * Terminal) getCoordsForCursor(cursor byte) [] * Coord{
 	return cursors
 }
 
+/**
+Only to be used on something where undoing it is not required.
+ */
+func (t * Terminal) sendRawFmtString(raw string,effectiveSize int, row int, col int){
+	t.CustomFeed <- func(terminal *Terminal) {
+		t.moveTo(row,col)
+		t.printRender(raw,effectiveSize)
+	}
+}
+
 
 

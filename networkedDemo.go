@@ -59,7 +59,7 @@ func runNetworked () {
 		ShownSymbol: ' ',
 		BackgroundCode: '0',
 	},8)
-	zoning := initZones(height,width,input)
+	zoning := initZones(height,width,input,terminal)
 	mapZone,err := zoning.createZone(0,0,height,width - 30,true)
 	if err != nil {
 		fmt.Println("creating map error: " + err.Error())
