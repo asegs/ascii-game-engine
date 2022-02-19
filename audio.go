@@ -19,7 +19,7 @@ type Audio struct {
 }
 
 func play(filename string) (error, * Audio ) {
-	cmd := exec.Command("ffplay","nodisp","autoexit",filename)
+	cmd := exec.Command("ffplay","-nodisp","-autoexit",filename)
 	err := cmd.Start()
 	return err,&Audio{Filename: filename,Handle: cmd}
 }
