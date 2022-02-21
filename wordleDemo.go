@@ -31,7 +31,7 @@ type LetterHistory struct {
 var s1 = rand.NewSource(time.Now().UnixNano())
 var r1 = rand.New(s1)
 
-func getAllWords (size int,directory string,topBound int,bottomBound int) ([] string,error) {
+func getAllWords (size int,directory string,topBound int,bottomBound int) ([] string,[] string,error) {
 	if topBound > bottomBound {
 		if topBound < 100 {
 			bottomBound = topBound + 1
@@ -45,13 +45,13 @@ func getAllWords (size int,directory string,topBound int,bottomBound int) ([] st
 	wordsText,err := ReadToString(filename)
 	if err != nil {
 		LogString("No words of this length found!")
-		return nil,err
+		return nil,nil,err
 	}
 	words := strings.Split(wordsText,"\n")
 	wordsLen := len(words)
 	upperSplit := int(float64(topBound) / 100 * float64(wordsLen))
 	lowerSplit := int(float64(bottomBound) / 100 * float64(wordsLen))
-	return words[upperSplit:lowerSplit],nil
+	return words,words[upperSplit:lowerSplit],nil
 
 }
 
@@ -134,12 +134,12 @@ func makeGuess (realWord string, guess string, previousResults [] LetterHistory)
 }
 
 func runWordleDemo(topPercent int, botPercent int)  {
-	words,err := getAllWords(defLen,"wordleWords",topPercent,botPercent)
+	words,selection,err := getAllWords(defLen,"wordleWords",topPercent,botPercent)
 	if err != nil {
 		LogString(err.Error())
 		return
 	}
-	toGuess,err := pickRandomly(words)
+	toGuess,err := pickRandomly(selection)
 	if err != nil {
 		LogString(err.Error())
 		return
@@ -162,7 +162,7 @@ func runWordleDemo(topPercent int, botPercent int)  {
 		ShownSymbol:    ' ',
 		BackgroundCode: '0',
 	},8)
-	zoning := initZones(wHeight,wWidth,input,terminal)
+	zoning := initZones(wHeight,wWidth,input)
 	gameZone,err := zoning.createZone(0,0,wHeight,wWidth,true)
 	if err != nil {
 		LogString("For some reason no zone was created: " + err.Error())
@@ -281,10 +281,10 @@ func runWordleDemo(topPercent int, botPercent int)  {
 			currentWord = ""
 
 		}else if msg.Msg == BACKSLASH {
-				terminal.sendPrintStyleAtCoord(invalid,guessCount + 2,0,"Out of guesses!  Word was: " + toGuess)
-				time.Sleep(5 * time.Second)
-				return
-			}
+			terminal.sendPrintStyleAtCoord(invalid,guessCount + 2,0,"Out of guesses!  Word was: " + toGuess)
+			time.Sleep(5 * time.Second)
+			return
 		}
+	}
 }
 
