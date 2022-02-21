@@ -59,6 +59,7 @@ func runNetworked () {
 		ShownSymbol: ' ',
 		BackgroundCode: '0',
 	},8)
+	_ = terminal.load("saves/state.json")
 	zoning := initZones(height,width,input,terminal)
 	mapZone,err := zoning.createZone(0,0,height,width - 30,true)
 	if err != nil {
@@ -160,6 +161,11 @@ func runNetworked () {
 				}
 			}
 			break
+		case '=':
+			err := terminal.save("saves/state.json")
+			if err != nil {
+				LogString(err.Error())
+			}
 		}
 	}
 }
