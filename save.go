@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 )
 
 type State struct {
@@ -61,11 +60,10 @@ func (t * Terminal) loadSave(save * Save) {
 func (t * Terminal) drawInitialState(){
 	current := t.Depth - 1
 	t.moveTo(0,0)
-	for _,row := range t.DataHistory {
-		for _, col := range row {
-			fmt.Printf(col[current].Format.Format,col[current].ShownSymbol )
+	for y,row := range t.DataHistory {
+		for x, col := range row {
+			t.writeStyleAt(col[current].Format,string(col[current].ShownSymbol),y,x)
 		}
-		println()
 	}
 	t.moveTo(0,0)
 }

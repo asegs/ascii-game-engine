@@ -162,7 +162,7 @@ func runWordleDemo(topPercent int, botPercent int)  {
 		ShownSymbol:    ' ',
 		BackgroundCode: '0',
 	},8)
-	zoning := initZones(wHeight,wWidth,input)
+	zoning := initZones(wHeight,wWidth,input,terminal)
 	gameZone,err := zoning.createZone(0,0,wHeight,wWidth,true)
 	if err != nil {
 		LogString("For some reason no zone was created: " + err.Error())
