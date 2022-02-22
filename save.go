@@ -116,6 +116,25 @@ func (t * Terminal) load (filename string) error {
 	return nil
 }
 
+func saveData (filename string,gameState interface{})error{
+	output,err := json.Marshal(gameState)
+	if err != nil {
+		return err
+	}
+	Write(filename, string(output))
+	return err
+}
+
+func loadData(filename string, onto interface{}) (error,interface{}){
+	text,err := ReadToString(filename)
+	if err != nil {
+		return err,nil
+	}
+	err = json.Unmarshal([]byte(text),&onto)
+	return err,onto
+}
+
+
 //func main()  {
 //	mods := make([]string,2)
 //	mods[0] = "one"

@@ -1,12 +1,20 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 )
 
 const height int = 40
 const width int = 100
+
+type DemoState struct {
+	FollowerRow int
+	FollowerCol int
+	PlayerRow int
+	PlayerCol int
+}
 
 func (terminal * Terminal) erasePath(p []*Coord){
 	for i := 1;i<len(p) - 1;i++{
@@ -35,6 +43,12 @@ func (terminal * Terminal) drawFgOverBg(row int, col int, cursor *Context, oldX 
 }
 
 func runNetworked () {
+	//var state DemoState
+	//err,data := loadData("saves/data.json",state)
+	//state = data.(DemoState)
+	d,_ := ReadToString("saves/data.json")
+	var state DemoState
+	_ = json.Unmarshal([]byte(d),&state)
 	go HandleLog()
 	input := initializeInput()
 	network,err := initNetwork(10001,input)
@@ -93,8 +107,12 @@ func runNetworked () {
 	terminal.assoc('*',cursor,'*')
 	terminal.assoc('x',redBlock,' ')
 	terminal.assoc('?',hunter,'?')
-	go follower(terminal)
+	go follower(terminal,&state)
 	var dir * NetworkedMsg
+	mapZone.CursorMap[LOCAL_PORT] = &Coord{
+		Row: state.PlayerRow,
+		Col: state.PlayerCol,
+	}
 	for {
 		dir = <- mapZone.Events
 		if dir.From == LOCAL_PORT {
@@ -114,6 +132,8 @@ func runNetworked () {
 			if accepted {
 				newX,newY := mapZone.getRealCoords(dir.From)
 				terminal.drawFgOverBg(newY, newX, cursor, realX, realY)
+				state.PlayerRow = newY
+				state.PlayerCol = newX
 			}
 			continue
 		}
@@ -166,6 +186,11 @@ func runNetworked () {
 			if err != nil {
 				LogString(err.Error())
 			}
+			err = saveData("saves/data.json",state)
+			if err != nil {
+				LogString(err.Error())
+			}
+			break
 		}
 	}
 }
@@ -187,32 +212,30 @@ func getClosestCoords(coords [] * Coord,me * Coord) * Coord{
 }
 
 
-func follower (t * Terminal) {
-	row := 0
-	col := 0
+func follower (t * Terminal,state * DemoState) {
 	path := make([] * Coord,0)
 	for true {
 		maze,_,_ := t.parseMazeFromCurrent('1', '2', '3')
 		targets := t.getCoordsForCursor('*')
 		target := getClosestCoords(targets,&Coord{
-			Row: row,
-			Col: col,
+			Row: state.FollowerRow,
+			Col: state.FollowerCol,
 		})
 		if target == nil {
 			time.Sleep(250 * time.Millisecond)
 			continue
 		}
 		path = astar(maze,&Coord{
-			Row: row,
-			Col: col,
+			Row: state.FollowerRow,
+			Col: state.FollowerCol,
 		},&Coord{
 			Row: target.Row,
 			Col: target.Col,
 		})
 		if len(path) > 2 {
-			t.sendPlaceCharAtCoordCondUndo('?',path[1].Row,path[1].Col,row,col,'?',true)
-			row = path[1].Row
-			col = path[1].Col
+			t.sendPlaceCharAtCoordCondUndo('?',path[1].Row,path[1].Col,state.FollowerRow,state.FollowerCol,'?',true)
+			state.FollowerRow = path[1].Row
+			state.FollowerCol = path[1].Col
 		}
 		time.Sleep(250 * time.Millisecond)
 
