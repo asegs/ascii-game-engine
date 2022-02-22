@@ -20,3 +20,7 @@ Terminal:
 
 Wordle:
 -Autofill known green letters or don't allow anything else for green letters
+
+Saves:
+-Saving one column to the right
+-Tiles aren't registering

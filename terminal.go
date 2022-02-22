@@ -398,6 +398,8 @@ func (t * Terminal) undoConditional(row int,col int,match byte,matchForeground b
 		if t.DataHistory[row][col][t.Depth - 1].ShownSymbol == match{
 			t.undoAtPos(row,col)
 		}else{
+			LogString(fmt.Sprintf("%d,%d",row,col))
+			LogString(string(t.DataHistory[row][col][t.Depth-1].ShownSymbol))
 			LogString("Didn't perform undo due to overwrite.")
 		}
 	}else{
