@@ -387,6 +387,15 @@ func (t * Terminal) writeStyleAt(style * Context,text string,row int,col int){
 	t.placeAt(fmt.Sprintf(style.Format,text),row,col,len(text))
 }
 
+
+/**
+Writes just the styled text at a location, without loading into history.
+Used for loading from saves.
+ */
+func (t * Terminal) writeStyleAtNoHistory(style * Context,text string,row int,col int){
+	t.placeAt(fmt.Sprintf(style.Format,text),row,col,len(text))
+}
+
 /**
 Performs an undo on a certain cell on the terminal given that a certain byte matches the expected value.
 Can be used to match foreground values or background using boolean.

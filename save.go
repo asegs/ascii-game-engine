@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 )
 
 type State struct {
@@ -47,6 +48,10 @@ func saveFromString (save string) (error, * Save) {
 	return err,&s
 }
 
+func (r * Recorded) toString() string{
+	return fmt.Sprintf("Foreground: %c, Background: %c, Text: %s",r.ShownSymbol,r.BackgroundCode,r.Format.Format)
+}
+
 func (t * Terminal) loadSave(save * Save) {
 	for y,row := range t.DataHistory {
 		for x,_ := range row {
@@ -62,7 +67,7 @@ func (t * Terminal) drawInitialState(){
 	t.moveTo(0,0)
 	for y,row := range t.DataHistory {
 		for x, col := range row {
-			t.writeStyleAt(col[current].Format,string(col[current].ShownSymbol),y,x)
+			t.writeStyleAtNoHistory(col[current].Format,string(col[current].ShownSymbol),y,x)
 		}
 	}
 	t.moveTo(0,0)
@@ -113,6 +118,7 @@ func (t * Terminal) load (filename string) error {
 	}
 	t.loadSave(save)
 	t.drawInitialState()
+	t.parseMazeFromCurrent('1','2','3')
 	return nil
 }
 

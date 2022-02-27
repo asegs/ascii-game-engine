@@ -8,6 +8,7 @@ import (
 
 const height int = 40
 const width int = 100
+const LOAD bool = true
 
 type DemoState struct {
 	FollowerRow int
@@ -40,15 +41,16 @@ func (terminal * Terminal) drawFgOverBg(row int, col int, cursor *Context, oldX 
 	composedStyle := composeNewContext(oldStyle,cursor)
 	terminal.sendPlaceCharFormat('*',row,col,composedStyle,'*')
 	terminal.sendUndoAtLocationConditional(oldY,oldX,'*',true)
+
+	for _,row := range terminal.DataHistory {
+		for _,col := range row {
+			LogString(fmt.Sprintf("%c",col[terminal.Depth - 1].BackgroundCode))
+		}
+	}
 }
 
 func runNetworked () {
-	//var state DemoState
-	//err,data := loadData("saves/data.json",state)
-	//state = data.(DemoState)
-	d,_ := ReadToString("saves/data.json")
 	var state DemoState
-	_ = json.Unmarshal([]byte(d),&state)
 	go HandleLog()
 	input := initializeInput()
 	network,err := initNetwork(10001,input)
@@ -73,7 +75,20 @@ func runNetworked () {
 		ShownSymbol: ' ',
 		BackgroundCode: '0',
 	},8)
-	_ = terminal.load("saves/state.json")
+	if LOAD {
+		//_,data := loadData("saves/data.json",state)
+		//state = data.(DemoState)
+		d,_ := ReadToString("saves/data.json")
+		_ = json.Unmarshal([]byte(d),&state)
+		_ = terminal.load("saves/state.json")
+	}else {
+		state = DemoState{
+			FollowerRow: 0,
+			FollowerCol: 0,
+			PlayerRow:   0,
+			PlayerCol:   0,
+		}
+	}
 	zoning := initZones(height,width,input,terminal)
 	mapZone,err := zoning.createZone(0,0,height,width - 30,true)
 	if err != nil {

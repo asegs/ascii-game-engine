@@ -316,6 +316,20 @@ func generateMaze(width int,height int,freq float64)([][] * Tile,*Coord,*Coord) 
 	return maze,start,end
 }
 
+func (t * Terminal) toString()string{
+	str := ""
+	for _,row := range t.DataHistory {
+		sub := make([]byte,t.Width)
+		//s1 := ""
+		for b,col := range row {
+			sub[b] = col[t.Depth - 1].BackgroundCode
+			//s1 += string(int(col[t.Depth - 1].BackgroundCode))
+		}
+		str += string(sub) + "\n"
+	}
+	return str
+}
+
 /**
 Reads the terminal space and returns a parsed map.
 Takes the symbol that represents a wall, the start, and the end.
@@ -335,6 +349,7 @@ func (t * Terminal) parseMazeFromCurrent(wall byte, start byte, end byte) ([][]*
 		Row: 0,
 		Col: 0,
 	}
+	discoveredWalls := 0
 	//Reads through each tile in the array and switches on the background code to set the maze
 	for i := 0;i<height;i++{
 		row := make([] * Tile, width)
@@ -353,6 +368,7 @@ func (t * Terminal) parseMazeFromCurrent(wall byte, start byte, end byte) ([][]*
 			case wall:
 				maze[i][b].Type = WALL
 				maze[i][b].Visited = true
+				discoveredWalls++
 				break
 			case start:
 				maze[i][b].Type = START
