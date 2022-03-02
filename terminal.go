@@ -14,6 +14,16 @@ const (
 	UP = 'A'
 )
 
+type HistoryNode struct {
+	Record * Recorded
+	Previous * Recorded
+}
+
+type HistoryStack struct {
+	Top * HistoryNode
+	Length int
+}
+
 //The maximum number of custom functions the terminal can hold in memory via channel.
 const MAX_MESSAGES int = 1000
 
