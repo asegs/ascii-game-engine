@@ -16,12 +16,30 @@ const (
 
 type HistoryNode struct {
 	Record * Recorded
-	Previous * Recorded
+	Previous * HistoryNode
 }
 
 type HistoryStack struct {
 	Top * HistoryNode
 	Length int
+}
+
+func (h * HistoryStack) add(r * Recorded) {
+	newTop := &HistoryNode{
+		Record:   r,
+		Previous: h.Top,
+	}
+	h.Top = newTop
+	h.Length++
+}
+
+func (h * HistoryStack) pop() * Recorded {
+	toReturn := h.Top
+	if toReturn == nil {
+		return nil
+	}
+	h.Top = h.Top.Previous
+	return toReturn.Record
 }
 
 //The maximum number of custom functions the terminal can hold in memory via channel.
