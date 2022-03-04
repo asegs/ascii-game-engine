@@ -37,14 +37,14 @@ func composeNewContext (bg * Context,fg * Context) * Context {
 }
 
 func (terminal * Terminal) drawFgOverBg(row int, col int, cursor *Context, oldX int, oldY int) {
-	oldStyle := terminal.DataHistory[row][col][terminal.Depth - 1].Format
+	oldStyle := terminal.DataHistory[row][col].top().Format
 	composedStyle := composeNewContext(oldStyle,cursor)
 	terminal.sendPlaceCharFormat('*',row,col,composedStyle,'*')
 	terminal.sendUndoAtLocationConditional(oldY,oldX,'*',true)
 
 	for _,row := range terminal.DataHistory {
 		for _,col := range row {
-			LogString(fmt.Sprintf("%c",col[terminal.Depth - 1].BackgroundCode))
+			LogString(fmt.Sprintf("%c",col.top().BackgroundCode))
 		}
 	}
 }
@@ -154,21 +154,21 @@ func runNetworked () {
 		}
 		switch dir.Msg {
 		case '1':
-			if terminal.DataHistory[realY][realX][terminal.Depth-2].BackgroundCode == '1' {
+			if terminal.DataHistory[realY][realX].back(1).BackgroundCode == '1' {
 				terminal.sendPlaceCharAtCoord('0', realY, realX)
 			} else {
 				terminal.sendPlaceCharAtCoord('1', realY, realX)
 			}
 			break
 		case '2':
-			if terminal.DataHistory[realY][realX][terminal.Depth-2].BackgroundCode == '2' {
+			if terminal.DataHistory[realY][realX].back(1).BackgroundCode == '2' {
 				terminal.sendPlaceCharAtCoord('0', realY, realX)
 			} else {
 				terminal.sendPlaceCharAtCoord('2', realY, realX)
 			}
 			break
 		case '3':
-			if terminal.DataHistory[realY][realX][terminal.Depth-2].BackgroundCode == '3' {
+			if terminal.DataHistory[realY][realX].back(1).BackgroundCode == '3' {
 				terminal.sendPlaceCharAtCoord('0', realY, realX)
 			} else {
 				terminal.sendPlaceCharAtCoord('3', realY, realX)

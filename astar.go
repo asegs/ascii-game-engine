@@ -322,7 +322,7 @@ func (t * Terminal) toString()string{
 		sub := make([]byte,t.Width)
 		//s1 := ""
 		for b,col := range row {
-			sub[b] = col[t.Depth - 1].BackgroundCode
+			sub[b] = col.top().BackgroundCode
 			//s1 += string(int(col[t.Depth - 1].BackgroundCode))
 		}
 		str += string(sub) + "\n"
@@ -364,7 +364,7 @@ func (t * Terminal) parseMazeFromCurrent(wall byte, start byte, end byte) ([][]*
 				Type:    FREE,
 				Visited: false,
 			}
-			switch t.DataHistory[i][b][t.Depth - 1].BackgroundCode {
+			switch t.DataHistory[i][b].top().BackgroundCode {
 			case wall:
 				maze[i][b].Type = WALL
 				maze[i][b].Visited = true

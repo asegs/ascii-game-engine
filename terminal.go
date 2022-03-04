@@ -34,12 +34,63 @@ func (h * HistoryStack) add(r * Recorded) {
 }
 
 func (h * HistoryStack) pop() * Recorded {
-	toReturn := h.Top
-	if toReturn == nil {
+	if h == nil || h.Top == nil {
 		return nil
 	}
 	h.Top = h.Top.Previous
-	return toReturn.Record
+	h.Length--
+	return h.Top.Record
+}
+
+func (h * HistoryStack) top() * Recorded {
+	if h == nil || h.Top == nil{
+		return nil
+	}
+	return h.Top.Record
+
+}
+
+
+func (h * HistoryStack) back(n int) * Recorded {
+	if h == nil || h.Top == nil {
+		return nil
+	}
+	node := h.Top
+	for n > 0 {
+		node = node.Previous
+		n--
+	}
+	if node == nil {
+		return nil
+	}
+	return node.Record
+}
+
+func (h * HistoryStack) toArr() [] * Recorded {
+	if h == nil {
+		return nil
+	}
+	if h.Length == 0 {
+		h.Length = 0
+	}
+	stack := make([] * Recorded, h.Length)
+	node := h.Top
+	for i := h.Length - 1; i >= 0 ; i -- {
+		if node.Record == nil {
+			return stack
+		}
+		stack[i] = node.Record
+		node = node.Previous
+	}
+	return stack
+}
+
+func toHistory (records [] * Recorded) * HistoryStack {
+	stack := &HistoryStack{Top: nil}
+	for _,record := range records{
+		stack.add(record)
+	}
+	return stack
 }
 
 //The maximum number of custom functions the terminal can hold in memory via channel.
@@ -97,7 +148,7 @@ type Terminal struct {
 	Width int
 	CustomFeed chan func(terminal * Terminal)
 	Associations map[byte] * Recorded
-	DataHistory [][][] * Recorded
+	DataHistory [][] * HistoryStack
 	Depth int
 	DefaultRecorded * Recorded
 }
@@ -113,16 +164,18 @@ Starts the background thread to receive functions and apply them.
 Finally, returns the reference to the terminal object.
  */
 func createTerminal(height int,width int,defaultRecorded * Recorded,history int)*Terminal{
-	stored := make([][][] * Recorded,height)
+	stored := make([][] * HistoryStack,height)
 	for i:=0;i<height;i++{
-		sRow := make([][] * Recorded,width)
+		sRow := make([] * HistoryStack,width)
 		for b := 0;b<width;b++{
 			print(" ")
-			records := make([] * Recorded, history)
-			for n := 0;n < history;n++{
-				records[n] = defaultRecorded
+			sRow[b] = &HistoryStack{
+				Top:    &HistoryNode{
+					Record:   defaultRecorded,
+					Previous: nil,
+				},
+				Length: 1,
 			}
-			sRow[b] = records
 		}
 		println()
 		stored[i] = sRow
@@ -257,10 +310,7 @@ Shifts every history item for a current cell back one and inserts a new current 
 Loses the oldest item forever.
  */
 func (t * Terminal) updateAtPos(row int,col int,record * Recorded){
-	for i := 1; i < t.Depth;i++{
-		t.DataHistory[row][col][i - 1] = t.DataHistory[row][col][i]
-	}
-	t.DataHistory[row][col][t.Depth - 1] = record
+	t.DataHistory[row][col].add(record)
 }
 
 /**
@@ -271,18 +321,15 @@ Prints the data at the previous state and performs all standard printing operati
 Could possibly use printRender.
  */
 func (t * Terminal) undoAtPos(row int,col int){
-	for i := t.Depth - 2;i>=0;i--{
-		t.DataHistory[row][col][i + 1] = t.DataHistory[row][col][i]
-	}
-	t.DataHistory[row][col][0] = t.DefaultRecorded
+	t.DataHistory[row][col].pop()
 	t.moveTo(row,col)
 	if t.Col >= width - 1{
 		return
 	}
 	t.Col ++
 	var character [1] byte
-	character[0] = t.DataHistory[row][col][t.Depth - 1].ShownSymbol
-	fmt.Printf(t.DataHistory[row][col][t.Depth - 1].Format.Format,character)
+	character[0] = t.DataHistory[row][col].top().ShownSymbol
+	fmt.Printf(t.DataHistory[row][col].top().Format.Format,character)
 	t.moveCursor(1,LEFT)
 
 }
@@ -432,15 +479,15 @@ The reason for the conditional is that if something has already overwritten the 
  */
 func (t * Terminal) undoConditional(row int,col int,match byte,matchForeground bool){
 	if matchForeground {
-		if t.DataHistory[row][col][t.Depth - 1].ShownSymbol == match{
+		if t.DataHistory[row][col].top().ShownSymbol == match{
 			t.undoAtPos(row,col)
 		}else{
 			LogString(fmt.Sprintf("%d,%d",row,col))
-			LogString(string(t.DataHistory[row][col][t.Depth-1].ShownSymbol))
+			LogString(string(t.DataHistory[row][col].top().ShownSymbol))
 			LogString("Didn't perform undo due to overwrite.")
 		}
 	}else{
-		if t.DataHistory[row][col][t.Depth - 1].BackgroundCode == match{
+		if t.DataHistory[row][col].top().BackgroundCode == match{
 			t.undoAtPos(row,col)
 		}else{
 			LogString("Didn't perform undo due to overwrite.")
@@ -478,7 +525,7 @@ func (t * Terminal) placeCharRaw(char byte,row int,col int){
 	t.Col ++
 	var character [1] byte
 	character[0] = char
-	fmt.Printf(t.DataHistory[row][col][t.Depth-1].Format.Format,character)
+	fmt.Printf(t.DataHistory[row][col].top().Format.Format,character)
 	t.moveCursor(1,LEFT)
 }
 
@@ -607,7 +654,7 @@ func (t * Terminal) getCoordsForCursor(cursor byte) [] * Coord{
 	cursors := make([] * Coord,0)
 	for row,items := range t.DataHistory {
 		for col, item := range items {
-			if item[t.Depth - 1].ShownSymbol == cursor {
+			if item.top().ShownSymbol == cursor {
 				cursors = append(cursors,&Coord{
 					Row: row,
 					Col: col,

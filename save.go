@@ -6,11 +6,11 @@ import (
 )
 
 type State struct {
-	Data [][]int
+	Data [][][]int
 }
 
 type Save struct {
-	History [] * State
+	History * State
 	Styles [] * Recorded
 }
 
@@ -55,51 +55,57 @@ func (r * Recorded) toString() string{
 func (t * Terminal) loadSave(save * Save) {
 	for y,row := range t.DataHistory {
 		for x,_ := range row {
-			for i := 0 ; i < t.Depth ; i ++ {
-				t.DataHistory[y][x][i] = save.Styles[save.History[i].Data[y][x]]
+			records := make([] * Recorded,len(save.History.Data[y][x]))
+			for i := 0 ; i < len(records) ; i ++ {
+				records[i] = save.Styles[save.History.Data[y][x][i]]
+				t.DataHistory[y][x] = toHistory(records)
 			}
 		}
 	}
 }
 
 func (t * Terminal) drawInitialState(){
-	current := t.Depth - 1
 	t.moveTo(0,0)
 	for y,row := range t.DataHistory {
 		for x, col := range row {
-			t.writeStyleAtNoHistory(col[current].Format,string(col[current].ShownSymbol),y,x)
+			t.writeStyleAtNoHistory(col.top().Format,string(col.top().ShownSymbol),y,x)
 		}
 	}
 	t.moveTo(0,0)
 }
 
-func (t * Terminal) toState(pos int,styles [] * Recorded) (* State,[] * Recorded) {
-	records := make([][]int,t.Height)
+func (t * Terminal) toState() (* State,[] * Recorded) {
+	styles := make([] * Recorded,0)
+	records := make([][][]int,t.Height)
 	for i := 0 ; i < t.Height ; i ++ {
-		records[i] = make([]int,t.Width)
+		records[i] = make([][]int,t.Width)
 	}
 	idx := -1
 	for y,row := range t.DataHistory {
 		for x,col := range row {
-			idx = recordedIndex(col[pos],styles)
-			if idx == -1 {
-				idx = len(styles)
-				styles = append(styles,col[pos])
+			stackArr := col.toArr()
+			records[y][x] = make([] int, len(stackArr))
+			for i,record := range stackArr {
+				idx = recordedIndex(record,styles)
+				if idx == -1 {
+					idx = len(styles)
+					styles = append(styles,record)
+				}
+				records[y][x][i] = idx
 			}
-			records[y][x] = idx
+
 		}
 	}
 	return &State{Data: records} , styles
 }
 
 func (t * Terminal) save (filename string) error{
-	save := Save{History: make([] * State,t.Depth)}
-	styles := make([] * Recorded,0)
-	for i := 0 ; i < t.Depth ; i ++ {
-		save.History[i],styles = t.toState(i,styles)
+	save := &Save{
+		History: nil,
+		Styles:  nil,
 	}
-	save.Styles = styles
-	err,output := saveToString(&save)
+	save.History,save.Styles = t.toState()
+	err,output := saveToString(save)
 	if err != nil {
 		return err
 	}
