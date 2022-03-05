@@ -4,12 +4,13 @@ Main Features:
 
  - High Performance Good Pathfinding ✅
  - Lightweight Curses Alternative ✅
- - Image to ASCII
+ - Image to ASCII ✅
  - Frame Capped "GIF" Rendering in ASCII ✅
  - Dialogue Tree Editor
  - Topographic Map Generation
  - Symbolic Mapping for Maps
  - Concurrent Input Handling and Display ✅
- - No Dependencies
+ - No Dependencies ✅ (Linux only though)
  - Easy P2P networking over UDP ✅
- - Support for audio and sound effects
+ - Support for audio and sound effects ✅
+ - Pixel based frame editor ✅ (Overhaul coming)
