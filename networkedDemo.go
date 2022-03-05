@@ -58,11 +58,6 @@ func runNetworked () {
 		fmt.Println(err.Error())
 		return
 	}
-	err = network.addConnection([]byte{192,168,1,129})
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
 	cursor := initContext().addRgbStyleFg(255,0,0).compile()
 	redBlock := initContext().addRgbStyleBg(255,0,0).compile()
 	blackBlock := initContext().addRgbStyleBg(0,0,0).compile()

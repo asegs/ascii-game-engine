@@ -16,15 +16,17 @@ ASCII conversion:
 -Composed function to render frame, sent every 1000/FPS milliseconds - previous render time
 
 Terminal:
--Handle history by only extending array if there is a series of undoable events
--When a non-undoable event happens, wipe stack and set that event to be there
--When an undoable event happens, add to stack and let it grow indefinitely
+-When event is not on top of stack, remove first of its kind from stack
 
 Server:
 -Have a client that just receives text and coords
 -Have server that handles everything else and sends out text/coord pairs to listeners
 -Anything one person should see and others shouldn't?
 -Localized behavior (inventory menus..) this is basically full SSR
+
+-Alternatively, send server requests to validate state
+-Server sends back new state updates whenever they happen
+-Automatically render new state
 
 Wordle:
 -Autofill known green letters or don't allow anything else for green letters
