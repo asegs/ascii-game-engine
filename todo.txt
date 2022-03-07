@@ -16,7 +16,6 @@ ASCII conversion:
 -Composed function to render frame, sent every 1000/FPS milliseconds - previous render time
 
 Terminal:
--When event is not on top of stack, remove first of its kind from stack
 
 Server:
 -Have a client that just receives text and coords

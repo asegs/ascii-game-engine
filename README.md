@@ -14,3 +14,4 @@ Main Features:
  - Easy P2P networking over UDP ✅
  - Support for audio and sound effects ✅
  - Pixel based frame editor ✅ (Overhaul coming)
+ - Entity selection and targeting
