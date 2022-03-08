@@ -23,6 +23,7 @@ type CoordExample struct {
 type StateExample struct {
 	Name string
 	Loc CoordExample
+	LocPointer * CoordExample
 }
 
 type UpdateMessage struct {
@@ -54,6 +55,7 @@ func messageFromBytes (bytes []byte) * UpdateMessage {
 
 func updateStateFromMessage(state interface{},message * UpdateMessage) {
 	field := reflect.Indirect(reflect.ValueOf(state)).FieldByName(message.Key)
+	fmt.Println(field.Kind())
 	if field.Kind() == reflect.Struct {
 		output,err := json.Marshal(message.Value)
 		if err != nil {
@@ -65,7 +67,9 @@ func updateStateFromMessage(state interface{},message * UpdateMessage) {
 			fmt.Println(err.Error())
 		}
 		field.Set(reflect.Indirect(reflect.ValueOf(newVersion)))
-	}else {
+	}else if field.Kind() == reflect.Ptr{
+		//handle pointer case
+	} else {
 		field.Set(reflect.ValueOf(message.Value))
 	}
 
@@ -80,6 +84,10 @@ func main()  {
 			X: 1,
 			Y: 2,
 		},
+		LocPointer: &CoordExample{
+			X: 8,
+			Y: 9,
+		},
 	}
 	localState := StateExample{
 		Name: "Ronnie",
@@ -87,9 +95,13 @@ func main()  {
 			X: 2,
 			Y: 3,
 		},
+		LocPointer: &CoordExample{
+			X: 10,
+			Y: 11,
+		},
 	}
 	start := time.Now()
-	update := toStateUpdate(state,"Loc",0)
+	update := toStateUpdate(state,"LocPointer",0)
 	packet := update.toBytes()
 	received := messageFromBytes(packet)
 	updateStateFromMessage(&localState,received)
