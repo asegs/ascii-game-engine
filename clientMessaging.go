@@ -59,16 +59,12 @@ func updateStateFromMessage(state interface{},message * UpdateMessage) {
 		if err != nil {
 			fmt.Println(err.Error())
 		}
-		newVersion := reflect.New(field.Type())
-		fmt.Println(string(output))
-		//If we can correctly unmarshall to newVersion, this works.
+		newVersion := reflect.New(field.Type()).Interface()
 		err = json.Unmarshal(output, &newVersion)
-		fmt.Println(newVersion)
 		if err != nil {
 			fmt.Println(err.Error())
 		}
-		field.Set(reflect.Indirect(newVersion))
-		fmt.Println(field)
+		field.Set(reflect.Indirect(reflect.ValueOf(newVersion)))
 	}else {
 		field.Set(reflect.ValueOf(message.Value))
 	}
