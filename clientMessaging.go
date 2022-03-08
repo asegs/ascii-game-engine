@@ -11,6 +11,8 @@ import (
 Send key for state and new value with port/ID whenever state updates
 
 Do this with reflect for now and if it is too slow after profiling do some code generation before compile
+
+Fails with struct key, if struct -> to string, json unmarshal
  */
 
 type CoordExample struct {
@@ -51,7 +53,28 @@ func messageFromBytes (bytes []byte) * UpdateMessage {
 }
 
 func updateStateFromMessage(state interface{},message * UpdateMessage) {
-	reflect.Indirect(reflect.ValueOf(state)).FieldByName(message.Key).Set(reflect.ValueOf(message.Value))
+	field := reflect.Indirect(reflect.ValueOf(state)).FieldByName(message.Key)
+	if field.Kind() == reflect.Struct {
+		output,err := json.Marshal(message.Value)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+		newVersion := reflect.New(field.Type())
+		fmt.Println(string(output))
+		//If we can correctly unmarshall to newVersion, this works.
+		err = json.Unmarshal(output, &newVersion)
+		fmt.Println(newVersion)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+		field.Set(reflect.Indirect(newVersion))
+		fmt.Println(field)
+	}else {
+		field.Set(reflect.ValueOf(message.Value))
+	}
+
+	fmt.Println(field)
+	fmt.Println(field.Type())
 }
 
 func main()  {
@@ -70,10 +93,11 @@ func main()  {
 		},
 	}
 	start := time.Now()
-	update := toStateUpdate(state,"Name",0)
+	update := toStateUpdate(state,"Loc",0)
 	packet := update.toBytes()
 	received := messageFromBytes(packet)
 	updateStateFromMessage(&localState,received)
 	fmt.Println(time.Now().Sub(start))
+	fmt.Println(localState)
 }
 
