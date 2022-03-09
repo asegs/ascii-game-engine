@@ -14,6 +14,10 @@ Do this with reflect for now and if it is too slow after profiling do some code 
 
 */
 
+/**
+A couple dummy structs for demonstrating how this works.
+ */
+
 type CoordExample struct {
 	X int
 	Y int
@@ -31,6 +35,9 @@ type UpdateMessage struct {
 	Value interface{}
 }
 
+/**
+Identifies the value of the field which has changed, and creates an update message containing that field.
+ */
 func toStateUpdate(state interface{}, key string, id int) * UpdateMessage {
 	field := reflect.ValueOf(state).FieldByName(key)
 	return &UpdateMessage{
@@ -40,11 +47,17 @@ func toStateUpdate(state interface{}, key string, id int) * UpdateMessage {
 	}
 }
 
+/**
+Simply converts an UpdateMessage into a byte string.
+ */
 func (u * UpdateMessage) toBytes() []byte{
 	output,_ := json.Marshal(u)
 	return output
 }
 
+/**
+Rebuilds an UpdateMessage from a byte string.
+ */
 func messageFromBytes (bytes []byte) * UpdateMessage {
 	var update UpdateMessage
 	_ = json.Unmarshal(bytes,&update)
@@ -52,29 +65,36 @@ func messageFromBytes (bytes []byte) * UpdateMessage {
 
 }
 
+/**
+Updates some state of an object from a given message.
+ */
 func updateStateFromMessage(state interface{},message * UpdateMessage) {
+	//The interface value from the update message, the new value which the key has been changed to.
 	field := reflect.Indirect(reflect.ValueOf(state)).FieldByName(message.Key)
-	wasPtr := false
+	//If the updated field was a pointer
 	if field.Kind() == reflect.Ptr {
+		//Set the field to the actual value of that pointer
 		field = reflect.Indirect(field)
-		wasPtr = true
 	}
+	//If the value was a struct, or if it was originally a pointer...
 	if field.Kind() == reflect.Struct {
+		//We do this because message.Value will be a map[string]interface{} if it is a struct.
+		//Convert the message to a JSON string
 		output, err := json.Marshal(message.Value)
 		if err != nil {
 			fmt.Println(err.Error())
 		}
+		//Instantiate a new object of the fields type
 		newVersion := reflect.New(field.Type()).Interface()
+		//Push the map of pairs into the new object for the proper fields
 		err = json.Unmarshal(output, &newVersion)
 		if err != nil {
 			fmt.Println(err.Error())
 		}
-		if wasPtr {
-			field.Set(reflect.Indirect(reflect.Indirect(reflect.ValueOf(newVersion))))
-		}else {
-			field.Set(reflect.Indirect(reflect.ValueOf(newVersion)))
-		}
+		//Sets the field equal to wherever the pointer for the field points.
+		field.Set(reflect.Indirect(reflect.ValueOf(newVersion)))
 	} else {
+		//Sets the field directly to the message value.
 		field.Set(reflect.ValueOf(message.Value))
 	}
 }
