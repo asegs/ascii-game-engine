@@ -28,16 +28,27 @@ type StateExample struct {
 
 type UpdateMessage struct {
 	Id int
-	Key string
-	Value interface{}
+	Value string
 }
 
-func toStateUpdate(state interface{}, key string, id int) * UpdateMessage {
-	field := reflect.ValueOf(state).FieldByName(key)
+func marshal(anything interface{}) []byte {
+	output,_ := json.Marshal(anything)
+	return output
+}
+
+func toStateUpdate(state interface{}, id int, keys ...string) * UpdateMessage {
+	value := "{"
+	for i,key := range keys {
+		toJson := string(marshal(reflect.ValueOf(state).FieldByName(key).Interface()))
+		value+="\""+key+"\":"+toJson
+		if i < len(keys) - 1 {
+			value += ","
+		}
+	}
+	value+="}"
 	return &UpdateMessage{
 		Id:    id,
-		Key:   key,
-		Value: field.Interface(),
+		Value: value,
 	}
 }
 
@@ -54,27 +65,7 @@ func messageFromBytes (bytes []byte) * UpdateMessage {
 }
 
 func updateStateFromMessage(state interface{},message * UpdateMessage) {
-	field := reflect.Indirect(reflect.ValueOf(state)).FieldByName(message.Key)
-	fmt.Println(field.Kind())
-	if field.Kind() == reflect.Struct {
-		output,err := json.Marshal(message.Value)
-		if err != nil {
-			fmt.Println(err.Error())
-		}
-		newVersion := reflect.New(field.Type()).Interface()
-		err = json.Unmarshal(output, &newVersion)
-		if err != nil {
-			fmt.Println(err.Error())
-		}
-		field.Set(reflect.Indirect(reflect.ValueOf(newVersion)))
-	}else if field.Kind() == reflect.Ptr{
-		//handle pointer case
-	} else {
-		field.Set(reflect.ValueOf(message.Value))
-	}
-
-	fmt.Println(field)
-	fmt.Println(field.Type())
+	_ = json.Unmarshal([]byte(message.Value),&state)
 }
 
 func main()  {
@@ -101,11 +92,12 @@ func main()  {
 		},
 	}
 	start := time.Now()
-	update := toStateUpdate(state,"LocPointer",0)
+	update := toStateUpdate(state,0,"Name","Loc","LocPointer")
 	packet := update.toBytes()
 	received := messageFromBytes(packet)
 	updateStateFromMessage(&localState,received)
 	fmt.Println(time.Now().Sub(start))
 	fmt.Println(localState)
+	fmt.Println(localState.LocPointer)
 }
 
