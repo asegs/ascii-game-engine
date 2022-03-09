@@ -12,7 +12,6 @@ Send key for state and new value with port/ID whenever state updates
 
 Do this with reflect for now and if it is too slow after profiling do some code generation before compile
 
-Fails with struct key, if struct -> to string, json unmarshal
  */
 
 type CoordExample struct {
@@ -92,7 +91,7 @@ func main()  {
 		},
 	}
 	start := time.Now()
-	update := toStateUpdate(state,0,"Name","Loc","LocPointer")
+	update := toStateUpdate(state,0,"Name")
 	packet := update.toBytes()
 	received := messageFromBytes(packet)
 	updateStateFromMessage(&localState,received)

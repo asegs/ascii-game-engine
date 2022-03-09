@@ -11,7 +11,8 @@ Main Features:
  - Symbolic Mapping for Maps
  - Concurrent Input Handling and Display ✅
  - No Dependencies ✅ (Linux only though)
- - Easy P2P networking over UDP ✅
+ - Easy client/server networking over UDP
+ - Networked by default ✅
  - Support for audio and sound effects ✅
  - Pixel based frame editor ✅ (Overhaul coming)
  - Entity selection and targeting
