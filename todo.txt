@@ -29,3 +29,6 @@ Server:
 
 Wordle:
 -Autofill known green letters or don't allow anything else for green letters
+
+General:
+-Have config file for all preset values, like default port number, global message id, local message id...

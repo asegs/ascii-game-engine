@@ -7,6 +7,9 @@ import (
 	"time"
 )
 
+var GLOBAL_ID int = -1
+var LOCAL_ID int = 0
+
 /**
 Send key for state and new value with port/ID whenever state updates
 
@@ -40,6 +43,7 @@ type StateExample struct {
 
 type UpdateMessage struct {
 	Id int
+	Keys []string
 	Value string
 }
 
@@ -61,6 +65,7 @@ func toStateUpdate(state interface{}, id int, keys ...string) * UpdateMessage {
 	return &UpdateMessage{
 		Id:    id,
 		Value: value,
+		Keys: keys,
 	}
 }
 
@@ -78,6 +83,35 @@ func messageFromBytes (bytes []byte) * UpdateMessage {
 
 func updateStateFromMessage(state interface{},message * UpdateMessage) {
 	_ = json.Unmarshal([]byte(message.Value),&state)
+}
+
+func (u * UpdateMessage) updateProperState(localState interface{},playerStates map[int]interface{},globalState interface{},localId int,globalId int) {
+	switch u.Id {
+	case localId:
+		updateStateFromMessage(localState,u)
+		break
+	case globalId:
+		updateStateFromMessage(globalState,u)
+		break
+	default:
+		updateStateFromMessage(playerStates[u.Id],u)
+	}
+}
+
+func (u * UpdateMessage) applyToStates(localState interface{},playerStates map[int]interface{},globalState interface{},localHandlers map[string]func(),playersHandlers map[string]func(int),globalHandlers map[string]func()){
+	u.updateProperState(localState,playerStates,globalState,LOCAL_ID,GLOBAL_ID)
+	for _,key := range u.Keys {
+		switch u.Id {
+		case LOCAL_ID:
+			localHandlers[key]()
+			break
+		case GLOBAL_ID:
+			globalHandlers[key]()
+			break
+		default:
+			playersHandlers[key](u.Id)
+		}
+	}
 }
 
 func main()  {
