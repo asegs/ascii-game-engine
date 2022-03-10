@@ -12,6 +12,19 @@ Send key for state and new value with port/ID whenever state updates
 
 Do this with reflect for now and if it is too slow after profiling do some code generation before compile
 
+Standard game will track local state, other player's state, and world state
+
+Possible message can effect any of these, other players will be done by:
+-Get message
+-If id is for other players, lookup in int->state map
+-Apply state change to that state and run correct handler
+
+-If id is for own self, run update as well, may keep track of unclosed messages to close them and apply, or do nothing if success
+
+-If id is for game state, run update on game state, do this by id, like -1?
+
+Also allow local state updates to come through, like position in a menu
+
  */
 
 type CoordExample struct {
