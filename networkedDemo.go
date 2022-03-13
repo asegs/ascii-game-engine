@@ -11,10 +11,10 @@ const width int = 100
 const LOAD bool = true
 
 type DemoState struct {
-	FollowerRow int
-	FollowerCol int
-	PlayerRow int
-	PlayerCol int
+	FollowerPos * Coord
+	PlayerPos * Coord
+	OtherPlayersPos [] * Coord
+	Maze [][] byte
 }
 
 func (terminal * Terminal) erasePath(p []*Coord){
@@ -70,20 +70,6 @@ func runNetworked () {
 		ShownSymbol: ' ',
 		BackgroundCode: '0',
 	},8)
-	if LOAD {
-		//_,data := loadData("saves/data.json",state)
-		//state = data.(DemoState)
-		d,_ := ReadToString("saves/data.json")
-		_ = json.Unmarshal([]byte(d),&state)
-		_ = terminal.load("saves/state.json")
-	}else {
-		state = DemoState{
-			FollowerRow: 0,
-			FollowerCol: 0,
-			PlayerRow:   0,
-			PlayerCol:   0,
-		}
-	}
 	zoning := initZones(height,width,input,terminal)
 	mapZone,err := zoning.createZone(0,0,height,width - 30,true)
 	if err != nil {
@@ -99,6 +85,31 @@ func runNetworked () {
 	if err != nil {
 		fmt.Println("creating faces error: " + err.Error())
 		return
+	}
+	if LOAD {
+		// Use a reflection something for this,idk doesn't matter right now
+		//_,data := loadData("saves/data.json",state)
+		//state = data.(DemoState)
+		d,_ := ReadToString("saves/data.json")
+		_ = json.Unmarshal([]byte(d),&state)
+		_ = terminal.load("saves/state.json")
+	}else {
+		maze := make([][] byte,mapZone.Height)
+		for i := 0 ; i < mapZone.Height ; i ++ {
+			maze[i] = make([] byte, mapZone.Width)
+		}
+		state = DemoState{
+			FollowerPos:     &Coord{
+				Row: 0,
+				Col: 0,
+			},
+			PlayerPos:       &Coord{
+				Row: 0,
+				Col: 0,
+			},
+			OtherPlayersPos: make([] * Coord,0),
+			Maze:            maze,
+		}
 	}
 	faces := make([] string,2)
 	faces[0] = "assets/faces/smile_face.txt"
@@ -119,10 +130,7 @@ func runNetworked () {
 	terminal.assoc('?',hunter,'?')
 	go follower(terminal,&state)
 	var dir * NetworkedMsg
-	mapZone.CursorMap[LOCAL_PORT] = &Coord{
-		Row: state.PlayerRow,
-		Col: state.PlayerCol,
-	}
+	mapZone.CursorMap[LOCAL_PORT] = state.PlayerPos
 	for {
 		dir = <- mapZone.Events
 		if dir.From == LOCAL_PORT {
@@ -142,8 +150,8 @@ func runNetworked () {
 			if accepted {
 				newX,newY := mapZone.getRealCoords(dir.From)
 				terminal.drawFgOverBg(newY, newX, cursor, realX, realY)
-				state.PlayerRow = newY
-				state.PlayerCol = newX
+				state.PlayerPos.Row = newY
+				state.PlayerPos.Col = newX
 			}
 			continue
 		}
@@ -227,25 +235,19 @@ func follower (t * Terminal,state * DemoState) {
 	for true {
 		maze,_,_ := t.parseMazeFromCurrent('1', '2', '3')
 		targets := t.getCoordsForCursor('*')
-		target := getClosestCoords(targets,&Coord{
-			Row: state.FollowerRow,
-			Col: state.FollowerCol,
-		})
+		target := getClosestCoords(targets,state.FollowerPos)
 		if target == nil {
 			time.Sleep(250 * time.Millisecond)
 			continue
 		}
-		path = astar(maze,&Coord{
-			Row: state.FollowerRow,
-			Col: state.FollowerCol,
-		},&Coord{
+		path = astar(maze,state.FollowerPos,&Coord{
 			Row: target.Row,
 			Col: target.Col,
 		})
 		if len(path) > 2 {
-			t.sendPlaceCharAtCoordCondUndo('?',path[1].Row,path[1].Col,state.FollowerRow,state.FollowerCol,'?',true)
-			state.FollowerRow = path[1].Row
-			state.FollowerCol = path[1].Col
+			t.sendPlaceCharAtCoordCondUndo('?',path[1].Row,path[1].Col,state.FollowerPos.Row,state.FollowerPos.Col,'?',true)
+			state.FollowerPos.Row = path[1].Row
+			state.FollowerPos.Col = path[1].Col
 		}
 		time.Sleep(250 * time.Millisecond)
 

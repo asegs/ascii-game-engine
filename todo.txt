@@ -18,14 +18,20 @@ ASCII conversion:
 Terminal:
 
 Server:
--Have a client that just receives text and coords
--Have server that handles everything else and sends out text/coord pairs to listeners
--Anything one person should see and others shouldn't?
--Localized behavior (inventory menus..) this is basically full SSR
-
--Alternatively, send server requests to validate state
+-Send server requests to validate state
 -Server sends back new state updates whenever they happen
 -Automatically render new state
+-Server sends updates such as new position of follower
+-Custom keys ('1' linked to something, not mapped to any state)
+-Right now you have to send a whole new copy, not validate a change
+-ASYMMETRY
+-Send a message of action to take server sends back proper state
+-For example: '1' means place black at current space
+-If this is allowed, broadcasts out new state since server tracks all state
+-The question is, how do we send back just update to make and not whole new state
+-Shouldn't be an issue in cases of location updates
+-However, what about placing a '1' at just one tile on an array?
+-Either pass whole thing and have to diff check to choose what to rerender, or send special message to perform special function with data (coord + new state)
 
 Wordle:
 -Autofill known green letters or don't allow anything else for green letters
