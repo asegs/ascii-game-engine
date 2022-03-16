@@ -28,11 +28,16 @@ Possible message can effect any of these, other players will be done by:
 
 Also allow local state updates to come through, like position in a menu
 
- */
+*/
 
 type CoordExample struct {
 	X int
 	Y int
+}
+
+type StatePair struct {
+	Key string
+	Json string
 }
 
 type StateExample struct {
@@ -43,8 +48,7 @@ type StateExample struct {
 
 type UpdateMessage struct {
 	Id int
-	Keys []string
-	Value string
+	Pairs [] StatePair
 }
 
 func marshal(anything interface{}) []byte {
@@ -52,21 +56,21 @@ func marshal(anything interface{}) []byte {
 	return output
 }
 
-func toStateUpdate(state interface{}, id int, keys ...string) * UpdateMessage {
-	value := "{"
-	for i,key := range keys {
-		toJson := string(marshal(reflect.ValueOf(state).FieldByName(key).Interface()))
-		value+="\""+key+"\":"+toJson
-		if i < len(keys) - 1 {
-			value += ","
-		}
-	}
-	value+="}"
+func newStateUpdate(id int) * UpdateMessage {
 	return &UpdateMessage{
 		Id:    id,
-		Value: value,
-		Keys: keys,
+		Pairs: make([] StatePair,0),
 	}
+}
+
+func (u * UpdateMessage) append(state interface{}, keys ...string) * UpdateMessage {
+	for _,key := range keys {
+		u.Pairs = append(u.Pairs,StatePair{
+			Key:  key,
+			Json: `{"` + key + `":` + string(marshal(reflect.ValueOf(state).FieldByName(key).Interface())) + "}",
+		})
+	}
+	return u
 }
 
 func (u * UpdateMessage) toBytes() []byte{
@@ -81,35 +85,46 @@ func messageFromBytes (bytes []byte) * UpdateMessage {
 
 }
 
-func updateStateFromMessage(state interface{},message * UpdateMessage) {
-	_ = json.Unmarshal([]byte(message.Value),&state)
+func updateStateFromJson(state interface{},data string) {
+	_ = json.Unmarshal([]byte(data),&state)
 }
 
-func (u * UpdateMessage) updateProperState(localState interface{},playerStates map[int]interface{},globalState interface{},localId int,globalId int) {
-	switch u.Id {
-	case localId:
-		updateStateFromMessage(localState,u)
-		break
-	case globalId:
-		updateStateFromMessage(globalState,u)
-		break
-	default:
-		updateStateFromMessage(playerStates[u.Id],u)
-	}
+func keyInState (key string, state interface{}) bool{
+	return reflect.ValueOf(state).FieldByName(key).IsValid()
 }
 
-func (u * UpdateMessage) applyToStates(localState interface{},playerStates map[int]interface{},globalState interface{},localHandlers map[string]func(),playersHandlers map[string]func(int),globalHandlers map[string]func()){
-	u.updateProperState(localState,playerStates,globalState,LOCAL_ID,GLOBAL_ID)
-	for _,key := range u.Keys {
+func (p StatePair) performCustomFunction(customs map[string]func(string)) {
+	customs[p.Key](p.Json)
+}
+
+
+func (u * UpdateMessage) applyToStates(localState interface{},playerStates map[int]interface{},globalState interface{},localHandlers map[string]func(),playersHandlers map[string]func(int),globalHandlers map[string]func(),customHandlers map[string]func(string2 string)){
+	for _,pair := range u.Pairs {
 		switch u.Id {
 		case LOCAL_ID:
-			localHandlers[key]()
+			if keyInState(pair.Key,localState) {
+				updateStateFromJson(&localState,pair.Json)
+				localHandlers[pair.Key]()
+			} else {
+				pair.performCustomFunction(customHandlers)
+			}
 			break
 		case GLOBAL_ID:
-			globalHandlers[key]()
+			if keyInState(pair.Key,globalState) {
+				updateStateFromJson(&globalState,pair.Json)
+				globalHandlers[pair.Key]()
+			} else {
+				pair.performCustomFunction(customHandlers)
+			}
 			break
 		default:
-			playersHandlers[key](u.Id)
+			playerState := playerStates[u.Id]
+			if keyInState(pair.Key,playerState) {
+				updateStateFromJson(&playerState,pair.Json)
+				playersHandlers[pair.Key](u.Id)
+			} else {
+				pair.performCustomFunction(customHandlers)
+			}
 		}
 	}
 }
@@ -138,10 +153,12 @@ func main()  {
 		},
 	}
 	start := time.Now()
-	update := toStateUpdate(state,0,"Name")
+	update := newStateUpdate(0).append(state,"Name","Loc","LocPointer")
 	packet := update.toBytes()
 	received := messageFromBytes(packet)
-	updateStateFromMessage(&localState,received)
+	for _,pair := range received.Pairs {
+		updateStateFromJson(&localState,pair.Json)
+	}
 	fmt.Println(time.Now().Sub(start))
 	fmt.Println(localState)
 	fmt.Println(localState.LocPointer)
