@@ -24,6 +24,7 @@ type Zone struct {
 	Events chan * NetworkedMsg
 	CursorMap map[int] * Coord
 	Parent * Zoning
+	Handlers * Server
 }
 
 func initZones (height int,width int, input * NetworkedStdIn, term * Terminal) * Zoning{
@@ -54,6 +55,7 @@ func (z * Zoning) createZone (Y int, X int, Height int, Width int, CursorAllowed
 		Events: make(chan * NetworkedMsg,1000),
 		CursorMap: make(map[int] * Coord),
 		Parent: z,
+		Handlers: newServerDefault(),
 
 	}
 	if Y + Height > z.Height || Y < 0 || X + Width > z.Width || X < 0 {
@@ -221,4 +223,8 @@ func (z * Zone) sendUndoAtLocationConditional(row int,col int,match byte,matchFg
 func (z * Zone) sendRawFmtString(raw string,effectiveSize int, row int, col int) {
 	nCol,nRow := z.getRealNewCoords(col,row)
 	z.Parent.Terminal.sendRawFmtString(raw,effectiveSize,nRow,nCol)
+}
+
+func (z * Zone) addPlayerHandler (key byte, operator func(int)) {
+	z.Handlers.addPlayerHandler(key,operator)
 }

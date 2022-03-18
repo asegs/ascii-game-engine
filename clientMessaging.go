@@ -67,13 +67,25 @@ func newStateUpdate(id int) * UpdateMessage {
 	}
 }
 
+func wrapWithKey (key string, jsonBody string) string {
+	return `{"` + key + `":` + jsonBody + "}"
+}
+
 func (u * UpdateMessage) append(state interface{}, keys ...string) * UpdateMessage {
 	for _,key := range keys {
 		u.Pairs = append(u.Pairs,StatePair{
 			Key:  key,
-			Json: `{"` + key + `":` + string(marshal(reflect.ValueOf(state).FieldByName(key).Interface())) + "}",
+			Json: wrapWithKey(key,string(marshal(reflect.ValueOf(state).FieldByName(key).Interface()))),
 		})
 	}
+	return u
+}
+
+func (u * UpdateMessage) appendCustom (data interface{}, key string) * UpdateMessage{
+	u.Pairs = append(u.Pairs,StatePair{
+		Key:  key,
+		Json: wrapWithKey(key,string(marshal(data))),
+	})
 	return u
 }
 
