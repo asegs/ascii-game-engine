@@ -24,7 +24,6 @@ type Zone struct {
 	Events chan * NetworkedMsg
 	CursorMap map[int] * Coord
 	Parent * Zoning
-	Handlers * Server
 }
 
 func initZones (height int,width int, input * NetworkedStdIn, term * Terminal) * Zoning{
@@ -55,8 +54,6 @@ func (z * Zoning) createZone (Y int, X int, Height int, Width int, CursorAllowed
 		Events: make(chan * NetworkedMsg,1000),
 		CursorMap: make(map[int] * Coord),
 		Parent: z,
-		Handlers: newServerDefault(),
-
 	}
 	if Y + Height > z.Height || Y < 0 || X + Width > z.Width || X < 0 {
 		return nil,errors.New("zone does not fit into terminal")

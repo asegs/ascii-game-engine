@@ -6,16 +6,19 @@ import (
 	"strconv"
 )
 
-//Permute IP + Local Port into ID.  Receive byte + this id, have handler for byte.
 type Server struct {
-	PlayerHandlers map[byte]func(int)
 	Players map[int] * net.UDPConn
 	ConnectKey string
 }
 
+//Permute IP + Local Port into ID.  Receive byte + this id, have handler for byte.
+type ZoneHandlers struct {
+	Server * Server
+	PlayerHandlers map[byte]func(int)
+}
+
 func newServerDefault () * Server {
 	return &Server{
-		PlayerHandlers: make(map[byte]func(int)),
 		Players:        make(map[int] * net.UDPConn,0),
 		ConnectKey:     "connect",
 	}
@@ -23,15 +26,21 @@ func newServerDefault () * Server {
 
 func newServer (connectKey string) * Server {
 	return &Server{
-		PlayerHandlers: make(map[byte]func(int)),
 		Players:        make(map[int] * net.UDPConn,0),
 		ConnectKey:     connectKey,
 	}
 }
 
-func (s * Server) addPlayerHandler (key byte,operator func(int)) * Server{
-	s.PlayerHandlers[key] = operator
-	return s
+func (s * Server) newZoneHandlers () * ZoneHandlers {
+	return &ZoneHandlers{
+		Server:         s,
+		PlayerHandlers: make(map[byte]func(int)),
+	}
+}
+
+func (z * ZoneHandlers) addPlayerHandler (key byte,operator func(int)) * ZoneHandlers{
+	z.PlayerHandlers[key] = operator
+	return z
 }
 
 func hash(s string) uint32 {
@@ -44,8 +53,8 @@ func permuteIp (addr * net.UDPAddr) int{
 	return int(hash(addr.IP.String()+strconv.Itoa(addr.Port)))
 }
 
-func (s * Server) performHandler (addr * net.UDPAddr, msg byte) {
-	s.PlayerHandlers[msg](permuteIp(addr))
+func (z * ZoneHandlers) performHandler (addr * net.UDPAddr, msg byte) {
+	z.PlayerHandlers[msg](permuteIp(addr))
 }
 
 func (s * Server) connect(addr * net.UDPConn) {
