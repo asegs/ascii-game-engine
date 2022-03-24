@@ -24,6 +24,7 @@ type Zone struct {
 	Events chan * NetworkedMsg
 	CursorMap map[int] * Coord
 	Parent * Zoning
+	Handlers * Client
 }
 
 func initZones (height int,width int, input * NetworkedStdIn, term * Terminal) * Zoning{
@@ -54,6 +55,7 @@ func (z * Zoning) createZone (Y int, X int, Height int, Width int, CursorAllowed
 		Events: make(chan * NetworkedMsg,1000),
 		CursorMap: make(map[int] * Coord),
 		Parent: z,
+		Handlers: newClient(),
 	}
 	if Y + Height > z.Height || Y < 0 || X + Width > z.Width || X < 0 {
 		return nil,errors.New("zone does not fit into terminal")
@@ -222,6 +224,23 @@ func (z * Zone) sendRawFmtString(raw string,effectiveSize int, row int, col int)
 	z.Parent.Terminal.sendRawFmtString(raw,effectiveSize,nRow,nCol)
 }
 
-func (z * Zone) addPlayerHandler (key byte, operator func(int)) {
-	z.Handlers.addPlayerHandler(key,operator)
+func (z * Zone) addLocalHandler (key string,operator func()) * Zone{
+	z.Handlers.LocalProcessor[key] = operator
+	return z
 }
+
+func (z * Zone) addGlobalHandler (key string,operator func()) * Zone{
+	z.Handlers.GlobalProcessor[key] = operator
+	return z
+}
+
+func (z * Zone) addPlayersHandler (key string,operator func(int)) * Zone{
+	z.Handlers.PlayersProcessor[key] = operator
+	return z
+}
+
+func (z * Zone) addCustomHandler (key string,operator func(string)) * Zone{
+	z.Handlers.CustomProcessor[key] = operator
+	return z
+}
+
