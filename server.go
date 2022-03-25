@@ -70,7 +70,16 @@ func (s * Server) connect(addr * net.UDPConn) {
 
 }
 
-func (s * Server) broadcastCustomPair (key string, data interface{}, from int, toUser int) {
-	update := newStateUpdate(from).appendCustom(data,key)
-	s.Players[toUser].Write(update.toBytes())
+func (s * Server) broadcastToAll (message [] byte) {
+	for _,player := range s.Players {
+		player.Write(message)
+	}
+}
+
+func (s * Server) broadcastCustomPair (key string, data interface{}, from int) {
+	s.broadcastToAll(newStateUpdate(from).appendCustom(data,key).toBytes())
+}
+
+func (s * Server) broadcastStateUpdate (state interface{}, from int, keys ...string) {
+	s.broadcastToAll(newStateUpdate(from).append(state,keys...).toBytes())
 }
