@@ -9,9 +9,8 @@ import (
 type Server struct {
 	Players map[int] * net.UDPConn
 	ConnectKey string
-	ZoneIds map[int] int
-	ZoneHandlers map[int] * ZoneHandlers
-
+	ZoneIndexes map[int] int
+	ZoneHandlers [] * ZoneHandlers
 }
 
 //Permute IP + Local Port into ID.  Receive byte + this id, have handler for byte.
@@ -24,8 +23,8 @@ func newServerDefault () * Server {
 	return &Server{
 		Players:        make(map[int] * net.UDPConn,0),
 		ConnectKey:     "connect",
-		ZoneIds: make(map[int]int),
-		ZoneHandlers: make(map[int]*ZoneHandlers),
+		ZoneIndexes: make(map[int]int),
+		ZoneHandlers: make([] *ZoneHandlers,0),
 	}
 }
 
@@ -33,18 +32,21 @@ func newServer (connectKey string) * Server {
 	return &Server{
 		Players:        make(map[int] * net.UDPConn,0),
 		ConnectKey:     connectKey,
-		ZoneIds: make(map[int]int),
-		ZoneHandlers: make(map[int]*ZoneHandlers),
+		ZoneIndexes: make(map[int]int),
+		ZoneHandlers: make([] *ZoneHandlers,0),
 	}
 }
 
-func (s * Server) newZoneHandlers (zoneId int) * ZoneHandlers {
+func (s * Server) newZoneHandlers () * ZoneHandlers {
 	handlers := &ZoneHandlers{
 		Server:         s,
 		PlayerHandlers: make(map[byte]func(int)),
 	}
-	s.ZoneHandlers[zoneId] = handlers
 	return handlers
+}
+
+func (s * Server) addZoneHandlers (zoneHandlers * ZoneHandlers) {
+	s.ZoneHandlers = append(s.ZoneHandlers, zoneHandlers)
 }
 
 func (z * ZoneHandlers) addPlayerHandler (key byte,operator func(int)) * ZoneHandlers{
@@ -62,8 +64,9 @@ func permuteIp (addr * net.UDPAddr) int{
 	return int(hash(addr.IP.String()+strconv.Itoa(addr.Port)))
 }
 
-func (z * ZoneHandlers) performHandler (addr * net.UDPAddr, msg byte) {
-	z.PlayerHandlers[msg](permuteIp(addr))
+func (s * Server) performHandler (addr * net.UDPAddr, msg byte) {
+	id := permuteIp(addr)
+	s.ZoneHandlers[s.ZoneIndexes[id]].PlayerHandlers[msg](id)
 }
 
 func (s * Server) connect(addr * net.UDPConn) {
@@ -73,6 +76,15 @@ func (s * Server) connect(addr * net.UDPConn) {
 func (s * Server) broadcastToAll (message [] byte) {
 	for _,player := range s.Players {
 		player.Write(message)
+	}
+}
+
+func (s * Server) nextZone (from int) {
+	index := s.ZoneIndexes[from]
+	if index == len(s.ZoneHandlers) - 1 {
+		s.ZoneIndexes[from] = 0
+	}else {
+		s.ZoneIndexes[from] ++
 	}
 }
 

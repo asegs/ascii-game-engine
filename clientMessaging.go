@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"net"
 	"reflect"
 )
 
@@ -142,5 +143,16 @@ func (u * UpdateMessage) applyToStates(localState interface{},playerStates map[i
 				pair.performCustomFunction(customHandlers)
 			}
 		}
+	}
+}
+
+func connectToServer(IP []byte) error{
+	Conn, err := net.DialUDP("udp",nil,&net.UDPAddr{
+		IP:   IP,
+		Port: n.Port,
+		Zone: "",
+	})
+	if err != nil {
+		return err
 	}
 }
