@@ -27,6 +27,12 @@ type UpdateMessage struct {
 	Pairs [] StatePair
 }
 
+type NetworkConfig struct {
+	defaultPort int
+}
+
+var ClientNetworkConfig NetworkConfig
+
 func newClient () * Client {
 	return &Client{
 		LocalProcessor:   make(map[string]func()),
@@ -102,8 +108,9 @@ func messageFromBytes (bytes []byte) * UpdateMessage {
 
 }
 
-func updateStateFromJson(state interface{},data string) {
-	_ = json.Unmarshal([]byte(data),&state)
+func updateStateFromJson(state interface{},data string) error{
+	err := json.Unmarshal([]byte(data),&state)
+	return err
 }
 
 func keyInState (key string, state interface{}) bool{
@@ -149,7 +156,7 @@ func (u * UpdateMessage) applyToStates(localState interface{},playerStates map[i
 func connectToServer(IP []byte) error{
 	Conn, err := net.DialUDP("udp",nil,&net.UDPAddr{
 		IP:   IP,
-		Port: n.Port,
+		Port: ClientNetworkConfig.defaultPort,
 		Zone: "",
 	})
 	if err != nil {

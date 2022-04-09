@@ -52,6 +52,11 @@ func (terminal * Terminal) drawFgOverBg(row int, col int, cursor *Context, oldX 
 func runNetworked () {
 	var state DemoState
 	go HandleLog()
+	err := loadConfig("main_settings.txt",ClientNetworkConfig)
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
 	input := initializeInput()
 	network,err := initNetwork(10001,input)
 	if err != nil {
