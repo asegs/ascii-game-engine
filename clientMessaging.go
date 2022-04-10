@@ -14,6 +14,7 @@ type Client struct {
 	 GlobalProcessor map[string]func()
 	 PlayersProcessor map[string]func(int)
 	 CustomProcessor map[string]func(string)
+	 ServerConnection * net.UDPConn
 }
 
 type StatePair struct {
@@ -153,7 +154,7 @@ func (u * UpdateMessage) applyToStates(localState interface{},playerStates map[i
 	}
 }
 
-func connectToServer(IP []byte) error{
+func (c * Client) connectToServer(IP []byte) error{
 	Conn, err := net.DialUDP("udp",nil,&net.UDPAddr{
 		IP:   IP,
 		Port: ClientNetworkConfig.defaultPort,
@@ -162,4 +163,6 @@ func connectToServer(IP []byte) error{
 	if err != nil {
 		return err
 	}
+	c.ServerConnection = Conn
+	return err
 }
