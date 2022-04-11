@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"net"
 	"reflect"
 )
@@ -14,7 +15,9 @@ type Client struct {
 	 GlobalProcessor map[string]func()
 	 PlayersProcessor map[string]func(int)
 	 CustomProcessor map[string]func(string)
-	 ServerConnection * net.UDPConn
+	 ToSend * net.UDPConn
+	 ToReceive * net.UDPConn
+	 Input * NetworkedStdIn
 }
 
 type StatePair struct {
@@ -34,13 +37,20 @@ type NetworkConfig struct {
 
 var ClientNetworkConfig NetworkConfig
 
-func newClient () * Client {
-	return &Client{
+func newClient (serverIp []byte,input * NetworkedStdIn) * Client {
+	client := &Client{
 		LocalProcessor:   make(map[string]func()),
 		GlobalProcessor:  make(map[string]func()),
 		PlayersProcessor: make(map[string]func(int)),
 		CustomProcessor:  make(map[string]func(string)),
 	}
+	client.Input = input
+	err := client.connectToServer(serverIp)
+	if err != nil {
+		fmt.Println("Failed to connect to server")
+		fmt.Println(err.Error())
+	}
+	return client
 }
 
 func (c * Client) addLocalHandler (key string,operator func()) * Client{
@@ -160,9 +170,30 @@ func (c * Client) connectToServer(IP []byte) error{
 		Port: ClientNetworkConfig.defaultPort,
 		Zone: "",
 	})
+	ServerConn, err := net.ListenUDP("udp",&net.UDPAddr{
+		IP:[]byte{0,0,0,0},
+		Port:ClientNetworkConfig.defaultPort,
+		Zone:"",
+	})
 	if err != nil {
 		return err
 	}
-	c.ServerConnection = Conn
+	c.ToSend = Conn
+	c.ToReceive = ServerConn
 	return err
+}
+
+func (c * Client) broadcastActions () {
+	go func() {
+		var message * NetworkedMsg
+		fmtMessage := make([]byte,1)
+		for true {
+			message = <- c.Input.events
+			fmtMessage[0] = message.Msg
+			_,err := c.ToSend.Write(fmtMessage)
+			if err != nil {
+				fmt.Println(err.Error())
+			}
+		}
+	}()
 }
