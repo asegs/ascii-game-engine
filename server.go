@@ -6,6 +6,8 @@ import (
 	"strconv"
 )
 
+var ServerNetworkConfig NetworkConfig
+
 type Server struct {
 	Players map[int] * net.UDPConn
 	ConnectKey string
@@ -94,4 +96,16 @@ func (s * Server) broadcastCustomPair (key string, data interface{}, from int) {
 
 func (s * Server) broadcastStateUpdate (state interface{}, from int, keys ...string) {
 	s.broadcastToAll(newStateUpdate(from).append(state,keys...).toBytes())
+}
+
+/**
+
+ */
+func (s * Server) listen () {
+	ServerConn, err := net.ListenUDP("udp",&net.UDPAddr{
+		IP:[]byte{0,0,0,0},
+		Port:ClientNetworkConfig.defaultPort,
+		Zone:"",
+	})
+	//Read from server conn
 }

@@ -57,6 +57,11 @@ func runNetworked () {
 		fmt.Println(err.Error())
 		return
 	}
+	err = loadConfig("main_settings.txt",ServerNetworkConfig)
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
 	input := initializeInput()
 	network,err := initNetwork(10001,input)
 	if err != nil {

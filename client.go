@@ -47,8 +47,9 @@ func newClient (serverIp []byte,input * NetworkedStdIn) * Client {
 	client.Input = input
 	err := client.connectToServer(serverIp)
 	if err != nil {
-		fmt.Println("Failed to connect to server")
-		fmt.Println(err.Error())
+		fmt.Println("Failed to connect to server " + err.Error())
+	}else {
+		client.broadcastActions()
 	}
 	return client
 }
@@ -192,7 +193,7 @@ func (c * Client) broadcastActions () {
 			fmtMessage[0] = message.Msg
 			_,err := c.ToSend.Write(fmtMessage)
 			if err != nil {
-				fmt.Println(err.Error())
+				LogString("Failure to broadcast action: " + err.Error())
 			}
 		}
 	}()
