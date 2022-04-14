@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"hash/fnv"
 	"net"
 	"strconv"
@@ -36,6 +37,13 @@ func newServer (connectKey string) * Server {
 		ConnectKey:     connectKey,
 		ZoneIndexes: make(map[int]int),
 		ZoneHandlers: make([] *ZoneHandlers,0),
+	}
+}
+
+func (s * Server) start() {
+	err := s.listen()
+	if err != nil {
+		fmt.Println(err.Error())
 	}
 }
 
@@ -98,14 +106,40 @@ func (s * Server) broadcastStateUpdate (state interface{}, from int, keys ...str
 	s.broadcastToAll(newStateUpdate(from).append(state,keys...).toBytes())
 }
 
-/**
-
- */
-func (s * Server) listen () {
+func (s * Server) listen () error{
 	ServerConn, err := net.ListenUDP("udp",&net.UDPAddr{
 		IP:[]byte{0,0,0,0},
 		Port:ClientNetworkConfig.defaultPort,
 		Zone:"",
 	})
-	//Read from server conn
+	if err != nil {
+		return err
+	}
+	//var s int
+	var addr * net.UDPAddr
+	var id int
+	buf := make([]byte,16)
+	go func() {
+		for true {
+			_, addr, err = ServerConn.ReadFromUDP(buf)
+			if err != nil {
+				LogString("Failed to read from connection: " + err.Error())
+				continue
+			}
+			id = permuteIp(addr)
+			if _, ok := s.Players[id]; !ok {
+				NewConn, err := net.DialUDP("udp", nil, &net.UDPAddr{
+					IP:   addr.IP,
+					Port: ServerNetworkConfig.defaultPort,
+					Zone: "",
+				})
+				if err != nil {
+					LogString("Failed to add client to players set: " + err.Error())
+				}
+				s.Players[id] = NewConn
+			}
+			s.ZoneHandlers[s.ZoneIndexes[id]].PlayerHandlers[buf[0]](id)
+		}
+	}()
+	return nil
 }
