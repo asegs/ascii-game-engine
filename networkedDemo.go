@@ -52,12 +52,12 @@ func (terminal * Terminal) drawFgOverBg(row int, col int, cursor *Context, oldX 
 func runNetworked () {
 	var state DemoState
 	go HandleLog()
-	err := loadConfig("main_settings.txt",ClientNetworkConfig)
+	err := loadConfig("client_network_setting.json",clientNetworkConfig)
 	if err != nil {
 		fmt.Println(err.Error())
 		return
 	}
-	err = loadConfig("main_settings.txt",ServerNetworkConfig)
+	err = loadConfig("server_network_setting.json",serverNetworkConfig)
 	if err != nil {
 		fmt.Println(err.Error())
 		return

@@ -7,36 +7,49 @@ import (
 	"strconv"
 )
 
-var ServerNetworkConfig NetworkConfig
+var serverNetworkConfig ServerNetworkConfig
+
+type ServerNetworkConfig struct {
+	defaultPort int
+	strikes int
+}
 
 type Server struct {
 	Players map[int] * net.UDPConn
 	ConnectKey string
 	ZoneIndexes map[int] int
 	ZoneHandlers [] * ZoneHandlers
+	PlayerJoined func(int)
+	PlayerLeft func(int)
+	Strikes map[int] int
 }
 
-//Permute IP + Local Port into ID.  Receive byte + this id, have handler for byte.
 type ZoneHandlers struct {
 	Server * Server
 	PlayerHandlers map[byte]func(int)
 }
 
-func newServerDefault () * Server {
+func newServerDefault (PlayerJoined func(int),PlayerLeft func(int)) * Server {
 	return &Server{
 		Players:        make(map[int] * net.UDPConn,0),
 		ConnectKey:     "connect",
 		ZoneIndexes: make(map[int]int),
 		ZoneHandlers: make([] *ZoneHandlers,0),
+		Strikes: make(map[int] int),
+		PlayerJoined: PlayerJoined,
+		PlayerLeft: PlayerLeft,
 	}
 }
 
-func newServer (connectKey string) * Server {
+func newServer (connectKey string,PlayerJoined func(int),PlayerLeft func(int)) * Server {
 	return &Server{
 		Players:        make(map[int] * net.UDPConn,0),
 		ConnectKey:     connectKey,
 		ZoneIndexes: make(map[int]int),
 		ZoneHandlers: make([] *ZoneHandlers,0),
+		Strikes: make(map[int] int),
+		PlayerJoined: PlayerJoined,
+		PlayerLeft: PlayerLeft,
 	}
 }
 
@@ -66,7 +79,7 @@ func (z * ZoneHandlers) addPlayerHandler (key byte,operator func(int)) * ZoneHan
 
 func hash(s string) uint32 {
 	h := fnv.New32a()
-	h.Write([]byte(s))
+	_,_ = h.Write([]byte(s))
 	return h.Sum32()
 }
 
@@ -79,13 +92,20 @@ func (s * Server) performHandler (addr * net.UDPAddr, msg byte) {
 	s.ZoneHandlers[s.ZoneIndexes[id]].PlayerHandlers[msg](id)
 }
 
-func (s * Server) connect(addr * net.UDPConn) {
-
-}
-
 func (s * Server) broadcastToAll (message [] byte) {
-	for _,player := range s.Players {
-		player.Write(message)
+	for id,player := range s.Players {
+		n,err := player.Write(message)
+		if err != nil {
+			LogString("Failed to write: " + err.Error())
+		}
+		if err != nil || n < len(message) {
+			s.Strikes[id] ++
+			if s.Strikes[id] > serverNetworkConfig.strikes {
+				s.removePlayerSaveState(id)
+			}
+		}else {
+			s.Strikes[id] = 0
+		}
 	}
 }
 
@@ -109,7 +129,7 @@ func (s * Server) broadcastStateUpdate (state interface{}, from int, keys ...str
 func (s * Server) listen () error{
 	ServerConn, err := net.ListenUDP("udp",&net.UDPAddr{
 		IP:[]byte{0,0,0,0},
-		Port:ClientNetworkConfig.defaultPort,
+		Port:serverNetworkConfig.defaultPort,
 		Zone:"",
 	})
 	if err != nil {
@@ -130,16 +150,30 @@ func (s * Server) listen () error{
 			if _, ok := s.Players[id]; !ok {
 				NewConn, err := net.DialUDP("udp", nil, &net.UDPAddr{
 					IP:   addr.IP,
-					Port: ServerNetworkConfig.defaultPort,
+					Port: serverNetworkConfig.defaultPort,
 					Zone: "",
 				})
 				if err != nil {
 					LogString("Failed to add client to players set: " + err.Error())
 				}
-				s.Players[id] = NewConn
+				s.addNewDefaultPlayer(id,NewConn)
+				s.PlayerJoined(id)
 			}
 			s.ZoneHandlers[s.ZoneIndexes[id]].PlayerHandlers[buf[0]](id)
 		}
 	}()
 	return nil
+}
+
+func (s * Server) addNewDefaultPlayer (id int, conn * net.UDPConn) {
+	s.Players[id] = conn
+	s.ZoneIndexes[id] = 0
+	s.Strikes[id] = 0
+}
+
+func (s * Server) removePlayerSaveState (id int) {
+	s.PlayerLeft(id)
+	delete(s.Players,id)
+	delete(s.ZoneIndexes,id)
+	delete(s.Strikes,id)
 }

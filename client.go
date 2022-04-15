@@ -31,11 +31,11 @@ type UpdateMessage struct {
 	Pairs [] StatePair
 }
 
-type NetworkConfig struct {
+type ClientNetworkConfig struct {
 	defaultPort int
 }
 
-var ClientNetworkConfig NetworkConfig
+var clientNetworkConfig ClientNetworkConfig
 
 func newClient (serverIp []byte,input * NetworkedStdIn) * Client {
 	client := &Client{
@@ -168,12 +168,12 @@ func (u * UpdateMessage) applyToStates(localState interface{},playerStates map[i
 func (c * Client) connectToServer(IP []byte) error{
 	Conn, err := net.DialUDP("udp",nil,&net.UDPAddr{
 		IP:   IP,
-		Port: ClientNetworkConfig.defaultPort,
+		Port: clientNetworkConfig.defaultPort,
 		Zone: "",
 	})
 	ServerConn, err := net.ListenUDP("udp",&net.UDPAddr{
 		IP:[]byte{0,0,0,0},
-		Port:ClientNetworkConfig.defaultPort,
+		Port:clientNetworkConfig.defaultPort,
 		Zone:"",
 	})
 	if err != nil {
