@@ -34,6 +34,7 @@ Server:
 -Either pass whole thing and have to diff check to choose what to rerender, or send special message to perform special function with data (coord + new state)
 -Zone has zone ID, which links to char handlers for that zone
 -Attach message sequential id to each packet, if skipped, request previous packets (cached)
+-In server, track current packet id (per id?)
 
 Wordle:
 -Autofill known green letters or don't allow anything else for green letters
