@@ -23,6 +23,7 @@ type Server struct {
 	PlayerJoined func(int)
 	PlayerLeft func(int)
 	Strikes map[int] int
+	MessagesSent int
 }
 
 type ZoneHandlers struct {
@@ -39,6 +40,7 @@ func newServerDefault (PlayerJoined func(int),PlayerLeft func(int)) * Server {
 		Strikes: make(map[int] int),
 		PlayerJoined: PlayerJoined,
 		PlayerLeft: PlayerLeft,
+		MessagesSent: 0,
 	}
 }
 
@@ -51,6 +53,7 @@ func newServer (connectKey string,PlayerJoined func(int),PlayerLeft func(int)) *
 		Strikes: make(map[int] int),
 		PlayerJoined: PlayerJoined,
 		PlayerLeft: PlayerLeft,
+		MessagesSent: 0,
 	}
 }
 
@@ -93,7 +96,9 @@ func (s * Server) performHandler (addr * net.UDPAddr, msg byte) {
 	s.ZoneHandlers[s.ZoneIndexes[id]].PlayerHandlers[msg](id)
 }
 
-func (s * Server) broadcastToAll (message [] byte) {
+func (s * Server) broadcastToAll (stateUpdate * UpdateMessage) {
+	stateUpdate.Id = s.MessagesSent
+	message := stateUpdate.toBytes()
 	if serverNetworkConfig.bufferSize < len(message) {
 		LogString("Buffer limit exceeded with: " + string(message))
 		message = message[0:serverNetworkConfig.bufferSize]
@@ -112,6 +117,7 @@ func (s * Server) broadcastToAll (message [] byte) {
 			s.Strikes[id] = 0
 		}
 	}
+	s.MessagesSent++
 }
 
 func (s * Server) nextZone (from int) {
@@ -124,11 +130,11 @@ func (s * Server) nextZone (from int) {
 }
 
 func (s * Server) broadcastCustomPair (key string, data interface{}, from int) {
-	s.broadcastToAll(newStateUpdate(from).appendCustom(data,key).toBytes())
+	s.broadcastToAll(newStateUpdate(from).appendCustom(data,key))
 }
 
 func (s * Server) broadcastStateUpdate (state interface{}, from int, keys ...string) {
-	s.broadcastToAll(newStateUpdate(from).append(state,keys...).toBytes())
+	s.broadcastToAll(newStateUpdate(from).append(state,keys...))
 }
 
 func (s * Server) listen () error{

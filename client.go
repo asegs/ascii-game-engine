@@ -21,6 +21,7 @@ type Client struct {
 	 ToSend * net.UDPConn
 	 ToReceive * net.UDPConn
 	 Input * NetworkedStdIn
+	 LastMessageProcessed int
 }
 
 type StatePair struct {
@@ -30,8 +31,9 @@ type StatePair struct {
 
 
 type UpdateMessage struct {
-	Id int
+	From int
 	Pairs [] StatePair
+	Id int
 }
 
 type ClientNetworkConfig struct {
@@ -50,6 +52,7 @@ func newClient (serverIp []byte,input * NetworkedStdIn,localState interface{},pl
 		GlobalProcessor:  make(map[string]func()),
 		PlayersProcessor: make(map[string]func(int)),
 		CustomProcessor:  make(map[string]func(string)),
+		LastMessageProcessed: 0,
 	}
 	client.Input = input
 	err := client.connectToServer(serverIp)
@@ -88,7 +91,7 @@ func marshal(anything interface{}) []byte {
 
 func newStateUpdate(id int) * UpdateMessage {
 	return &UpdateMessage{
-		Id:    id,
+		From:    id,
 		Pairs: make([] StatePair,0),
 	}
 }
@@ -143,7 +146,7 @@ func (p StatePair) performCustomFunction(customs map[string]func(string)) {
 
 func (u * UpdateMessage) applyToStates(localState interface{},playerStates map[int]interface{},globalState interface{},localHandlers map[string]func(),playersHandlers map[string]func(int),globalHandlers map[string]func(),customHandlers map[string]func(string2 string)){
 	for _,pair := range u.Pairs {
-		switch u.Id {
+		switch u.From {
 		case LOCAL_ID:
 			if keyInState(pair.Key,localState) {
 				updateStateFromJson(&localState,pair.Json)
@@ -161,10 +164,10 @@ func (u * UpdateMessage) applyToStates(localState interface{},playerStates map[i
 			}
 			break
 		default:
-			playerState := playerStates[u.Id]
+			playerState := playerStates[u.From]
 			if keyInState(pair.Key,playerState) {
 				updateStateFromJson(&playerState,pair.Json)
-				playersHandlers[pair.Key](u.Id)
+				playersHandlers[pair.Key](u.From)
 			} else {
 				pair.performCustomFunction(customHandlers)
 			}
