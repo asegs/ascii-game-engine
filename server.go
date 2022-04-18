@@ -13,6 +13,7 @@ type ServerNetworkConfig struct {
 	defaultPort int
 	strikes int
 	bufferSize int
+	storedUpdates int
 }
 
 type Server struct {
@@ -24,6 +25,7 @@ type Server struct {
 	PlayerLeft func(int)
 	Strikes map[int] int
 	MessagesSent int
+	MessageMap map[int] * UpdateMessage
 }
 
 type ZoneHandlers struct {
@@ -41,6 +43,7 @@ func newServerDefault (PlayerJoined func(int),PlayerLeft func(int)) * Server {
 		PlayerJoined: PlayerJoined,
 		PlayerLeft: PlayerLeft,
 		MessagesSent: 0,
+		MessageMap: make(map[int]*UpdateMessage),
 	}
 }
 
@@ -54,6 +57,7 @@ func newServer (connectKey string,PlayerJoined func(int),PlayerLeft func(int)) *
 		PlayerJoined: PlayerJoined,
 		PlayerLeft: PlayerLeft,
 		MessagesSent: 0,
+		MessageMap: make(map[int]*UpdateMessage),
 	}
 }
 
@@ -98,6 +102,7 @@ func (s * Server) performHandler (addr * net.UDPAddr, msg byte) {
 
 func (s * Server) broadcastToAll (stateUpdate * UpdateMessage) {
 	stateUpdate.Id = s.MessagesSent
+	s.MessageMap[s.MessagesSent] = stateUpdate
 	message := stateUpdate.toBytes()
 	if serverNetworkConfig.bufferSize < len(message) {
 		LogString("Buffer limit exceeded with: " + string(message))
@@ -118,6 +123,9 @@ func (s * Server) broadcastToAll (stateUpdate * UpdateMessage) {
 		}
 	}
 	s.MessagesSent++
+	if _,ok := s.MessageMap[s.MessagesSent - serverNetworkConfig.storedUpdates]; ok {
+		delete(s.MessageMap,s.MessagesSent - serverNetworkConfig.storedUpdates)
+	}
 }
 
 func (s * Server) nextZone (from int) {
