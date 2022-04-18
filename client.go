@@ -11,6 +11,9 @@ var GLOBAL_ID int = -1
 var LOCAL_ID int = 0
 
 type Client struct {
+	 LocalState interface{}
+	 PlayerStates map[int]interface{}
+	 GlobalState interface{}
 	 LocalProcessor map[string]func()
 	 GlobalProcessor map[string]func()
 	 PlayersProcessor map[string]func(int)
@@ -33,12 +36,16 @@ type UpdateMessage struct {
 
 type ClientNetworkConfig struct {
 	defaultPort int
+	bufferSize int
 }
 
 var clientNetworkConfig ClientNetworkConfig
 
-func newClient (serverIp []byte,input * NetworkedStdIn) * Client {
+func newClient (serverIp []byte,input * NetworkedStdIn,localState interface{},playerStates map[int]interface{},globalState interface{}) * Client {
 	client := &Client{
+		LocalState: localState,
+		PlayerStates: playerStates,
+		GlobalState: globalState,
 		LocalProcessor:   make(map[string]func()),
 		GlobalProcessor:  make(map[string]func()),
 		PlayersProcessor: make(map[string]func(int)),
@@ -197,4 +204,57 @@ func (c * Client) broadcastActions () {
 			}
 		}
 	}()
+}
+
+func (c * Client) listen() {
+	var addr * net.UDPAddr
+	var err error
+	buf := make([]byte,serverNetworkConfig.bufferSize)
+	go func() {
+		for true {
+			_, addr, err = c.ToReceive.ReadFromUDP(buf)
+			if err != nil {
+				LogString("Failed to read from server: " + err.Error())
+				continue
+			}
+			messageFromBytes(
+				processJsonFromBuffer(buf)).
+				applyToStates(
+						c.LocalState,
+						c.PlayerStates,
+						c.GlobalState,
+						c.LocalProcessor,
+						c.PlayersProcessor,
+						c.GlobalProcessor,
+						c.CustomProcessor,
+					)
+		}
+	}()
+}
+
+/**
+This may be a problem, it will process arrays like:
+[{,",k,e,y,",:,1,2,3,}] fine, but will struggle with:
+{"key":"hello\""}
+{"key":"hello\"}"}
+Very rare case but may be a pain.
+ */
+func processJsonFromBuffer (buf [] byte) []byte {
+	bracketDepth := 0
+	inQuotes := false
+	var char byte
+	for i := 0 ; i < len(buf) ; i ++ {
+		char = buf[i]
+		if bracketDepth == 0 && i > 0 {
+			return buf[0:i]
+		}
+		if !inQuotes && char == '{' {
+			bracketDepth++
+		}else if !inQuotes && char == '}' {
+			bracketDepth--
+		} else if char == '"' {
+			inQuotes = !inQuotes
+		}
+	}
+	return buf
 }

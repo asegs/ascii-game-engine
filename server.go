@@ -12,6 +12,7 @@ var serverNetworkConfig ServerNetworkConfig
 type ServerNetworkConfig struct {
 	defaultPort int
 	strikes int
+	bufferSize int
 }
 
 type Server struct {
@@ -93,6 +94,10 @@ func (s * Server) performHandler (addr * net.UDPAddr, msg byte) {
 }
 
 func (s * Server) broadcastToAll (message [] byte) {
+	if serverNetworkConfig.bufferSize < len(message) {
+		LogString("Buffer limit exceeded with: " + string(message))
+		message = message[0:serverNetworkConfig.bufferSize]
+	}
 	for id,player := range s.Players {
 		n,err := player.Write(message)
 		if err != nil {
