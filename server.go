@@ -25,7 +25,7 @@ type Server struct {
 	PlayerLeft func(int)
 	Strikes map[int] int
 	MessagesSent int
-	MessageMap map[int] * UpdateMessage
+	MessageMap map[int] [] byte
 }
 
 type ZoneHandlers struct {
@@ -43,7 +43,7 @@ func newServerDefault (PlayerJoined func(int),PlayerLeft func(int)) * Server {
 		PlayerJoined: PlayerJoined,
 		PlayerLeft: PlayerLeft,
 		MessagesSent: 0,
-		MessageMap: make(map[int]*UpdateMessage),
+		MessageMap: make(map[int] [] byte),
 	}
 }
 
@@ -57,7 +57,7 @@ func newServer (connectKey string,PlayerJoined func(int),PlayerLeft func(int)) *
 		PlayerJoined: PlayerJoined,
 		PlayerLeft: PlayerLeft,
 		MessagesSent: 0,
-		MessageMap: make(map[int]*UpdateMessage),
+		MessageMap: make(map[int] []byte),
 	}
 }
 
@@ -102,29 +102,33 @@ func (s * Server) performHandler (addr * net.UDPAddr, msg byte) {
 
 func (s * Server) broadcastToAll (stateUpdate * UpdateMessage) {
 	stateUpdate.Id = s.MessagesSent
-	s.MessageMap[s.MessagesSent] = stateUpdate
 	message := stateUpdate.toBytes()
+	s.MessageMap[s.MessagesSent] = message
 	if serverNetworkConfig.bufferSize < len(message) {
 		LogString("Buffer limit exceeded with: " + string(message))
 		message = message[0:serverNetworkConfig.bufferSize]
 	}
 	for id,player := range s.Players {
-		n,err := player.Write(message)
-		if err != nil {
-			LogString("Failed to write: " + err.Error())
-		}
-		if err != nil || n < len(message) {
-			s.Strikes[id] ++
-			if s.Strikes[id] > serverNetworkConfig.strikes {
-				s.removePlayerSaveState(id)
-			}
-		}else {
-			s.Strikes[id] = 0
-		}
+		s.sendToConn(message,id,player)
 	}
 	s.MessagesSent++
 	if _,ok := s.MessageMap[s.MessagesSent - serverNetworkConfig.storedUpdates]; ok {
 		delete(s.MessageMap,s.MessagesSent - serverNetworkConfig.storedUpdates)
+	}
+}
+
+func (s * Server) sendToConn(buf [] byte, id int, conn * net.UDPConn)  {
+	n,err := conn.Write(buf)
+	if err != nil {
+		LogString("Failed to write: " + err.Error())
+	}
+	if err != nil || n < len(buf) {
+		s.Strikes[id] ++
+		if s.Strikes[id] > serverNetworkConfig.strikes {
+			s.removePlayerSaveState(id)
+		}
+	}else {
+		s.Strikes[id] = 0
 	}
 }
 
@@ -177,6 +181,16 @@ func (s * Server) listen () error{
 				}
 				s.addNewDefaultPlayer(id,NewConn)
 				s.PlayerJoined(id)
+			}
+			//Rebroadcast code, this is all stubbed
+			if buf[0] == 255 {
+				firstMessage := 0
+				lastMessage := 8
+				for i := firstMessage ; i <= lastMessage ; i ++ {
+					if message,ok := s.MessageMap[i] ; ok {
+						s.sendToConn(message,id,s.Players[id])
+					}
+				}
 			}
 			s.ZoneHandlers[s.ZoneIndexes[id]].PlayerHandlers[buf[0]](id)
 		}
