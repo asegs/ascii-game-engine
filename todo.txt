@@ -40,6 +40,7 @@ Server:
 -Go from sending single characters to the server to sending standard packets
 -Useful for rerequesting a certain packet, still include keystroke but just with arbitrary json
 -Send message to clients to increase buffer size instead of just erroring
+-Always immediately pull client data from buffer and put on chan
 
 Wordle:
 -Autofill known green letters or don't allow anything else for green letters
