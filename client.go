@@ -22,6 +22,7 @@ type Client struct {
 	 ToReceive * net.UDPConn
 	 Input * NetworkedStdIn
 	 LastMessageProcessed int
+	 Buffers chan [] byte
 }
 
 type StatePair struct {
@@ -53,6 +54,7 @@ func newClient (serverIp []byte,input * NetworkedStdIn,localState interface{},pl
 		PlayersProcessor: make(map[string]func(int)),
 		CustomProcessor:  make(map[string]func(string)),
 		LastMessageProcessed: 0,
+		Buffers: make(chan [] byte),
 	}
 	client.Input = input
 	err := client.connectToServer(serverIp)
@@ -220,17 +222,26 @@ func (c * Client) listen() {
 				LogString("Failed to read from server: " + err.Error())
 				continue
 			}
-			messageFromBytes(
-				processJsonFromBuffer(buf)).
+			newBuffer := processJsonFromBuffer(buf)
+			c.Buffers <- newBuffer
+		}
+	}()
+
+	var newBuf []byte
+
+	go func() {
+		for true {
+			newBuf = <- c.Buffers
+			messageFromBytes(buf).
 				applyToStates(
-						c.LocalState,
-						c.PlayerStates,
-						c.GlobalState,
-						c.LocalProcessor,
-						c.PlayersProcessor,
-						c.GlobalProcessor,
-						c.CustomProcessor,
-					)
+					c.LocalState,
+					c.PlayerStates,
+					c.GlobalState,
+					c.LocalProcessor,
+					c.PlayersProcessor,
+					c.GlobalProcessor,
+					c.CustomProcessor,
+				)
 		}
 	}()
 }
