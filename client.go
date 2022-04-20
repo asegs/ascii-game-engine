@@ -228,12 +228,16 @@ func (c * Client) listen() {
 	}()
 
 	var newBuf []byte
+	var message * UpdateMessage
 
 	go func() {
 		for true {
 			newBuf = <- c.Buffers
-			messageFromBytes(buf).
-				applyToStates(
+			message = messageFromBytes(newBuf)
+			if c.LastMessageProcessed > 0 && message.Id != c.LastMessageProcessed + 1 {
+				//this means
+			}
+			message.applyToStates(
 					c.LocalState,
 					c.PlayerStates,
 					c.GlobalState,
