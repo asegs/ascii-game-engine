@@ -41,6 +41,7 @@ Server:
 -Useful for rerequesting a certain packet, still include keystroke but just with arbitrary json
 -Send message to clients to increase buffer size instead of just erroring
 -Always immediately pull client data from buffer and put on chan
+-Send custom function keys with data
 
 Wordle:
 -Autofill known green letters or don't allow anything else for green letters

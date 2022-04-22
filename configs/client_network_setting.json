@@ -1,1 +1,1 @@
-{"defaultPort":10301,"bufferSize": 512}
+{"defaultPort":10301,"bufferSize": 512,"skipWindowMs": 400}

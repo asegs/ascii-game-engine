@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"reflect"
+	"time"
 )
 
 var GLOBAL_ID int = -1
@@ -23,6 +24,9 @@ type Client struct {
 	 Input * NetworkedStdIn
 	 LastMessageProcessed int
 	 Buffers chan [] byte
+	 StoredBuffers map [int] * UpdateMessage
+	 HighestReceivedBuffer int
+	 BufferFirstQueryTimes map [int] time.Time
 }
 
 type StatePair struct {
@@ -40,6 +44,7 @@ type UpdateMessage struct {
 type ClientNetworkConfig struct {
 	defaultPort int
 	bufferSize int
+	skipWindowMs int
 }
 
 var clientNetworkConfig ClientNetworkConfig
@@ -55,6 +60,9 @@ func newClient (serverIp []byte,input * NetworkedStdIn,localState interface{},pl
 		CustomProcessor:  make(map[string]func(string)),
 		LastMessageProcessed: 0,
 		Buffers: make(chan [] byte),
+		StoredBuffers: make(map[int] * UpdateMessage),
+		HighestReceivedBuffer: 0,
+		BufferFirstQueryTimes: make(map[int] time.Time),
 	}
 	client.Input = input
 	err := client.connectToServer(serverIp)
@@ -222,6 +230,7 @@ func (c * Client) listen() {
 				LogString("Failed to read from server: " + err.Error())
 				continue
 			}
+			//copy?
 			newBuffer := processJsonFromBuffer(buf)
 			c.Buffers <- newBuffer
 		}
@@ -229,13 +238,53 @@ func (c * Client) listen() {
 
 	var newBuf []byte
 	var message * UpdateMessage
+	var ok bool
+	var readTime time.Time
 
 	go func() {
+		//Perform every n ms to scoop up old data via map keys when no new packets have come in or when expired, make threadsafe?
 		for true {
 			newBuf = <- c.Buffers
 			message = messageFromBytes(newBuf)
-			if c.LastMessageProcessed > 0 && message.Id != c.LastMessageProcessed + 1 {
-				//this means
+			if c.HighestReceivedBuffer < message.Id {
+				c.HighestReceivedBuffer = message.Id
+			}
+			c.StoredBuffers[message.Id] = message
+			for i := c.LastMessageProcessed + 1 ; i < c.HighestReceivedBuffer ; i ++ {
+				//map of time first checked
+				message,ok = c.StoredBuffers[i]
+				//message of that id exists and has been stored
+				if ok {
+					message.applyToStates(c.LocalState,
+						c.PlayerStates,
+						c.GlobalState,
+						c.LocalProcessor,
+						c.PlayersProcessor,
+						c.GlobalProcessor,
+						c.CustomProcessor,
+						)
+					delete(c.StoredBuffers,i)
+					delete(c.BufferFirstQueryTimes,i)
+					c.LastMessageProcessed = i
+				}else {
+					//message of that id has not been received
+					readTime,ok = c.BufferFirstQueryTimes[i]
+					//this message has already been looked for
+					if ok {
+						if time.Now().Sub(readTime) > time.Millisecond * time.Duration(clientNetworkConfig.skipWindowMs) {
+							//skip, timed out
+							c.LastMessageProcessed = i
+							continue
+						}else {
+							//still waiting for this packet
+							break
+						}
+					}else {
+						//haven't checked for this packet yet, not here, will request and wait
+						c.requestPacketFromServer(i)
+						c.BufferFirstQueryTimes[i] = time.Now()
+					}
+				}
 			}
 			message.applyToStates(
 					c.LocalState,
@@ -275,4 +324,8 @@ func processJsonFromBuffer (buf [] byte) []byte {
 		}
 	}
 	return buf
+}
+
+func (c * Client) requestPacketFromServer (id int) {
+
 }
