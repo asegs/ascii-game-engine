@@ -141,12 +141,12 @@ func (s * Server) nextZone (from int) {
 	}
 }
 
-func (s * Server) broadcastCustomPair (key string, data interface{}, from int) {
-	s.broadcastToAll(newStateUpdate(from).appendCustom(data,key))
+func (s * Server) broadcastCustomPair (key string, data interface{}, from int,asyncOk bool) {
+	s.broadcastToAll(newStateUpdate(from,asyncOk).appendCustom(data,key))
 }
 
-func (s * Server) broadcastStateUpdate (state interface{}, from int, keys ...string) {
-	s.broadcastToAll(newStateUpdate(from).append(state,keys...))
+func (s * Server) broadcastStateUpdate (state interface{}, from int, asyncOk bool, keys ...string) {
+	s.broadcastToAll(newStateUpdate(from,asyncOk).append(state,keys...))
 }
 
 func (s * Server) listen () error{

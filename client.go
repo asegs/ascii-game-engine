@@ -39,12 +39,14 @@ type UpdateMessage struct {
 	From int
 	Pairs [] StatePair
 	Id int
+	AsyncOk bool
 }
 
 type ClientNetworkConfig struct {
 	defaultPort int
 	bufferSize int
 	skipWindowMs int
+	scanMissedFreqMs int
 }
 
 var clientNetworkConfig ClientNetworkConfig
@@ -99,10 +101,11 @@ func marshal(anything interface{}) []byte {
 	return output
 }
 
-func newStateUpdate(id int) * UpdateMessage {
+func newStateUpdate(from int,asyncOk bool) * UpdateMessage {
 	return &UpdateMessage{
-		From:    id,
+		From:    from,
 		Pairs: make([] StatePair,0),
+		AsyncOk: asyncOk,
 	}
 }
 
@@ -238,11 +241,9 @@ func (c * Client) listen() {
 
 	var newBuf []byte
 	var message * UpdateMessage
-	var ok bool
-	var readTime time.Time
 
 	go func() {
-		//Perform every n ms to scoop up old data via map keys when no new packets have come in or when expired, make threadsafe?
+		var cont bool
 		for true {
 			newBuf = <- c.Buffers
 			message = messageFromBytes(newBuf)
@@ -251,52 +252,15 @@ func (c * Client) listen() {
 			}
 			c.StoredBuffers[message.Id] = message
 			for i := c.LastMessageProcessed + 1 ; i < c.HighestReceivedBuffer ; i ++ {
-				//map of time first checked
-				message,ok = c.StoredBuffers[i]
-				//message of that id exists and has been stored
-				if ok {
-					message.applyToStates(c.LocalState,
-						c.PlayerStates,
-						c.GlobalState,
-						c.LocalProcessor,
-						c.PlayersProcessor,
-						c.GlobalProcessor,
-						c.CustomProcessor,
-						)
-					delete(c.StoredBuffers,i)
-					delete(c.BufferFirstQueryTimes,i)
-					c.LastMessageProcessed = i
-				}else {
-					//message of that id has not been received
-					readTime,ok = c.BufferFirstQueryTimes[i]
-					//this message has already been looked for
-					if ok {
-						if time.Now().Sub(readTime) > time.Millisecond * time.Duration(clientNetworkConfig.skipWindowMs) {
-							//skip, timed out
-							c.LastMessageProcessed = i
-							continue
-						}else {
-							//still waiting for this packet
-							break
-						}
-					}else {
-						//haven't checked for this packet yet, not here, will request and wait
-						c.requestPacketFromServer(i)
-						c.BufferFirstQueryTimes[i] = time.Now()
-					}
+				cont = c.processBuffer(i)
+				if !cont {
+					break
 				}
 			}
-			message.applyToStates(
-					c.LocalState,
-					c.PlayerStates,
-					c.GlobalState,
-					c.LocalProcessor,
-					c.PlayersProcessor,
-					c.GlobalProcessor,
-					c.CustomProcessor,
-				)
 		}
 	}()
+
+	go c.grabExtra()
 }
 
 /**
@@ -324,6 +288,60 @@ func processJsonFromBuffer (buf [] byte) []byte {
 		}
 	}
 	return buf
+}
+
+func (c * Client) processBuffer (i int) bool{
+	message,ok := c.StoredBuffers[i]
+	//message of that id exists and has been stored
+	if ok {
+		c.applyMessage(message,i)
+		c.LastMessageProcessed = i
+		return true
+	}else {
+		//message of that id has not been received
+		readTime,ok := c.BufferFirstQueryTimes[i]
+		//this message has already been looked for
+		if ok {
+			if time.Now().Sub(readTime) > time.Millisecond * time.Duration(clientNetworkConfig.skipWindowMs) {
+				//skip, timed out
+				c.LastMessageProcessed = i
+				delete(c.BufferFirstQueryTimes,i)
+				return true
+			}else {
+				//still waiting for this packet
+				return false
+			}
+		}else {
+			//haven't checked for this packet yet, not here, will request and wait
+			c.requestPacketFromServer(i)
+			c.BufferFirstQueryTimes[i] = time.Now()
+			return false
+		}
+	}
+}
+
+func (c * Client) applyMessage (message * UpdateMessage,i int) {
+	message.applyToStates(c.LocalState,
+		c.PlayerStates,
+		c.GlobalState,
+		c.LocalProcessor,
+		c.PlayersProcessor,
+		c.GlobalProcessor,
+		c.CustomProcessor,
+	)
+	delete(c.StoredBuffers,i)
+	delete(c.BufferFirstQueryTimes,i)
+}
+
+func (c * Client) grabExtra () {
+	for true {
+		for i,update := range c.StoredBuffers {
+			if i < c.LastMessageProcessed && update.AsyncOk{
+				c.applyMessage(update,i)
+			}
+		}
+		time.Sleep(time.Duration(clientNetworkConfig.scanMissedFreqMs) * time.Millisecond)
+	}
 }
 
 func (c * Client) requestPacketFromServer (id int) {
