@@ -63,7 +63,7 @@ func newClient (serverIp []byte,input * NetworkedStdIn,localState interface{},pl
 		GlobalProcessor:  make(map[string]func()),
 		PlayersProcessor: make(map[string]func(int)),
 		CustomProcessor:  make(map[string]func(string)),
-		LastMessageProcessed: 0,
+		LastMessageProcessed: -1,
 		Buffers: make(chan [] byte),
 		StoredBuffers: make(map[int] * UpdateMessage),
 		HighestReceivedBuffer: 0,
