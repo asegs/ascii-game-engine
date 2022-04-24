@@ -2,9 +2,11 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"reflect"
+	"strconv"
 	"time"
 )
 
@@ -47,6 +49,7 @@ type ClientNetworkConfig struct {
 	bufferSize int
 	skipWindowMs int
 	scanMissedFreqMs int
+	packetRetries int
 }
 
 var clientNetworkConfig ClientNetworkConfig
@@ -210,11 +213,12 @@ func (c * Client) connectToServer(IP []byte) error{
 func (c * Client) broadcastActions () {
 	go func() {
 		var message * NetworkedMsg
+		var err error
 		fmtMessage := make([]byte,1)
 		for true {
 			message = <- c.Input.events
 			fmtMessage[0] = message.Msg
-			_,err := c.ToSend.Write(fmtMessage)
+			err = c.sendWithRetry(fmtMessage)
 			if err != nil {
 				LogString("Failure to broadcast action: " + err.Error())
 			}
@@ -225,17 +229,19 @@ func (c * Client) broadcastActions () {
 func (c * Client) listen() {
 	var addr * net.UDPAddr
 	var err error
+	var received int
 	buf := make([]byte,serverNetworkConfig.bufferSize)
+	var bufferCopy []byte
 	go func() {
 		for true {
-			_, addr, err = c.ToReceive.ReadFromUDP(buf)
+			received, addr, err = c.ToReceive.ReadFromUDP(buf)
 			if err != nil {
 				LogString("Failed to read from server: " + err.Error())
 				continue
 			}
-			//copy?
-			newBuffer := processJsonFromBuffer(buf)
-			c.Buffers <- newBuffer
+			//So that buffer is hard copied and not passed by reference via slices.
+			bufferCopy = buf
+			c.Buffers <- bufferCopy[0:received]
 		}
 	}()
 
@@ -263,33 +269,6 @@ func (c * Client) listen() {
 	go c.grabExtra()
 }
 
-/**
-This may be a problem, it will process arrays like:
-[{,",k,e,y,",:,1,2,3,}] fine, but will struggle with:
-{"key":"hello\""}
-{"key":"hello\"}"}
-Very rare case but may be a pain.
- */
-func processJsonFromBuffer (buf [] byte) []byte {
-	bracketDepth := 0
-	inQuotes := false
-	var char byte
-	for i := 0 ; i < len(buf) ; i ++ {
-		char = buf[i]
-		if bracketDepth == 0 && i > 0 {
-			return buf[0:i]
-		}
-		if !inQuotes && char == '{' {
-			bracketDepth++
-		}else if !inQuotes && char == '}' {
-			bracketDepth--
-		} else if char == '"' {
-			inQuotes = !inQuotes
-		}
-	}
-	return buf
-}
-
 func (c * Client) processBuffer (i int) bool{
 	message,ok := c.StoredBuffers[i]
 	//message of that id exists and has been stored
@@ -312,8 +291,10 @@ func (c * Client) processBuffer (i int) bool{
 				return false
 			}
 		}else {
-			//haven't checked for this packet yet, not here, will request and wait
-			c.requestPacketFromServer(i)
+			err := c.requestPacketFromServer(i)
+			if err != nil {
+				LogString("Failed to send packet: " + err.Error())
+			}
 			c.BufferFirstQueryTimes[i] = time.Now()
 			return false
 		}
@@ -344,6 +325,30 @@ func (c * Client) grabExtra () {
 	}
 }
 
-func (c * Client) requestPacketFromServer (id int) {
+func (c * Client) requestPacketFromServer (id int) error {
+	idText := [] byte (strconv.Itoa(id))
+	return c.sendWithRetry(idText)
+}
 
+func (c * Client) sendWithRetry (buf [] byte) error{
+	return c.sendWithCustomRetry(buf,clientNetworkConfig.packetRetries)
+}
+
+func (c * Client) sendWithCustomRetry (buf [] byte, maxRetries int) error {
+	s,err := c.ToSend.Write(buf)
+	if err == nil && s < len(buf) {
+		err = errors.New("entire body not sent")
+	}
+	if err != nil {
+		for retryCount := 0 ; retryCount < maxRetries && err != nil ; retryCount ++ {
+			s,err = c.ToSend.Write(buf)
+			if err == nil && s < len(buf) {
+				err = errors.New("entire body not sent")
+			}
+			if err == nil {
+				return err
+			}
+		}
+	}
+	return err
 }

@@ -158,13 +158,13 @@ func (s * Server) listen () error{
 	if err != nil {
 		return err
 	}
-	//var s int
+	var received int
 	var addr * net.UDPAddr
 	var id int
-	buf := make([]byte,16)
+	buf := make([]byte,64)
 	go func() {
 		for true {
-			_, addr, err = ServerConn.ReadFromUDP(buf)
+			received, addr, err = ServerConn.ReadFromUDP(buf)
 			if err != nil {
 				LogString("Failed to read from connection: " + err.Error())
 				continue
@@ -183,16 +183,18 @@ func (s * Server) listen () error{
 				s.PlayerJoined(id)
 			}
 			//Rebroadcast code, this is all stubbed
-			if buf[0] == 255 {
-				firstMessage := 0
-				lastMessage := 8
-				for i := firstMessage ; i <= lastMessage ; i ++ {
-					if message,ok := s.MessageMap[i] ; ok {
-						s.sendToConn(message,id,s.Players[id])
-					}
+			if received > 1 {
+				packetId,err := strconv.Atoi(string(buf[0:received]))
+				if err != nil {
+					LogString(fmt.Sprintf("Failed to convert packet info to id, info was: %s",buf[0:received]))
 				}
+				if message,ok := s.MessageMap[packetId] ; ok {
+					s.sendToConn(message,id,s.Players[id])
+				}
+			}else {
+				s.ZoneHandlers[s.ZoneIndexes[id]].PlayerHandlers[buf[0]](id)
 			}
-			s.ZoneHandlers[s.ZoneIndexes[id]].PlayerHandlers[buf[0]](id)
+
 		}
 	}()
 	return nil
