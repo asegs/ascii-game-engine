@@ -35,6 +35,7 @@ Server:
 -Send message to clients to increase buffer size instead of just erroring
 -Send custom function keys with data
 -Still let zones set custom handlers but by zone id
+-Store zones in string array, cycle through, but zone key is string
 
 Wordle:
 -Autofill known green letters or don't allow anything else for green letters
