@@ -55,12 +55,12 @@ func render () {
 	}
 	_ = zoning.cursorEnterZone(zone,0)
 
-	client := newClient([]byte{192,168,0,225},input,localState,playerStates,globalState,onConnect,clientConfig)
+	client := newClient([]byte{192,168,0,225},&zone.Events,localState,playerStates,globalState,onConnect,clientConfig)
 	client.addLocalHandler("Pos", func() {
 		zone.sendPlaceCharFormat('*',localState.Pos.Row,localState.Pos.Col,cursor,'*')
 	})
 	client.addPlayersHandler("Pos", func(id int) {
-		pos := playerStates[id].(PlayerState).Pos
+		pos := playerStates[id].(* PlayerState).Pos
 		zone.sendPlaceCharFormat('*',pos.Row,pos.Col,cursor,'*')
 	})
 

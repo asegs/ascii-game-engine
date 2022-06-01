@@ -23,7 +23,7 @@ type Client struct {
 	 CustomProcessor map[string]func(string)
 	 ToSend * net.UDPConn
 	 ToReceive * net.UDPConn
-	 Input * NetworkedStdIn
+	 EventChannel * chan * NetworkedMsg
 	 LastMessageProcessed int
 	 Buffers chan [] byte
 	 StoredBuffers map [int] * UpdateMessage
@@ -55,7 +55,7 @@ type ClientNetworkConfig struct {
 }
 
 
-func newClient (serverIp []byte,input * NetworkedStdIn,localState interface{},playerStates map[int]interface{},globalState interface{}, onNewPlayer func (id int), config * ClientNetworkConfig) * Client {
+func newClient (serverIp []byte,events * chan * NetworkedMsg,localState interface{},playerStates map[int]interface{},globalState interface{}, onNewPlayer func (id int), config * ClientNetworkConfig) * Client {
 	client := &Client{
 		LocalState: localState,
 		PlayerStates: playerStates,
@@ -71,8 +71,8 @@ func newClient (serverIp []byte,input * NetworkedStdIn,localState interface{},pl
 		BufferFirstQueryTimes: make(map[int] time.Time),
 		OnNewPlayerConnect: onNewPlayer,
 		Config: config,
+		EventChannel: events,
 	}
-	client.Input = input
 	err := client.connectToServer(serverIp)
 	if err != nil {
 		fmt.Println("Failed to connect to server " + err.Error())
@@ -227,7 +227,7 @@ func (c * Client) broadcastActions () {
 		var err error
 		fmtMessage := make([]byte,1)
 		for true {
-			message = <- c.Input.events
+			message = <- * c.EventChannel
 			fmtMessage[0] = message.Msg
 			err = c.sendWithRetry(fmtMessage)
 			if err != nil {

@@ -27,7 +27,7 @@ func subtractOrCap (val int) int {
 }
 
 func addOrCap (val int, max int) int {
-	if val > max {
+	if val >= max {
 		return val
 	}
 	return val + 1
