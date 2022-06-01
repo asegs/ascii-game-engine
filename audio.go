@@ -18,12 +18,21 @@ type Audio struct {
 	Handle * exec.Cmd
 }
 
+/**
+Given a filename, plays the audio at that file.
+If something is wrong, returns an error.
+Returns a handle to the process running that audio so that it can be stopped.
+ */
 func play(filename string) (error, * Audio ) {
 	cmd := exec.Command("ffplay","-nodisp","-autoexit",filename)
 	err := cmd.Start()
 	return err,&Audio{Filename: filename,Handle: cmd}
 }
 
+/**
+Stops an audio process by its handle.
+Returns an error if it cannot be stopped.
+ */
 func (a * Audio) stop() error {
 	err := a.Handle.Process.Kill()
 	return err

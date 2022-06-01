@@ -13,6 +13,7 @@ func main () {
 	fmt.Println("Choose the demo you are interested in:")
 	fmt.Println("(N)etworked Chase")
 	fmt.Println("(W)ordle")
+	fmt.Println("(A)dvanced Networked Chase - In progress")
 	reader.Scan()
 	text := reader.Text()
 	if text == "W" {
@@ -23,7 +24,14 @@ func main () {
 		reader.Scan()
 		lower,_ := strconv.Atoi(reader.Text())
 		runWordleDemo(upper,lower)
-	}else if text == "N" {
-		runNetworked()
+	} else if text == "A" {
+		fmt.Println("(S)erver mode, or (C)lient mode?:")
+		reader.Scan()
+		entry := reader.Text()
+		if entry == "S" {
+			serve()
+		}else {
+			render()
+		}
 	}
 }

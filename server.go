@@ -7,13 +7,12 @@ import (
 	"strconv"
 )
 
-var serverNetworkConfig ServerNetworkConfig
 
 type ServerNetworkConfig struct {
-	defaultPort int
-	strikes int
-	bufferSize int
-	storedUpdates int
+	DefaultPort int
+	Strikes int
+	BufferSize int
+	StoredUpdates int
 }
 
 type Server struct {
@@ -26,6 +25,8 @@ type Server struct {
 	Strikes map[int] int
 	MessagesSent int
 	MessageMap map[int] [] byte
+	ZoneMap map[string] int
+	Config * ServerNetworkConfig
 }
 
 type ZoneHandlers struct {
@@ -33,7 +34,7 @@ type ZoneHandlers struct {
 	PlayerHandlers map[byte]func(int)
 }
 
-func newServerDefault (PlayerJoined func(int),PlayerLeft func(int)) * Server {
+func newServerDefault (PlayerJoined func(int),PlayerLeft func(int),config * ServerNetworkConfig) * Server {
 	return &Server{
 		Players:        make(map[int] * net.UDPConn,0),
 		ConnectKey:     "connect",
@@ -44,10 +45,12 @@ func newServerDefault (PlayerJoined func(int),PlayerLeft func(int)) * Server {
 		PlayerLeft: PlayerLeft,
 		MessagesSent: 0,
 		MessageMap: make(map[int] [] byte),
+		ZoneMap: make(map[string] int),
+		Config: config,
 	}
 }
 
-func newServer (connectKey string,PlayerJoined func(int),PlayerLeft func(int)) * Server {
+func newServer (connectKey string,PlayerJoined func(int),PlayerLeft func(int),config * ServerNetworkConfig) * Server {
 	return &Server{
 		Players:        make(map[int] * net.UDPConn,0),
 		ConnectKey:     connectKey,
@@ -58,6 +61,8 @@ func newServer (connectKey string,PlayerJoined func(int),PlayerLeft func(int)) *
 		PlayerLeft: PlayerLeft,
 		MessagesSent: 0,
 		MessageMap: make(map[int] []byte),
+		ZoneMap: make(map[string] int),
+		Config: config,
 	}
 }
 
@@ -68,12 +73,18 @@ func (s * Server) start() {
 	}
 }
 
-func (s * Server) newZoneHandlers () * ZoneHandlers {
+func (s * Server) newZoneHandlers (name string) * ZoneHandlers {
 	handlers := &ZoneHandlers{
 		Server:         s,
 		PlayerHandlers: make(map[byte]func(int)),
 	}
+	s.ZoneMap[name] = len(s.ZoneHandlers)
+	s.ZoneHandlers = append(s.ZoneHandlers, handlers)
 	return handlers
+}
+
+func (s * Server) zoneByName (name string) * ZoneHandlers {
+	return s.ZoneHandlers[s.ZoneMap[name]]
 }
 
 func (s * Server) addZoneHandlers (zoneHandlers * ZoneHandlers) {
@@ -104,16 +115,16 @@ func (s * Server) broadcastToAll (stateUpdate * UpdateMessage) {
 	stateUpdate.Id = s.MessagesSent
 	message := stateUpdate.toBytes()
 	s.MessageMap[s.MessagesSent] = message
-	if serverNetworkConfig.bufferSize < len(message) {
+	if s.Config.BufferSize < len(message) {
 		LogString("Buffer limit exceeded with: " + string(message))
-		message = message[0:serverNetworkConfig.bufferSize]
+		message = message[0:s.Config.BufferSize]
 	}
 	for id,player := range s.Players {
 		s.sendToConn(message,id,player)
 	}
 	s.MessagesSent++
-	if _,ok := s.MessageMap[s.MessagesSent - serverNetworkConfig.storedUpdates]; ok {
-		delete(s.MessageMap,s.MessagesSent - serverNetworkConfig.storedUpdates)
+	if _,ok := s.MessageMap[s.MessagesSent - s.Config.StoredUpdates]; ok {
+		delete(s.MessageMap,s.MessagesSent - s.Config.StoredUpdates)
 	}
 }
 
@@ -124,7 +135,7 @@ func (s * Server) sendToConn(buf [] byte, id int, conn * net.UDPConn)  {
 	}
 	if err != nil || n < len(buf) {
 		s.Strikes[id] ++
-		if s.Strikes[id] > serverNetworkConfig.strikes {
+		if s.Strikes[id] > s.Config.Strikes {
 			s.removePlayerSaveState(id)
 		}
 	}else {
@@ -152,9 +163,10 @@ func (s * Server) broadcastStateUpdate (state interface{}, from int, asyncOk boo
 func (s * Server) listen () error{
 	ServerConn, err := net.ListenUDP("udp",&net.UDPAddr{
 		IP:[]byte{0,0,0,0},
-		Port:serverNetworkConfig.defaultPort,
+		Port:s.Config.DefaultPort,
 		Zone:"",
 	})
+	fmt.Println("Started UDP listen server")
 	if err != nil {
 		return err
 	}
@@ -165,6 +177,7 @@ func (s * Server) listen () error{
 	go func() {
 		for true {
 			received, addr, err = ServerConn.ReadFromUDP(buf)
+			fmt.Printf("Received %s from %s\n",buf,addr)
 			if err != nil {
 				LogString("Failed to read from connection: " + err.Error())
 				continue
@@ -173,7 +186,7 @@ func (s * Server) listen () error{
 			if _, ok := s.Players[id]; !ok {
 				NewConn, err := net.DialUDP("udp", nil, &net.UDPAddr{
 					IP:   addr.IP,
-					Port: serverNetworkConfig.defaultPort,
+					Port: s.Config.DefaultPort,
 					Zone: "",
 				})
 				if err != nil {

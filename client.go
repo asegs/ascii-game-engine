@@ -29,6 +29,8 @@ type Client struct {
 	 StoredBuffers map [int] * UpdateMessage
 	 HighestReceivedBuffer int
 	 BufferFirstQueryTimes map [int] time.Time
+	 OnNewPlayerConnect func (id int)
+	 Config * ClientNetworkConfig
 }
 
 type StatePair struct {
@@ -45,16 +47,15 @@ type UpdateMessage struct {
 }
 
 type ClientNetworkConfig struct {
-	defaultPort int
-	bufferSize int
-	skipWindowMs int
-	scanMissedFreqMs int
-	packetRetries int
+	DefaultPort int
+	BufferSize int
+	SkipWindowMs int
+	ScanMissedFreqMs int
+	PacketRetries int
 }
 
-var clientNetworkConfig ClientNetworkConfig
 
-func newClient (serverIp []byte,input * NetworkedStdIn,localState interface{},playerStates map[int]interface{},globalState interface{}) * Client {
+func newClient (serverIp []byte,input * NetworkedStdIn,localState interface{},playerStates map[int]interface{},globalState interface{}, onNewPlayer func (id int), config * ClientNetworkConfig) * Client {
 	client := &Client{
 		LocalState: localState,
 		PlayerStates: playerStates,
@@ -68,6 +69,8 @@ func newClient (serverIp []byte,input * NetworkedStdIn,localState interface{},pl
 		StoredBuffers: make(map[int] * UpdateMessage),
 		HighestReceivedBuffer: 0,
 		BufferFirstQueryTimes: make(map[int] time.Time),
+		OnNewPlayerConnect: onNewPlayer,
+		Config: config,
 	}
 	client.Input = input
 	err := client.connectToServer(serverIp)
@@ -194,12 +197,12 @@ func (u * UpdateMessage) applyToStates(localState interface{},playerStates map[i
 func (c * Client) connectToServer(IP []byte) error{
 	Conn, err := net.DialUDP("udp",nil,&net.UDPAddr{
 		IP:   IP,
-		Port: clientNetworkConfig.defaultPort,
+		Port: c.Config.DefaultPort,
 		Zone: "",
 	})
 	ServerConn, err := net.ListenUDP("udp",&net.UDPAddr{
 		IP:[]byte{0,0,0,0},
-		Port:clientNetworkConfig.defaultPort,
+		Port:c.Config.DefaultPort,
 		Zone:"",
 	})
 	if err != nil {
@@ -230,7 +233,7 @@ func (c * Client) listen() {
 	var addr * net.UDPAddr
 	var err error
 	var received int
-	buf := make([]byte,serverNetworkConfig.bufferSize)
+	buf := make([]byte,c.Config.BufferSize)
 	var bufferCopy []byte
 	go func() {
 		for true {
@@ -281,7 +284,7 @@ func (c * Client) processBuffer (i int) bool{
 		readTime,ok := c.BufferFirstQueryTimes[i]
 		//this message has already been looked for
 		if ok {
-			if time.Now().Sub(readTime) > time.Millisecond * time.Duration(clientNetworkConfig.skipWindowMs) {
+			if time.Now().Sub(readTime) > time.Millisecond * time.Duration(c.Config.SkipWindowMs) {
 				//skip, timed out
 				c.LastMessageProcessed = i
 				delete(c.BufferFirstQueryTimes,i)
@@ -302,6 +305,9 @@ func (c * Client) processBuffer (i int) bool{
 }
 
 func (c * Client) applyMessage (message * UpdateMessage,i int) {
+	if message.Id != GLOBAL_ID && message.Id != LOCAL_ID {
+		c.OnNewPlayerConnect(message.Id)
+	}
 	message.applyToStates(c.LocalState,
 		c.PlayerStates,
 		c.GlobalState,
@@ -321,7 +327,7 @@ func (c * Client) grabExtra () {
 				c.applyMessage(update,i)
 			}
 		}
-		time.Sleep(time.Duration(clientNetworkConfig.scanMissedFreqMs) * time.Millisecond)
+		time.Sleep(time.Duration(c.Config.ScanMissedFreqMs) * time.Millisecond)
 	}
 }
 
@@ -331,7 +337,7 @@ func (c * Client) requestPacketFromServer (id int) error {
 }
 
 func (c * Client) sendWithRetry (buf [] byte) error{
-	return c.sendWithCustomRetry(buf,clientNetworkConfig.packetRetries)
+	return c.sendWithCustomRetry(buf,c.Config.PacketRetries)
 }
 
 func (c * Client) sendWithCustomRetry (buf [] byte, maxRetries int) error {

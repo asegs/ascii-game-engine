@@ -59,7 +59,6 @@ Width: The max width of the terminal.
 CustomFeed: The channel by which composed functions come in to be applied.
 Associations: A quick lookup of Recorded objects mapped from characters.
 DataHistory: A table of what state each cell is in and a Depth length history of previous states.
-Depth: The length of the history stored for each cell.
 DefaultRecorded: The default Recorded Context for a given cell.
  */
 type Terminal struct {
@@ -70,7 +69,6 @@ type Terminal struct {
 	CustomFeed chan func(terminal * Terminal)
 	Associations map[byte] * Recorded
 	DataHistory [][] * HistoryStack
-	Depth int
 	DefaultRecorded * Recorded
 }
 
@@ -84,7 +82,7 @@ Starts the background thread to receive functions and apply them.
 
 Finally, returns the reference to the terminal object.
  */
-func createTerminal(height int,width int,defaultRecorded * Recorded,history int)*Terminal{
+func createTerminal(height int, width int, defaultRecorded *Recorded) *Terminal {
 	stored := make([][] * HistoryStack,height)
 	for i:=0;i<height;i++{
 		sRow := make([] * HistoryStack,width)
@@ -109,7 +107,6 @@ func createTerminal(height int,width int,defaultRecorded * Recorded,history int)
 		DataHistory: stored,
 		Height:height,
 		Width:width,
-		Depth:history,
 		DefaultRecorded: defaultRecorded,
 	}
 	terminal.moveTo(0,0)
@@ -244,7 +241,7 @@ Could possibly use printRender.
 func (t * Terminal) undoAtPos(row int,col int){
 	t.DataHistory[row][col].pop()
 	t.moveTo(row,col)
-	if t.Col >= width - 1{
+	if t.Col >= t.Width - 1{
 		return
 	}
 	t.Col ++
@@ -425,7 +422,7 @@ Does it at a given location.
 func (t * Terminal) placeCharLookup(char byte,row int,col int){
 	if format, ok := t.Associations[char]; ok {
 		t.moveTo(row,col)
-		if t.Col >= width - 1{
+		if t.Col >= t.Width - 1{
 			return
 		}
 		t.Col ++
@@ -442,7 +439,7 @@ Writes a certain character with no style at a particular location.
  */
 func (t * Terminal) placeCharRaw(char byte,row int,col int){
 	t.moveTo(row,col)
-	if t.Col >= width - 1{
+	if t.Col >= t.Width - 1{
 		return
 	}
 	t.Col ++
@@ -459,7 +456,7 @@ Adds the character to the history with a new Recorded value created from the afo
  */
 func (t * Terminal) placeCharFormat(char byte,row int,col int,format * Context,bgCode byte){
 	t.moveTo(row,col)
-	if t.Col >= width - 1 {
+	if t.Col >= t.Width - 1 {
 		return
 	}
 	t.Col ++
@@ -523,7 +520,7 @@ func (t * Terminal) sendPlaceCharAtCoordCondUndo(char byte,row int,col int,lastR
 		if format, ok := term.Associations[char]; ok {
 			term.undoConditional(lastRow,lastCol,match,matchFg)
 			term.moveTo(row,col)
-			if term.Col >= width - 1{
+			if term.Col >= t.Width - 1{
 				return
 			}
 			term.Col ++

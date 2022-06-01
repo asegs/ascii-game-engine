@@ -157,11 +157,11 @@ func runWordleDemo(topPercent int, botPercent int)  {
 	clear := initContext().addSimpleStyle(0).compile()
 	struck := initContext().addSimpleStyle(9).addRgbStyleBg(128, 128, 128).addRgbStyleFg(0,0,0).compile()
 	tempStruck := initContext().addSimpleStyle(9).addRgbStyleBg(245, 201, 105).addRgbStyleFg(0,0,0).compile()
-	terminal := createTerminal(wHeight,wWidth,&Recorded{
+	terminal := createTerminal(wHeight, wWidth, &Recorded{
 		Format:         clear,
 		ShownSymbol:    ' ',
 		BackgroundCode: '0',
-	},8)
+	})
 	zoning := initZones(wHeight,wWidth,input,terminal)
 	gameZone,err := zoning.createZone(0,0,wHeight,wWidth,true)
 	if err != nil {
