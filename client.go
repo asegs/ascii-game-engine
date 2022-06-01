@@ -127,7 +127,7 @@ func (u * UpdateMessage) append(state interface{}, keys ...string) * UpdateMessa
 		}
 		u.Pairs = append(u.Pairs,StatePair{
 			Key:  key,
-			Json: wrapWithKey(key,string(marshal(reflect.ValueOf(state).FieldByName(key).Interface()))),
+			Json: wrapWithKey(key,string(marshal(reflectedState.FieldByName(key).Interface()))),
 		})
 	}
 	return u
