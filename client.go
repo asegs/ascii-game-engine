@@ -159,7 +159,11 @@ func updateStateFromJson(state interface{},data string) error{
 }
 
 func keyInState (key string, state interface{}) bool{
-	return reflect.ValueOf(state).FieldByName(key).IsValid()
+	reflectedState := reflect.ValueOf(state)
+	if reflectedState.Kind() == reflect.Ptr {
+		reflectedState = reflectedState.Elem()
+	}
+	return reflectedState.FieldByName(key).IsValid()
 }
 
 func (p StatePair) performCustomFunction(customs map[string]func(string)) {
@@ -309,8 +313,9 @@ func (c * Client) processBuffer (i int) bool{
 }
 
 func (c * Client) applyMessage (message * UpdateMessage,i int) {
-	if message.Id != GLOBAL_ID && message.Id != LOCAL_ID {
-		c.OnNewPlayerConnect(message.Id)
+	_,playerExists := c.PlayerStates[i]
+	if message.From != GLOBAL_ID && message.From != LOCAL_ID && !playerExists{
+		c.OnNewPlayerConnect(message.From)
 	}
 	message.applyToStates(c.LocalState,
 		c.PlayerStates,
