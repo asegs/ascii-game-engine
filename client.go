@@ -17,9 +17,9 @@ type Client struct {
 	 LocalState interface{}
 	 PlayerStates map[int]interface{}
 	 GlobalState interface{}
-	 LocalProcessor map[string]func()
-	 GlobalProcessor map[string]func()
-	 PlayersProcessor map[string]func(int)
+	 LocalProcessor map[string]func(interface{})
+	 GlobalProcessor map[string]func(interface{})
+	 PlayersProcessor map[string]func(int,interface{})
 	 CustomProcessor map[string]func(string)
 	 ToSend * net.UDPConn
 	 ToReceive * net.UDPConn
@@ -60,9 +60,9 @@ func newClient (serverIp []byte,events * chan * NetworkedMsg,localState interfac
 		LocalState: localState,
 		PlayerStates: playerStates,
 		GlobalState: globalState,
-		LocalProcessor:   make(map[string]func()),
-		GlobalProcessor:  make(map[string]func()),
-		PlayersProcessor: make(map[string]func(int)),
+		LocalProcessor:   make(map[string]func(interface{})),
+		GlobalProcessor:  make(map[string]func(interface{})),
+		PlayersProcessor: make(map[string]func(int,interface{})),
 		CustomProcessor:  make(map[string]func(string)),
 		LastMessageProcessed: -1,
 		Buffers: make(chan [] byte),
@@ -82,17 +82,17 @@ func newClient (serverIp []byte,events * chan * NetworkedMsg,localState interfac
 	return client
 }
 
-func (c * Client) addLocalHandler (key string,operator func()) * Client{
+func (c * Client) addLocalHandler (key string,operator func(interface{})) * Client{
 	c.LocalProcessor[key] = operator
 	return c
 }
 
-func (c * Client) addGlobalHandler (key string,operator func()) * Client{
+func (c * Client) addGlobalHandler (key string,operator func(interface{})) * Client{
 	c.GlobalProcessor[key] = operator
 	return c
 }
 
-func (c * Client) addPlayersHandler (key string,operator func(int)) * Client{
+func (c * Client) addPlayersHandler (key string,operator func(int,interface{})) * Client{
 	c.PlayersProcessor[key] = operator
 	return c
 }
@@ -171,21 +171,23 @@ func (p StatePair) performCustomFunction(customs map[string]func(string)) {
 }
 
 
-func (u * UpdateMessage) applyToStates(localState interface{},playerStates map[int]interface{},globalState interface{},localHandlers map[string]func(),playersHandlers map[string]func(int),globalHandlers map[string]func(),customHandlers map[string]func(string2 string)){
+func (u * UpdateMessage) applyToStates(localState interface{},playerStates map[int]interface{},globalState interface{},localHandlers map[string]func(interface{}),playersHandlers map[string]func(int, interface{}),globalHandlers map[string]func(interface{}),customHandlers map[string]func(string2 string)){
 	for _,pair := range u.Pairs {
 		switch u.From {
 		case LOCAL_ID:
 			if keyInState(pair.Key,localState) {
+				previousLocalState := localState
 				updateStateFromJson(&localState,pair.Json)
-				localHandlers[pair.Key]()
+				localHandlers[pair.Key](previousLocalState)
 			} else {
 				pair.performCustomFunction(customHandlers)
 			}
 			break
 		case GLOBAL_ID:
 			if keyInState(pair.Key,globalState) {
+				previousGlobalState := globalState
 				updateStateFromJson(&globalState,pair.Json)
-				globalHandlers[pair.Key]()
+				globalHandlers[pair.Key](previousGlobalState)
 			} else {
 				pair.performCustomFunction(customHandlers)
 			}
@@ -193,8 +195,9 @@ func (u * UpdateMessage) applyToStates(localState interface{},playerStates map[i
 		default:
 			playerState := playerStates[u.From]
 			if keyInState(pair.Key,playerState) {
+				previousPlayerState := playerState
 				updateStateFromJson(&playerState,pair.Json)
-				playersHandlers[pair.Key](u.From)
+				playersHandlers[pair.Key](u.From,previousPlayerState)
 			} else {
 				pair.performCustomFunction(customHandlers)
 			}

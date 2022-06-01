@@ -7,6 +7,20 @@ import (
 	"strconv"
 )
 
+var symbolicMapping map[byte]string = map[byte]string{
+MOVE_LEFT: "<-",
+MOVE_UP: "^",
+MOVE_RIGHT: "->",
+MOVE_DOWN: "v",
+}
+
+func symbolicMap (buf []byte) string {
+	if str,ok := symbolicMapping[buf[0]]; ok {
+		return str
+	}
+	return string(buf)
+}
+
 
 type ServerNetworkConfig struct {
 	DefaultPort int
@@ -177,7 +191,7 @@ func (s * Server) listen () error{
 	go func() {
 		for true {
 			received, addr, err = ServerConn.ReadFromUDP(buf)
-			fmt.Printf("Received %s from %s\n",buf,addr)
+			fmt.Printf("Received %s from %s\n",symbolicMap(buf),addr)
 			if err != nil {
 				LogString("Failed to read from connection: " + err.Error())
 				continue
