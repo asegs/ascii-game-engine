@@ -121,6 +121,10 @@ func wrapWithKey (key string, jsonBody string) string {
 
 func (u * UpdateMessage) append(state interface{}, keys ...string) * UpdateMessage {
 	for _,key := range keys {
+		reflectedState := reflect.ValueOf(state)
+		if reflectedState.Kind() == reflect.Ptr {
+			reflectedState = reflectedState.Elem()
+		}
 		u.Pairs = append(u.Pairs,StatePair{
 			Key:  key,
 			Json: wrapWithKey(key,string(marshal(reflect.ValueOf(state).FieldByName(key).Interface()))),
