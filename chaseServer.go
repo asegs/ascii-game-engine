@@ -16,7 +16,7 @@ type GlobalState struct {
 	Pos * Coord
 }
 
-const mapWidth int = 40
+const mapWidth int = 80
 const mapHeight int = 40
 
 func subtractOrCap (val int) int {
@@ -27,7 +27,7 @@ func subtractOrCap (val int) int {
 }
 
 func addOrCap (val int, max int) int {
-	if val >= max {
+	if val >= max - 2{
 		return val
 	}
 	return val + 1

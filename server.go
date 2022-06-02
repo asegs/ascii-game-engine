@@ -220,7 +220,11 @@ func (s * Server) listen () error{
 					s.sendToConn(message,id,s.Players[id])
 				}
 			}else {
-				s.ZoneHandlers[s.ZoneIndexes[id]].PlayerHandlers[buf[0]](id)
+				if operation,ok := s.ZoneHandlers[s.ZoneIndexes[id]].PlayerHandlers[buf[0]] ; ok {
+					operation(id)
+				}else {
+					LogString("Zone has no implemented function for key: " + string(buf[0]))
+				}
 			}
 
 		}

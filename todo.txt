@@ -38,9 +38,13 @@ Server:
 -Store zones in string array, cycle through, but zone key is string
 
 
--Handle going out of bounds
 -Local server instance for just validating input?
 -Switch to only UDP methods?
+-Zone system for client handlers as well
+-Handle when player joins after server has processed messages
+-Handle right width bug
+-Dump state to client on join including current packet
+-See what's going on with rerequesting packets when joining server late
 
 Wordle:
 -Autofill known green letters or don't allow anything else for green letters
