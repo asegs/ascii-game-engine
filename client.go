@@ -271,7 +271,7 @@ func (c * Client) listen() {
 				c.HighestReceivedBuffer = message.Id
 			}
 			c.StoredBuffers[message.Id] = message
-			for i := c.LastMessageProcessed + 1 ; i < c.HighestReceivedBuffer ; i ++ {
+			for i := c.LastMessageProcessed + 1 ; i <= c.HighestReceivedBuffer ; i ++ {
 				cont = c.processBuffer(i)
 				if !cont {
 					break
