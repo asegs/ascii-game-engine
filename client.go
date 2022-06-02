@@ -316,7 +316,7 @@ func (c * Client) processBuffer (i int) bool{
 }
 
 func (c * Client) applyMessage (message * UpdateMessage,i int) {
-	_,playerExists := c.PlayerStates[i]
+	_,playerExists := c.PlayerStates[message.From]
 	if message.From != GLOBAL_ID && message.From != LOCAL_ID && !playerExists{
 		c.OnNewPlayerConnect(message.From)
 	}
