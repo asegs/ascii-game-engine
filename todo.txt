@@ -47,6 +47,7 @@ Server:
 -See what's going on with rerequesting packets when joining server late
 -Represent color contexts as text data, read into map of name->color context object
 -Represent IP, map size, etc, in the same way
+-Concurrent map write issue with saved buffers in client
 
 Wordle:
 -Autofill known green letters or don't allow anything else for green letters
