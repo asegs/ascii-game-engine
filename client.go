@@ -47,7 +47,8 @@ type UpdateMessage struct {
 }
 
 type ClientNetworkConfig struct {
-	DefaultPort int
+	ClientPort int
+	ServerPort int
 	BufferSize int
 	SkipWindowMs int
 	ScanMissedFreqMs int
@@ -208,12 +209,12 @@ func (u * UpdateMessage) applyToStates(localState interface{},playerStates map[i
 func (c * Client) connectToServer(IP []byte) error{
 	Conn, err := net.DialUDP("udp",nil,&net.UDPAddr{
 		IP:   IP,
-		Port: c.Config.DefaultPort,
+		Port: c.Config.ServerPort,
 		Zone: "",
 	})
 	ServerConn, err := net.ListenUDP("udp",&net.UDPAddr{
 		IP:[]byte{0,0,0,0},
-		Port:c.Config.DefaultPort,
+		Port:c.Config.ClientPort,
 		Zone:"",
 	})
 	if err != nil {

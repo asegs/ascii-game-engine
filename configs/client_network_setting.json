@@ -1,1 +1,1 @@
-{"defaultPort":10301,"bufferSize": 512,"skipWindowMs": 400,"scanMissedFreqMs": 100,"packetRetries": 3}
+{"clientPort":10301,"serverPort":11301,"bufferSize": 512,"skipWindowMs": 400,"scanMissedFreqMs": 100,"packetRetries": 3}

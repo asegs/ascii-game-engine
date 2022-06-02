@@ -1,2 +1,2 @@
-{"defaultPort":10301,"strikes": 3,"bufferSize": 512, "storedUpdates": 128
+{"clientPort":10301,"serverPort": 11301,"strikes": 3,"bufferSize": 512, "storedUpdates": 128
 }

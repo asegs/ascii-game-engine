@@ -37,5 +37,10 @@ Server:
 -Still let zones set custom handlers but by zone id
 -Store zones in string array, cycle through, but zone key is string
 
+
+-Handle going out of bounds
+-Local server instance for just validating input?
+-Switch to only UDP methods?
+
 Wordle:
 -Autofill known green letters or don't allow anything else for green letters

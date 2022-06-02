@@ -23,7 +23,8 @@ func symbolicMap (buf []byte) string {
 
 
 type ServerNetworkConfig struct {
-	DefaultPort int
+	ClientPort int
+	ServerPort int
 	Strikes int
 	BufferSize int
 	StoredUpdates int
@@ -177,7 +178,7 @@ func (s * Server) broadcastStateUpdate (state interface{}, from int, asyncOk boo
 func (s * Server) listen () error{
 	ServerConn, err := net.ListenUDP("udp",&net.UDPAddr{
 		IP:[]byte{0,0,0,0},
-		Port:s.Config.DefaultPort,
+		Port:s.Config.ServerPort,
 		Zone:"",
 	})
 	fmt.Println("Started UDP listen server")
@@ -200,7 +201,7 @@ func (s * Server) listen () error{
 			if _, ok := s.Players[id]; !ok {
 				NewConn, err := net.DialUDP("udp", nil, &net.UDPAddr{
 					IP:   addr.IP,
-					Port: s.Config.DefaultPort,
+					Port: s.Config.ClientPort,
 					Zone: "",
 				})
 				if err != nil {
