@@ -376,5 +376,10 @@ func directAndCopy (data interface{}) interface{} {
 	if reflectedValue.Kind() == reflect.Ptr {
 		reflectedValue = reflectedValue.Elem()
 	}
-	return reflectedValue.Interface()
+	directedInterface := reflectedValue.Interface()
+	toJson,_ := json.Marshal(directedInterface)
+	newOfType := reflect.New(reflectedValue.Type()).Interface()
+	_ = json.Unmarshal(toJson,&newOfType)
+
+	return newOfType
 }
