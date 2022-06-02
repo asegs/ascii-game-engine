@@ -176,7 +176,7 @@ func (u * UpdateMessage) applyToStates(localState interface{},playerStates map[i
 		switch u.From {
 		case LOCAL_ID:
 			if keyInState(pair.Key,localState) {
-				previousLocalState := localState
+				previousLocalState := directAndCopy(localState)
 				updateStateFromJson(&localState,pair.Json)
 				localHandlers[pair.Key](previousLocalState)
 			} else {
@@ -185,7 +185,7 @@ func (u * UpdateMessage) applyToStates(localState interface{},playerStates map[i
 			break
 		case GLOBAL_ID:
 			if keyInState(pair.Key,globalState) {
-				previousGlobalState := globalState
+				previousGlobalState := directAndCopy(globalState)
 				updateStateFromJson(&globalState,pair.Json)
 				globalHandlers[pair.Key](previousGlobalState)
 			} else {
@@ -195,7 +195,7 @@ func (u * UpdateMessage) applyToStates(localState interface{},playerStates map[i
 		default:
 			playerState := playerStates[u.From]
 			if keyInState(pair.Key,playerState) {
-				previousPlayerState := playerState
+				previousPlayerState := directAndCopy(playerState)
 				updateStateFromJson(&playerState,pair.Json)
 				playersHandlers[pair.Key](u.From,previousPlayerState)
 			} else {
@@ -369,4 +369,12 @@ func (c * Client) sendWithCustomRetry (buf [] byte, maxRetries int) error {
 		}
 	}
 	return err
+}
+
+func directAndCopy (data interface{}) interface{} {
+	reflectedValue := reflect.ValueOf(data)
+	if reflectedValue.Kind() == reflect.Ptr {
+		reflectedValue = reflectedValue.Elem()
+	}
+	return reflectedValue.Interface()
 }
