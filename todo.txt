@@ -48,6 +48,7 @@ Server:
 -Represent color contexts as text data, read into map of name->color context object
 -Represent IP, map size, etc, in the same way
 -Concurrent map write issue with saved buffers in client
+-Just check to see if futures to process edit the same state
 
 Wordle:
 -Autofill known green letters or don't allow anything else for green letters

@@ -41,6 +41,8 @@ type Server struct {
 	MessagesSent int
 	MessageMap map[int] [] byte
 	ZoneMap map[string] int
+	PlayerState map[int] interface{}
+	GlobalState interface{}
 	Config * ServerNetworkConfig
 }
 
@@ -49,23 +51,11 @@ type ZoneHandlers struct {
 	PlayerHandlers map[byte]func(int)
 }
 
-func newServerDefault (PlayerJoined func(int),PlayerLeft func(int),config * ServerNetworkConfig) * Server {
-	return &Server{
-		Players:        make(map[int] * net.UDPConn,0),
-		ConnectKey:     "connect",
-		ZoneIndexes: make(map[int]int),
-		ZoneHandlers: make([] *ZoneHandlers,0),
-		Strikes: make(map[int] int),
-		PlayerJoined: PlayerJoined,
-		PlayerLeft: PlayerLeft,
-		MessagesSent: 0,
-		MessageMap: make(map[int] [] byte),
-		ZoneMap: make(map[string] int),
-		Config: config,
-	}
+func newServerDefault (PlayerJoined func(int),PlayerLeft func(int),config * ServerNetworkConfig, globalState interface{}, playerStates map[int] interface{}) * Server {
+	return newServer("connect",PlayerJoined,PlayerLeft,config,globalState,playerStates)
 }
 
-func newServer (connectKey string,PlayerJoined func(int),PlayerLeft func(int),config * ServerNetworkConfig) * Server {
+func newServer (connectKey string,PlayerJoined func(int),PlayerLeft func(int),config * ServerNetworkConfig, globalState interface{}, playerStates map[int] interface{}) * Server {
 	return &Server{
 		Players:        make(map[int] * net.UDPConn,0),
 		ConnectKey:     connectKey,
@@ -77,6 +67,8 @@ func newServer (connectKey string,PlayerJoined func(int),PlayerLeft func(int),co
 		MessagesSent: 0,
 		MessageMap: make(map[int] []byte),
 		ZoneMap: make(map[string] int),
+		PlayerState: playerStates,
+		GlobalState: globalState,
 		Config: config,
 	}
 }
@@ -210,7 +202,6 @@ func (s * Server) listen () error{
 				s.addNewDefaultPlayer(id,NewConn)
 				s.PlayerJoined(id)
 			}
-			//Rebroadcast code, this is all stubbed
 			if received > 1 {
 				packetId,err := strconv.Atoi(string(buf[0:received]))
 				if err != nil {
@@ -236,6 +227,7 @@ func (s * Server) addNewDefaultPlayer (id int, conn * net.UDPConn) {
 	s.Players[id] = conn
 	s.ZoneIndexes[id] = 0
 	s.Strikes[id] = 0
+	s.dumpStateToPlayer(id)
 }
 
 func (s * Server) removePlayerSaveState (id int) {
@@ -243,4 +235,17 @@ func (s * Server) removePlayerSaveState (id int) {
 	delete(s.Players,id)
 	delete(s.ZoneIndexes,id)
 	delete(s.Strikes,id)
+}
+
+func (s * Server) dumpStateToPlayer (id int) {
+	for i, state := range s.PlayerState {
+		update := newStateUpdate(i,true).append(state).toBytes()
+		s.sendToConn(update,id,s.Players[id])
+	}
+
+	update := newStateUpdate(GLOBAL_ID, true).append(s.GlobalState).toBytes()
+	s.sendToConn(update, id, s.Players[id])
+
+	update = newStateUpdate(GLOBAL_ID, true).appendCustom(s.MessagesSent,"Index").toBytes()
+	s.sendToConn(update,id,s.Players[id])
 }

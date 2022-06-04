@@ -74,6 +74,11 @@ func newClient (serverIp []byte,events * chan * NetworkedMsg,localState interfac
 		Config: config,
 		EventChannel: events,
 	}
+	client.addCustomHandler("Index", func(s string) {
+		index, _ := strconv.Atoi(s)
+		client.LastMessageProcessed = index
+		client.HighestReceivedBuffer = index
+	})
 	err := client.connectToServer(serverIp)
 	if err != nil {
 		fmt.Println("Failed to connect to server " + err.Error())
@@ -121,11 +126,14 @@ func wrapWithKey (key string, jsonBody string) string {
 }
 
 func (u * UpdateMessage) append(state interface{}, keys ...string) * UpdateMessage {
-	for _,key := range keys {
-		reflectedState := reflect.ValueOf(state)
-		if reflectedState.Kind() == reflect.Ptr {
-			reflectedState = reflectedState.Elem()
+	if len(keys) == 0{
+		valueOf := directIfPointer(state).Type()
+		for i := 0; i < valueOf.NumField(); i++ {
+			keys = append(keys, valueOf.Field(i).Name)
 		}
+	}
+	for _,key := range keys {
+		reflectedState := directIfPointer(state)
 		u.Pairs = append(u.Pairs,StatePair{
 			Key:  key,
 			Json: wrapWithKey(key,string(marshal(reflectedState.FieldByName(key).Interface()))),
@@ -160,10 +168,7 @@ func updateStateFromJson(state interface{},data string) error{
 }
 
 func keyInState (key string, state interface{}) bool{
-	reflectedState := reflect.ValueOf(state)
-	if reflectedState.Kind() == reflect.Ptr {
-		reflectedState = reflectedState.Elem()
-	}
+	reflectedState := directIfPointer(state)
 	return reflectedState.FieldByName(key).IsValid()
 }
 
@@ -179,7 +184,11 @@ func (u * UpdateMessage) applyToStates(localState interface{},playerStates map[i
 			if keyInState(pair.Key,localState) {
 				previousLocalState := directAndCopy(localState)
 				updateStateFromJson(&localState,pair.Json)
-				localHandlers[pair.Key](previousLocalState)
+				if localHandler, ok := localHandlers[pair.Key] ; ok {
+					localHandler(previousLocalState)
+				}else {
+					LogString("No local handler defined for key: " + pair.Key)
+				}
 			} else {
 				pair.performCustomFunction(customHandlers)
 			}
@@ -188,7 +197,11 @@ func (u * UpdateMessage) applyToStates(localState interface{},playerStates map[i
 			if keyInState(pair.Key,globalState) {
 				previousGlobalState := directAndCopy(globalState)
 				updateStateFromJson(&globalState,pair.Json)
-				globalHandlers[pair.Key](previousGlobalState)
+				if globalHandler, ok := globalHandlers[pair.Key] ; ok {
+					globalHandler(previousGlobalState)
+				}else {
+					LogString("No global handler defined for key: " + pair.Key)
+				}
 			} else {
 				pair.performCustomFunction(customHandlers)
 			}
@@ -198,7 +211,11 @@ func (u * UpdateMessage) applyToStates(localState interface{},playerStates map[i
 			if keyInState(pair.Key,playerState) {
 				previousPlayerState := directAndCopy(playerState)
 				updateStateFromJson(&playerState,pair.Json)
-				playersHandlers[pair.Key](u.From,previousPlayerState)
+				if playerHandler, ok := playersHandlers[pair.Key] ; ok {
+					playerHandler(u.From,previousPlayerState)
+				}else {
+					LogString("No global handler defined for key: " + pair.Key)
+				}
 			} else {
 				pair.performCustomFunction(customHandlers)
 			}
@@ -373,10 +390,7 @@ func (c * Client) sendWithCustomRetry (buf [] byte, maxRetries int) error {
 }
 
 func directAndCopy (data interface{}) interface{} {
-	reflectedValue := reflect.ValueOf(data)
-	if reflectedValue.Kind() == reflect.Ptr {
-		reflectedValue = reflectedValue.Elem()
-	}
+	reflectedValue := directIfPointer(data)
 	directedInterface := reflectedValue.Interface()
 	toJson,_ := json.Marshal(directedInterface)
 	newOfType := reflect.New(reflectedValue.Type()).Interface()

@@ -6,7 +6,6 @@ import (
 )
 
 func render () {
-	go HandleLog()
 	clientConfig,err := loadClientConfig("configs/client_network_setting.json")
 	if err != nil {
 		fmt.Println(err.Error())

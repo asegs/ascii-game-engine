@@ -64,7 +64,7 @@ func HandleLog(){
 	if !fileExists("logs/server.log"){
 		_,err = os.Create("logs/server.log")
 		if err != nil {
-			//something doesn't work
+			fmt.Println("Failed to create file: " + err.Error())
 		}
 	}
 
