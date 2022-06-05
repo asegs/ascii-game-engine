@@ -26,6 +26,7 @@ func render () {
 			Col: 0,
 		}}
 	}
+
 	input := initializeInput()
 	cursor := initContext().addRgbStyleFg(255,0,0).compile()
 	redBlock := initContext().addRgbStyleBg(255,0,0).compile()
@@ -53,8 +54,12 @@ func render () {
 		return
 	}
 	_ = zoning.cursorEnterZone(zone,0)
-
-	client := newClient([]byte{127,0,0,1},&zone.Events,localState,playerStates,globalState,onConnect,clientConfig)
+	disconnectHandler := func(id int) {
+		disconnectedPos := playerStates[id].(* PlayerState).Pos
+		terminal.sendUndoAtLocationConditional(disconnectedPos.Row,disconnectedPos.Col,'*',true)
+		delete(playerStates,id)
+	}
+	client := newClient([]byte{127,0,0,1},&zone.Events,localState,playerStates,globalState,onConnect,disconnectHandler,clientConfig)
 	client.addLocalHandler("Pos", func(oldState interface{}) {
 		oldPos := oldState.(* PlayerState).Pos
 		zone.sendPlaceCharAtCoordCondUndo('*',localState.Pos.Row,localState.Pos.Col,oldPos.Row,oldPos.Col,'*',true)

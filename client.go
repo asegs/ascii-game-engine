@@ -31,6 +31,7 @@ type Client struct {
 	 HighestReceivedBuffer int
 	 BufferFirstQueryTimes map [int] time.Time
 	 OnNewPlayerConnect func (id int)
+	 OnPlayerDisconnect func (id int)
 	 Config * ClientNetworkConfig
 }
 
@@ -60,8 +61,12 @@ type IndexUpdate struct {
 	Index int
 }
 
+type DisconnectUpdate struct {
+	DisconnectId int
+}
 
-func newClient (serverIp []byte,events * chan * NetworkedMsg,localState interface{},playerStates map[int]interface{},globalState interface{}, onNewPlayer func (id int), config * ClientNetworkConfig) * Client {
+
+func newClient (serverIp []byte,events * chan * NetworkedMsg,localState interface{},playerStates map[int]interface{},globalState interface{}, onNewPlayer func (id int), onPlayerDisconnect func(id int), config * ClientNetworkConfig) * Client {
 	client := &Client{
 		LocalState: localState,
 		PlayerStates: playerStates,
@@ -76,14 +81,26 @@ func newClient (serverIp []byte,events * chan * NetworkedMsg,localState interfac
 		HighestReceivedBuffer: 0,
 		BufferFirstQueryTimes: make(map[int] time.Time),
 		OnNewPlayerConnect: onNewPlayer,
+		OnPlayerDisconnect: onPlayerDisconnect,
 		Config: config,
 		EventChannel: events,
 	}
 	client.addCustomHandler("Index", func(s string) {
 		var idx IndexUpdate
 		_ = json.Unmarshal([]byte(s),&idx)
-		client.LastMessageProcessed = idx.Index
-		client.HighestReceivedBuffer = idx.Index
+		if client.LastMessageProcessed < idx.Index {
+			client.LastMessageProcessed = idx.Index
+		}
+
+		if client.HighestReceivedBuffer < idx.Index {
+			client.HighestReceivedBuffer = idx.Index
+		}
+	})
+
+	client.addCustomHandler("DisconnectId", func(s string) {
+		var disconnect DisconnectUpdate
+		_ = json.Unmarshal([]byte(s),&disconnect)
+		client.OnPlayerDisconnect(disconnect.DisconnectId)
 	})
 	err := client.connectToServer(serverIp)
 	if err != nil {

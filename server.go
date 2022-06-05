@@ -230,6 +230,7 @@ func (s * Server) removePlayerSaveState (id int) {
 	delete(s.Players,id)
 	delete(s.ZoneIndexes,id)
 	delete(s.Strikes,id)
+	s.broadcastCustomPair("DisconnectId",id,id,true)
 }
 
 func (s * Server) dumpStateToPlayer (id int) {

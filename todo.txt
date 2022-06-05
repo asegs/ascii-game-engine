@@ -52,6 +52,7 @@ Server:
 -Change packet id to local when ip from = ip to
 -Save on server as bytes, parse to update, check id matches where we're sending it, update, back to bytes
 -On client connect, send load request for state dump, no matter what (even if already in map, just shutdown)
+-Dump state every n seconds for redundancy
 
 Wordle:
 -Autofill known green letters or don't allow anything else for green letters
