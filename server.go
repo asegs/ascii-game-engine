@@ -110,7 +110,7 @@ func hash(s string) uint32 {
 }
 
 func permuteIp (addr * net.UDPAddr) int{
-	return int(hash(addr.IP.String()+strconv.Itoa(addr.Port)))
+	return int(hash(addr.IP.String()))
 }
 
 func (s * Server) performHandler (addr * net.UDPAddr, msg byte) {

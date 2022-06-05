@@ -41,16 +41,15 @@ Server:
 -Local server instance for just validating input?
 -Switch to only UDP methods?
 -Zone system for client handlers as well
--Handle when player joins after server has processed messages
 -Handle right width bug
--Dump state to client on join including current packet
 -See what's going on with rerequesting packets when joining server late
 -Represent color contexts as text data, read into map of name->color context object
 -Represent IP, map size, etc, in the same way
 -Concurrent map write issue with saved buffers in client
--Just check to see if futures to process edit the same state
+-Just check to see if futures to process edit the same state instead of allowasync
 -Handle case where requested packet is at 0-9
 -Dump state on first connect, not on first interaction
+-Change packet id to local when ip from = ip to
 
 Wordle:
 -Autofill known green letters or don't allow anything else for green letters
