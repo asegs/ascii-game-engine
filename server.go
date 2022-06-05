@@ -199,8 +199,8 @@ func (s * Server) listen () error{
 				if err != nil {
 					LogString("Failed to add client to players set: " + err.Error())
 				}
-				s.addNewDefaultPlayer(id,NewConn)
 				s.PlayerJoined(id)
+				s.addNewDefaultPlayer(id,NewConn)
 			}
 			if received > 1 {
 				packetId,err := strconv.Atoi(string(buf[0:received]))
@@ -239,13 +239,16 @@ func (s * Server) removePlayerSaveState (id int) {
 
 func (s * Server) dumpStateToPlayer (id int) {
 	for i, state := range s.PlayerState {
-		update := newStateUpdate(i,true).append(state).toBytes()
-		s.sendToConn(update,id,s.Players[id])
+		playerUpdate := newStateUpdate(i,true).append(state)
+		playerUpdate.Id = DUMP_ID
+		s.sendToConn(playerUpdate.toBytes(),id,s.Players[id])
 	}
 
-	update := newStateUpdate(GLOBAL_ID, true).append(s.GlobalState).toBytes()
-	s.sendToConn(update, id, s.Players[id])
+	globalUpdate := newStateUpdate(GLOBAL_ID,true).append(s.GlobalState)
+	globalUpdate.Id = DUMP_ID
+	s.sendToConn(globalUpdate.toBytes(),id,s.Players[id])
 
-	update = newStateUpdate(GLOBAL_ID, true).appendCustom(s.MessagesSent,"Index").toBytes()
-	s.sendToConn(update,id,s.Players[id])
+	indexUpdate := newStateUpdate(GLOBAL_ID,true).appendCustom(s.MessagesSent,"Index")
+	indexUpdate.Id = DUMP_ID
+	s.sendToConn(indexUpdate.toBytes(),id,s.Players[id])
 }

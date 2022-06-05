@@ -10,6 +10,7 @@ import (
 	"time"
 )
 
+var DUMP_ID int = -2
 var GLOBAL_ID int = -1
 var LOCAL_ID int = 0
 
@@ -55,6 +56,10 @@ type ClientNetworkConfig struct {
 	PacketRetries int
 }
 
+type IndexUpdate struct {
+	Index int
+}
+
 
 func newClient (serverIp []byte,events * chan * NetworkedMsg,localState interface{},playerStates map[int]interface{},globalState interface{}, onNewPlayer func (id int), config * ClientNetworkConfig) * Client {
 	client := &Client{
@@ -75,9 +80,10 @@ func newClient (serverIp []byte,events * chan * NetworkedMsg,localState interfac
 		EventChannel: events,
 	}
 	client.addCustomHandler("Index", func(s string) {
-		index, _ := strconv.Atoi(s)
-		client.LastMessageProcessed = index
-		client.HighestReceivedBuffer = index
+		var idx IndexUpdate
+		_ = json.Unmarshal([]byte(s),&idx)
+		client.LastMessageProcessed = idx.Index
+		client.HighestReceivedBuffer = idx.Index
 	})
 	err := client.connectToServer(serverIp)
 	if err != nil {
@@ -157,7 +163,11 @@ func (u * UpdateMessage) toBytes() []byte{
 
 func messageFromBytes (bytes []byte) * UpdateMessage {
 	var update UpdateMessage
-	_ = json.Unmarshal(bytes,&update)
+	err := json.Unmarshal(bytes,&update)
+	if err != nil {
+		LogString("JSON received: " + string(bytes))
+		LogString(err.Error())
+	}
 	return &update
 
 }
@@ -263,7 +273,6 @@ func (c * Client) listen() {
 	var err error
 	var received int
 	buf := make([]byte,c.Config.BufferSize)
-	var bufferCopy []byte
 	go func() {
 		for true {
 			received, addr, err = c.ToReceive.ReadFromUDP(buf)
@@ -271,9 +280,8 @@ func (c * Client) listen() {
 				LogString("Failed to read from server: " + err.Error())
 				continue
 			}
-			//So that buffer is hard copied and not passed by reference via slices.
-			bufferCopy = buf
-			c.Buffers <- bufferCopy[0:received]
+			newCopy := copyByteSlice(buf,received)
+			c.Buffers <- newCopy
 		}
 	}()
 
@@ -285,6 +293,12 @@ func (c * Client) listen() {
 		for true {
 			newBuf = <- c.Buffers
 			message = messageFromBytes(newBuf)
+
+			if message.Id == DUMP_ID {
+				c.applyMessage(message)
+				continue
+			}
+
 			if c.HighestReceivedBuffer < message.Id {
 				c.HighestReceivedBuffer = message.Id
 			}
@@ -305,7 +319,7 @@ func (c * Client) processBuffer (i int) bool{
 	message,ok := c.StoredBuffers[i]
 	//message of that id exists and has been stored
 	if ok {
-		c.applyMessage(message,i)
+		c.applyBufferMessage(message,i)
 		c.LastMessageProcessed = i
 		return true
 	}else {
@@ -333,7 +347,13 @@ func (c * Client) processBuffer (i int) bool{
 	}
 }
 
-func (c * Client) applyMessage (message * UpdateMessage,i int) {
+func (c * Client) applyBufferMessage (message * UpdateMessage,i int) {
+	c.applyMessage(message)
+	delete(c.StoredBuffers,i)
+	delete(c.BufferFirstQueryTimes,i)
+}
+
+func (c * Client) applyMessage (message * UpdateMessage) {
 	_,playerExists := c.PlayerStates[message.From]
 	if message.From != GLOBAL_ID && message.From != LOCAL_ID && !playerExists{
 		c.OnNewPlayerConnect(message.From)
@@ -346,15 +366,13 @@ func (c * Client) applyMessage (message * UpdateMessage,i int) {
 		c.GlobalProcessor,
 		c.CustomProcessor,
 	)
-	delete(c.StoredBuffers,i)
-	delete(c.BufferFirstQueryTimes,i)
 }
 
 func (c * Client) grabExtra () {
 	for true {
 		for i,update := range c.StoredBuffers {
 			if i < c.LastMessageProcessed && update.AsyncOk{
-				c.applyMessage(update,i)
+				c.applyBufferMessage(update,i)
 			}
 		}
 		time.Sleep(time.Duration(c.Config.ScanMissedFreqMs) * time.Millisecond)
@@ -397,4 +415,15 @@ func directAndCopy (data interface{}) interface{} {
 	_ = json.Unmarshal(toJson,&newOfType)
 
 	return newOfType
+}
+
+func copyByteSlice (bytes []byte, until int) []byte {
+	if len(bytes) < until {
+		until = len(bytes)
+	}
+	newSlice := make([]byte, until)
+	for i := 0 ; i < until ; i ++ {
+		newSlice[i] = bytes[i]
+	}
+	return newSlice
 }

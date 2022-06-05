@@ -49,6 +49,8 @@ Server:
 -Represent IP, map size, etc, in the same way
 -Concurrent map write issue with saved buffers in client
 -Just check to see if futures to process edit the same state
+-Handle case where requested packet is at 0-9
+-Dump state on first connect, not on first interaction
 
 Wordle:
 -Autofill known green letters or don't allow anything else for green letters
