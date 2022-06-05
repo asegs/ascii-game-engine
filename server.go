@@ -113,11 +113,6 @@ func permuteIp (addr * net.UDPAddr) int{
 	return int(hash(addr.IP.String()))
 }
 
-func (s * Server) performHandler (addr * net.UDPAddr, msg byte) {
-	id := permuteIp(addr)
-	s.ZoneHandlers[s.ZoneIndexes[id]].PlayerHandlers[msg](id)
-}
-
 func (s * Server) broadcastToAll (stateUpdate * UpdateMessage) {
 	stateUpdate.Id = s.MessagesSent
 	message := stateUpdate.toBytes()
