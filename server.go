@@ -137,7 +137,7 @@ func (s * Server) sendToConn(buf [] byte, id int, conn * net.UDPConn)  {
 	}
 	if err != nil || n < len(buf) {
 		s.Strikes[id] ++
-		if s.Strikes[id] > s.Config.Strikes {
+		if s.Strikes[id] >= s.Config.Strikes {
 			s.removePlayerSaveState(id)
 		}
 	}else {
