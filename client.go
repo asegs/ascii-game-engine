@@ -106,6 +106,9 @@ func newClient (serverIp []byte,events * chan * NetworkedMsg,localState interfac
 	if err != nil {
 		fmt.Println("Failed to connect to server " + err.Error())
 	}else {
+		helloBuffer := make([]byte,1)
+		helloBuffer[0] = CONNECT
+		_ = client.sendWithRetry(helloBuffer)
 		client.broadcastActions()
 	}
 	return client

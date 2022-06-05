@@ -12,6 +12,7 @@ MOVE_LEFT: "<-",
 MOVE_UP: "^",
 MOVE_RIGHT: "->",
 MOVE_DOWN: "v",
+CONNECT: "CONNECT",
 }
 
 func symbolicMap (buf []byte) string {
@@ -185,7 +186,7 @@ func (s * Server) listen () error{
 				continue
 			}
 			id = permuteIp(addr)
-			if _, ok := s.Players[id]; !ok {
+			if _, ok := s.Players[id]; !ok || buf[0] == CONNECT {
 				NewConn, err := net.DialUDP("udp", nil, &net.UDPAddr{
 					IP:   addr.IP,
 					Port: s.Config.ClientPort,
@@ -194,8 +195,12 @@ func (s * Server) listen () error{
 				if err != nil {
 					LogString("Failed to add client to players set: " + err.Error())
 				}
-				s.PlayerJoined(id)
-				s.addNewDefaultPlayer(id,NewConn)
+				if ok {
+					s.reloadPlayer(id,NewConn)
+				}else {
+					s.PlayerJoined(id)
+					s.addNewDefaultPlayer(id,NewConn)
+				}
 			}
 			if received > 1 {
 				packetId,err := strconv.Atoi(string(buf[0:received]))
@@ -221,6 +226,12 @@ func (s * Server) listen () error{
 func (s * Server) addNewDefaultPlayer (id int, conn * net.UDPConn) {
 	s.Players[id] = conn
 	s.ZoneIndexes[id] = 0
+	s.Strikes[id] = 0
+	s.dumpStateToPlayer(id)
+}
+
+func (s * Server) reloadPlayer (id int, conn * net.UDPConn) {
+	s.Players[id] = conn
 	s.Strikes[id] = 0
 	s.dumpStateToPlayer(id)
 }

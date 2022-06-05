@@ -17,6 +17,7 @@ const (
 	BACKSPACE = 127
 	BACKSLASH = 92
 	TAB = 9
+	CONNECT = 255
 )
 const LOCAL_PORT int = 0
 
