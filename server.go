@@ -200,6 +200,7 @@ func (s * Server) listen () error{
 				}else {
 					s.PlayerJoined(id)
 					s.addNewDefaultPlayer(id,NewConn)
+					s.dumpPlayerStateToAll(id)
 				}
 			}
 			if received > 1 {
@@ -258,4 +259,8 @@ func (s * Server) dumpStateToPlayer (id int) {
 	indexUpdate := newStateUpdate(GLOBAL_ID,true).appendCustom(s.MessagesSent,"Index")
 	indexUpdate.Id = DUMP_ID
 	s.sendToConn(indexUpdate.toBytes(),id,s.Players[id])
+}
+
+func (s * Server) dumpPlayerStateToAll (id int) {
+	s.broadcastStateUpdate(s.PlayerState[id],id,true)
 }
