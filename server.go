@@ -250,20 +250,25 @@ func (s * Server) removePlayerSaveState (id int) {
 }
 
 func (s * Server) dumpStateToPlayer (id int) {
+	playerConn,ok := s.Players[id]
+	if !ok {
+		LogString("Conn does not exist")
+		return
+	}
 	for i, state := range s.PlayerState {
 		playerUpdate := newStateUpdate(i,true).append(state)
 		playerUpdate.Id = DUMP_ID
-		s.sendToConn(playerUpdate.toBytes(),id,s.Players[id])
+		s.sendToConn(playerUpdate.toBytes(),id,playerConn)
 	}
 
 	globalUpdate := newStateUpdate(GLOBAL_ID,true).append(s.GlobalState)
 	globalUpdate.Id = DUMP_ID
-	s.sendToConn(globalUpdate.toBytes(),id,s.Players[id])
+	s.sendToConn(globalUpdate.toBytes(),id,playerConn)
 
 	indexUpdate := newStateUpdate(GLOBAL_ID,true).appendCustom(s.MessagesSent - 1,"Index")
 	indexUpdate.Id = DUMP_ID
-	s.sendToConn(indexUpdate.toBytes(),id,s.Players[id])
-	fmt.Println("Sent program state to: " + s.Players[id].RemoteAddr().String())
+	s.sendToConn(indexUpdate.toBytes(),id,playerConn)
+	fmt.Println("Sent program state to: " + playerConn.RemoteAddr().String())
 }
 
 func (s * Server) dumpPlayerStateToAll (id int) {

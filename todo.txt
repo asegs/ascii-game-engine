@@ -41,20 +41,15 @@ Server:
 -Local server instance for just validating input?
 -Switch to only UDP methods?
 -Zone system for client handlers as well
--Handle right width bug
--See what's going on with rerequesting packets when joining server late
 -Represent color contexts as text data, read into map of name->color context object
 -Represent IP, map size, etc, in the same way
 -Concurrent map write issue with saved buffers in client
 -Just check to see if futures to process edit the same state instead of allowasync
 -Handle case where requested packet is at 0-9
--Dump state on first connect, not on first interaction
 -Change packet id to local when ip from = ip to
 -Save on server as bytes, parse to update, check id matches where we're sending it, update, back to bytes
--On client connect, send load request for state dump, no matter what (even if already in map, just shutdown)
--Dump state every n seconds for redundancy
 -When player disconnects, other client seems to rerequest some packet...could cause double undo
--When player disconnects, routine packet send is uncaught and results in segfault
+-Now ondisconnect not even getting called?
 
 Wordle:
 -Autofill known green letters or don't allow anything else for green letters
