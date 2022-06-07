@@ -5,6 +5,7 @@ import (
 	"hash/fnv"
 	"net"
 	"strconv"
+	"time"
 )
 
 var symbolicMapping map[byte]string = map[byte]string{
@@ -29,6 +30,7 @@ type ServerNetworkConfig struct {
 	Strikes int
 	BufferSize int
 	StoredUpdates int
+	StateDumpFrequencyMs int
 }
 
 type Server struct {
@@ -221,6 +223,8 @@ func (s * Server) listen () error{
 
 		}
 	}()
+
+	go s.recurringStateDump()
 	return nil
 }
 
@@ -256,11 +260,21 @@ func (s * Server) dumpStateToPlayer (id int) {
 	globalUpdate.Id = DUMP_ID
 	s.sendToConn(globalUpdate.toBytes(),id,s.Players[id])
 
-	indexUpdate := newStateUpdate(GLOBAL_ID,true).appendCustom(s.MessagesSent,"Index")
+	indexUpdate := newStateUpdate(GLOBAL_ID,true).appendCustom(s.MessagesSent - 1,"Index")
 	indexUpdate.Id = DUMP_ID
 	s.sendToConn(indexUpdate.toBytes(),id,s.Players[id])
+	fmt.Println("Sent program state to: " + s.Players[id].RemoteAddr().String())
 }
 
 func (s * Server) dumpPlayerStateToAll (id int) {
 	s.broadcastStateUpdate(s.PlayerState[id],id,true)
+}
+
+func (s * Server) recurringStateDump () {
+	for true {
+		for id,_ := range s.Players {
+			s.dumpStateToPlayer(id)
+		}
+		time.Sleep(time.Millisecond * time.Duration(s.Config.StateDumpFrequencyMs))
+	}
 }

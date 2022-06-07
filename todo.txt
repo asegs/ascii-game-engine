@@ -54,7 +54,7 @@ Server:
 -On client connect, send load request for state dump, no matter what (even if already in map, just shutdown)
 -Dump state every n seconds for redundancy
 -When player disconnects, other client seems to rerequest some packet...could cause double undo
--On join send out state to other players
+-When player disconnects, routine packet send is uncaught and results in segfault
 
 Wordle:
 -Autofill known green letters or don't allow anything else for green letters
