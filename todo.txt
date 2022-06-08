@@ -48,8 +48,6 @@ Server:
 -Handle case where requested packet is at 0-9
 -Change packet id to local when ip from = ip to
 -Save on server as bytes, parse to update, check id matches where we're sending it, update, back to bytes
--When player disconnects, other client seems to rerequest some packet...could cause double undo
--Now ondisconnect not even getting called?
 
 Wordle:
 -Autofill known green letters or don't allow anything else for green letters

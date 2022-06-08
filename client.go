@@ -99,7 +99,11 @@ func newClient (serverIp []byte,events * chan * NetworkedMsg,localState interfac
 
 	client.addCustomHandler("DisconnectId", func(s string) {
 		var disconnect DisconnectUpdate
-		_ = json.Unmarshal([]byte(s),&disconnect)
+		err := json.Unmarshal([]byte(s),&disconnect)
+		if err != nil {
+			LogString("Couldn't process disconnect: " + err.Error())
+			return
+		}
 		client.OnPlayerDisconnect(disconnect.DisconnectId)
 	})
 	err := client.connectToServer(serverIp)
@@ -313,6 +317,9 @@ func (c * Client) listen() {
 		for true {
 			newBuf = <- c.Buffers
 			message = messageFromBytes(newBuf)
+			if message.Pairs[0].Key == "DisconnectId" {
+				LogString("Received disconnect packet")
+			}
 
 			if message.Id == DUMP_ID {
 				c.applyMessage(message)
