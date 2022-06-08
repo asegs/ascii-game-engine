@@ -7,6 +7,7 @@ import (
 	"net"
 	"reflect"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -95,6 +96,8 @@ func newClient (serverIp []byte,events * chan * NetworkedMsg,localState interfac
 		if client.HighestReceivedBuffer < idx.Index {
 			client.HighestReceivedBuffer = idx.Index
 		}
+		m := sync.Map{}
+		x := sync.Map{}
 	})
 
 	client.addCustomHandler("DisconnectId", func(s string) {
@@ -408,6 +411,12 @@ func (c * Client) grabExtra () {
 
 func (c * Client) requestPacketFromServer (id int) error {
 	idText := [] byte (strconv.Itoa(id))
+	if len(idText) == 1 {
+		newIdText := make([]byte, 2)
+		newIdText[0] = '0'
+		newIdText[1] = idText[0]
+		idText = newIdText
+	}
 	return c.sendWithRetry(idText)
 }
 

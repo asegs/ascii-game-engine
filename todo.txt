@@ -18,12 +18,6 @@ ASCII conversion:
 Terminal:
 
 Server:
--Send server requests to validate state
--Server sends back new state updates whenever they happen
--Automatically render new state
--Server sends updates such as new position of follower 
--Custom keys ('1' linked to something, not mapped to any state)
--Right now you have to send a whole new copy, not validate a change
 -ASYMMETRY
 -Send a message of action to take server sends back proper state
 -For example: '1' means place black at current space
@@ -34,20 +28,19 @@ Server:
 -Either pass whole thing and have to diff check to choose what to rerender, or send special message to perform special function with data (coord + new state)
 -Send message to clients to increase buffer size instead of just erroring
 -Send custom function keys with data
--Still let zones set custom handlers but by zone id
--Store zones in string array, cycle through, but zone key is string
 
-
--Local server instance for just validating input?
 -Switch to only UDP methods?
 -Zone system for client handlers as well
 -Represent color contexts as text data, read into map of name->color context object
 -Represent IP, map size, etc, in the same way
 -Concurrent map write issue with saved buffers in client
 -Just check to see if futures to process edit the same state instead of allowasync and keep track of updated keys since last processed
--Handle case where requested packet is at 0-9
--Change packet id to local when ip from = ip to
--Save on server as bytes, parse to update, check id matches where we're sending it, update, back to bytes
+-Change packet id to local when ip from = ip to (provides local handlers for live buffers)
+-Save on server as bytes, parse to update, check id matches where we're sending it, update, back to bytes (provides local handlers for saved buffers)
 
 Wordle:
 -Autofill known green letters or don't allow anything else for green letters
+
+Insane:
+Local server instance for just validating input?
+Map ascii to isometric view and include localized mouse events, map fg/bg to sprites with extra function
