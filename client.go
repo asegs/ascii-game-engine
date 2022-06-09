@@ -7,7 +7,6 @@ import (
 	"net"
 	"reflect"
 	"strconv"
-	"sync"
 	"time"
 )
 
@@ -96,8 +95,6 @@ func newClient (serverIp []byte,events * chan * NetworkedMsg,localState interfac
 		if client.HighestReceivedBuffer < idx.Index {
 			client.HighestReceivedBuffer = idx.Index
 		}
-		m := sync.Map{}
-		x := sync.Map{}
 	})
 
 	client.addCustomHandler("DisconnectId", func(s string) {
