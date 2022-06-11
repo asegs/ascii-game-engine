@@ -17,6 +17,6 @@ func main () {
 	}else if entry == "CT" {
 		render()
 	} else {
-		renderVisual()
+		armyVisual()
 	}
 }

@@ -139,7 +139,10 @@ func (c * Client) addCustomHandler (key string,operator func(string)) * Client{
 }
 
 func marshal(anything interface{}) []byte {
-	output,_ := json.Marshal(anything)
+	output,err := json.Marshal(anything)
+	if err != nil {
+		LogString(err.Error())
+	}
 	return output
 }
 
