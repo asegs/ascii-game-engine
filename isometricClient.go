@@ -165,7 +165,7 @@ func (m * MultiplexedSpriteLookup) getBgSprite (char byte) * image.Image {
 
 func (i * IsometricClient) permutePoint (point image.Point) image.Point {
 	offsetX := -100
-	offsetY := -200
+	offsetY := -500
 
 	return image.Point{
 		X: -1 * (point.X * i.StdImageWidth) + (point.X - point.Y) * int(float64(i.StdImageWidth) * 0.5) + offsetX,

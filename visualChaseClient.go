@@ -26,7 +26,7 @@ func renderVisual () {
 		}}
 	}
 
-	visualClient, input := isometricClientWithInput("Dancing",40,20)
+	visualClient, input := isometricClientWithInput("Army Men",40,20)
 	visualClient.addBgSprite('0', "assets/sprites/grass.png")
 	visualClient.addFgSprite('*',"assets/sprites/cursor.png")
 	window := createClientWindow(mapHeight, mapWidth, &TilePair{
