@@ -12,7 +12,7 @@ type Zoning struct {
 	CursorZoneMap map[int] * Zone
 	Input * NetworkedStdIn
 	Default * Zone
-	Terminal * TerminalClient
+	Terminal AbstractClient
 }
 
 type Zone struct {
@@ -26,7 +26,7 @@ type Zone struct {
 	Parent * Zoning
 }
 
-func initZones (height int,width int, input * NetworkedStdIn, term * TerminalClient) * Zoning{
+func initZones (height int,width int, input * NetworkedStdIn, term AbstractClient) * Zoning{
 	z := &Zoning{
 		Zones:  make([] * Zone, 0),
 		Height: height,

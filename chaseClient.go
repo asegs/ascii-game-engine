@@ -28,7 +28,7 @@ func render () {
 	}
 
 	input := initializeInput()
-	terminalClient, input := terminalClientWithTerminalInput()
+	terminalClient, input := terminalClientWithTerminalInput(mapHeight,mapWidth)
 	window := createClientWindow(mapHeight, mapWidth, &TilePair{
 		ShownSymbol:    ' ',
 		BackgroundCode: '0',

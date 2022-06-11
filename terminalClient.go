@@ -10,6 +10,8 @@ type TerminalClient struct {
 	Row int
 	Col int
 	MultiMapLookup * MultiplexedLookup
+	Height int
+	Width int
 }
 
 //The char sequence to RESET the cursor style.
@@ -62,6 +64,9 @@ func (m * MultiplexedLookup) composeBasicContext (pair * TilePair) * Context {
 		ctx.addSimpleStyle(0)
 	}
 	ctx.compile()
+	if _,ok := m.TopFgMap[pair.ShownSymbol] ; !ok {
+		m.TopFgMap[pair.ShownSymbol] = make(map[byte] * Context)
+	}
 	m.TopFgMap[pair.ShownSymbol][pair.BackgroundCode] = ctx
 	return ctx
 }
@@ -71,6 +76,7 @@ func (m * MultiplexedLookup) getContext (pair * TilePair) * Context {
 		if ctx, stillOk := innerLookup[pair.BackgroundCode] ; stillOk {
 			return ctx
 		}
+		m.TopFgMap[pair.ShownSymbol] = make(map[byte] * Context)
 	}
 	return m.composeBasicContext(pair)
 }
@@ -111,12 +117,14 @@ type Recorded struct {
 	TilePair * TilePair
 }
 
-func terminalClientWithTerminalInput () (* TerminalClient, * NetworkedStdIn) {
+func terminalClientWithTerminalInput (height int, width int) (* TerminalClient, * NetworkedStdIn) {
 	terminalClient := &TerminalClient{
 		Window:         nil,
 		Row:            0,
 		Col:            0,
 		MultiMapLookup: createMultiplexedLookup(),
+		Height: height,
+		Width: width,
 	}
 	input := initializeInput()
 	return terminalClient, input
@@ -140,7 +148,7 @@ func (t * TerminalClient) Init(def * TilePair, rows int, cols int) {
 }
 
 func (t * TerminalClient) DrawAt (toDraw * TilePair, row int, col int) {
-	t.placeAt(fmt.Sprintf(t.MultiMapLookup.getContext(toDraw).Format,toDraw.ShownSymbol),row,col,1)
+	t.placeAt(fmt.Sprintf(t.MultiMapLookup.getContext(toDraw).Format,string(toDraw.ShownSymbol)),row,col,1)
 }
 
 func (t * TerminalClient) SetWindow (window * ClientWindow) {
@@ -175,16 +183,16 @@ If the new position is out of bounds, sets it to the max value in that direction
 Uses moveCursor to update cursor position by going over the difference in the right direction.
 */
 func (t * TerminalClient) moveTo(newRow int,newCol int){
-	if newRow >= t.Window.Height{
-		newRow = t.Window.Height - 1
+	if newRow >= t.Height{
+		newRow = t.Height - 1
 	}
 
 	if newRow < 0{
 		newRow = 0
 	}
 
-	if newCol >= t.Window.Width{
-		newCol = t.Window.Width - 1
+	if newCol >= t.Width{
+		newCol = t.Width - 1
 	}
 
 	if newCol < 0{
