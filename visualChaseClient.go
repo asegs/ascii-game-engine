@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"time"
 )
 
 func renderVisual () {
@@ -27,7 +26,6 @@ func renderVisual () {
 		}}
 	}
 
-	input := initializeInput()
 	visualClient, input := isometricClientWithInput("Dancing",40,20)
 	visualClient.addBgSprite('0', "assets/sprites/grass.png")
 	visualClient.addFgSprite('*',"assets/sprites/cursor.png")
@@ -59,8 +57,6 @@ func renderVisual () {
 	})
 
 	client.listen()
-	for true {
-		time.Sleep(1 * time.Second)
-	}
+	visualClient.show()
 
 }

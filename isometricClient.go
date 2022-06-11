@@ -10,6 +10,20 @@ import (
 	"os"
 )
 
+var keycodeMapping = map[fyne.KeyName] byte{
+	"Right": MOVE_RIGHT,
+	"Left": MOVE_LEFT,
+	"Up": MOVE_UP,
+	"Down": MOVE_DOWN,
+}
+
+func keycodeMap (pressed fyne.KeyName) byte {
+	if key,ok := keycodeMapping[pressed] ; ok {
+		return key
+	}
+	return pressed[0]
+}
+
 var resX = 1920
 var resY = 1080
 
@@ -23,7 +37,10 @@ type IsometricClient struct {
 	Canvas * canvas.Raster
 	StdImageWidth int
 	StdImageHeight int
+	RenderWindow fyne.Window
 }
+
+
 
 func isometricClientWithInput (windowName string, spriteWidth int, spriteHeight int) (* IsometricClient, * NetworkedStdIn) {
 	pipe := make(chan byte, MAX_MESSAGES)
@@ -128,8 +145,10 @@ func (m * MultiplexedSpriteLookup) getBgSprite (char byte) * image.Image {
 			 i.DrawAt(pair, row, col)
 		 }
 	 }
-
-	 go imageWindow.ShowAndRun()
+	 i.RenderWindow = imageWindow
+	 imageWindow.Canvas().SetOnTypedKey(func(event *fyne.KeyEvent) {
+		 * i.InputPipe <- keycodeMap(event.Name)
+	 })
  }
 
  func (i * IsometricClient) DrawAt (pair * TilePair, row int, col int) {
@@ -156,6 +175,10 @@ func (i * IsometricClient) permutePoint (point image.Point) image.Point {
 
 func  (i * IsometricClient) drawAtCoord (onto  *image.RGBA, from * image.Image, x int, y int, bounds * image.Rectangle) {
 	draw.Draw(onto,* bounds, * from,i.permutePoint(image.Point{x,y}),draw.Over)
+}
+
+func (i * IsometricClient) show()  {
+	i.RenderWindow.ShowAndRun()
 }
 
 
