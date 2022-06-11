@@ -52,6 +52,7 @@ func createClientWindow (height int, width int, defaultTile * TilePair, renderer
 		DefaultTile: defaultTile,
 		Renderer: renderer,
 	}
+	renderer.SetWindow(window)
 	go window.handleRenders()
 	return window
 }
@@ -114,15 +115,37 @@ func (w * ClientWindow) undoConditional(row int,col int,match byte,matchForegrou
 	}
 }
 
+func (w * ClientWindow) placeFgCharAtCoord(char byte, row int, col int) {
+	newTile := &TilePair{
+		ShownSymbol:    char,
+		BackgroundCode: w.DataHistory[row][col].top().BackgroundCode,
+	}
+	w.updateAtPos(row,col,newTile)
+	w.Renderer.DrawAt(newTile, row, col)
+}
+
+func (w * ClientWindow) placeBgCharAtCoord(char byte, row int, col int) {
+	newTile := &TilePair{
+		ShownSymbol:    w.DataHistory[row][col].top().BackgroundCode,
+		BackgroundCode: char,
+	}
+	w.updateAtPos(row,col,newTile)
+	w.Renderer.DrawAt(newTile, row, col)
+
+}
+
 /**
 Composes and queues a function that looks up a certain character in the map and prints it with the associated Recorded object.
 */
-func (w * ClientWindow) sendPlaceCharAtCoord(char byte,row int,col int) {
+func (w * ClientWindow) sendPlaceFgCharAtCoord(char byte,row int,col int) {
 	w.CustomFeed <- func() {
-		w.Renderer.DrawAt(&TilePair{
-			ShownSymbol:    char,
-			BackgroundCode: w.DataHistory[row][col].top().BackgroundCode,
-		}, row, col)
+		w.sendPlaceFgCharAtCoord(char,row,col)
+	}
+}
+
+func (w * ClientWindow) sendPlaceBgCharAtCoord(char byte, row int, col int) {
+	w.CustomFeed <- func() {
+		w.sendPlaceBgCharAtCoord(char,row,col)
 	}
 }
 
@@ -130,13 +153,17 @@ func (w * ClientWindow) sendPlaceCharAtCoord(char byte,row int,col int) {
 Composes and queues a function that checks to see if a character has a mapping.
 If so, performs a conditional undo with matchFg and writes the character at the new location.
 */
-func (w * ClientWindow) sendPlaceCharAtCoordCondUndo(char byte,row int,col int,lastRow int,lastCol int,match byte,matchFg bool) {
+func (w * ClientWindow) sendPlaceFgCharAtCoordCondUndo(char byte,row int,col int,lastRow int,lastCol int,match byte,matchFg bool) {
 	w.CustomFeed <- func() {
 		w.undoConditional(lastRow,lastCol,match,matchFg)
-		w.Renderer.DrawAt(&TilePair{
-			ShownSymbol:    char,
-			BackgroundCode: w.DataHistory[row][col].top().BackgroundCode,
-		}, row, col)
+		w.placeFgCharAtCoord(char,row,col)
+	}
+}
+
+func (w * ClientWindow) sendPlaceBgCharAtCoordCondUndo(char byte, row int, col int, lastRow int, lastCol int, match byte, matchFg bool) {
+	w.CustomFeed <- func() {
+		w.undoConditional(lastRow,lastCol,match,matchFg)
+		w.placeBgCharAtCoord(char,row,col)
 	}
 }
 

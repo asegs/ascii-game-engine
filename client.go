@@ -24,7 +24,7 @@ type Client struct {
 	 CustomProcessor map[string]func(string)
 	 ToSend * net.UDPConn
 	 ToReceive * net.UDPConn
-	 EventChannel * chan * NetworkedMsg
+	 EventChannel * chan byte
 	 LastMessageProcessed int
 	 Buffers chan [] byte
 	 StoredBuffers map [int] * UpdateMessage
@@ -66,7 +66,7 @@ type DisconnectUpdate struct {
 }
 
 
-func newClient (serverIp []byte,events * chan * NetworkedMsg,localState interface{},playerStates map[int]interface{},globalState interface{}, onNewPlayer func (id int), onPlayerDisconnect func(id int), config * ClientNetworkConfig) * Client {
+func newClient (serverIp []byte,events * chan byte,localState interface{},playerStates map[int]interface{},globalState interface{}, onNewPlayer func (id int), onPlayerDisconnect func(id int), config * ClientNetworkConfig) * Client {
 	client := &Client{
 		LocalState: localState,
 		PlayerStates: playerStates,
@@ -278,12 +278,12 @@ func (c * Client) connectToServer(IP []byte) error{
 
 func (c * Client) broadcastActions () {
 	go func() {
-		var message * NetworkedMsg
+		var message byte
 		var err error
 		fmtMessage := make([]byte,1)
 		for true {
 			message = <- * c.EventChannel
-			fmtMessage[0] = message.Msg
+			fmtMessage[0] = message
 			err = c.sendWithRetry(fmtMessage)
 			if err != nil {
 				LogString("Failure to broadcast action: " + err.Error())

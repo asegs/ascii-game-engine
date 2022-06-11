@@ -53,3 +53,9 @@ Auto multiplex when not explicitly defined.  "X" = green grass background or gre
 Should people still be able to place customs?  Yes but maybe not make them undoable, as in, play default on undo to custom
 
 Set fg or bg to some char, have mappings for each.
+
+Could map fg char to different char but why?
+
+Red star = player
+Green star = other
+Need char map

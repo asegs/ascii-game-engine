@@ -9,6 +9,7 @@ type TerminalClient struct {
 	Window * ClientWindow
 	Row int
 	Col int
+	MultiMapLookup * MultiplexedLookup
 }
 
 //The char sequence to RESET the cursor style.
@@ -24,6 +25,74 @@ Modifiers: The array of style modifiers, some seen in the example above, to appl
 type Context struct {
 	Format string
 	Modifiers [] string
+}
+
+type Color struct {
+	R int
+	G int
+	B int
+}
+
+type MultiplexedLookup struct {
+	TopFgMap map[byte] map[byte] * Context
+	ColorFgMap map[byte] * Color
+	ColorBgMap map[byte] * Color
+}
+
+func createMultiplexedLookup () * MultiplexedLookup {
+	return &MultiplexedLookup{
+		TopFgMap:   make(map[byte] map[byte] * Context),
+		ColorFgMap: make(map[byte] * Color),
+		ColorBgMap: make(map[byte] * Color),
+	}
+}
+
+func (m * MultiplexedLookup) composeBasicContext (pair * TilePair) * Context {
+	ctx := initContext()
+	gotSomeStyle := false
+	if color, ok := m.ColorFgMap[pair.ShownSymbol] ; ok {
+		ctx.addRgbStyleFg(color.R,color.G,color.B)
+		gotSomeStyle = true
+	}
+	if color, ok := m.ColorBgMap[pair.BackgroundCode] ; ok {
+		ctx.addRgbStyleBg(color.R,color.G,color.B)
+		gotSomeStyle = true
+	}
+	if !gotSomeStyle {
+		ctx.addSimpleStyle(0)
+	}
+	ctx.compile()
+	m.TopFgMap[pair.ShownSymbol][pair.BackgroundCode] = ctx
+	return ctx
+}
+
+func (m * MultiplexedLookup) getContext (pair * TilePair) * Context {
+	if innerLookup, ok := m.TopFgMap[pair.ShownSymbol] ; ok {
+		if ctx, stillOk := innerLookup[pair.BackgroundCode] ; stillOk {
+			return ctx
+		}
+	}
+	return m.composeBasicContext(pair)
+}
+
+func (m * MultiplexedLookup) addComposedStyle (pair * TilePair, context * Context) {
+	m.TopFgMap[pair.ShownSymbol][pair.BackgroundCode] = context
+}
+
+func (m * MultiplexedLookup) addForegroundColor (char byte, r int, g int, b int) {
+	m.ColorFgMap[char] = &Color{
+		R: r,
+		G: g,
+		B: b,
+	}
+}
+
+func (m * MultiplexedLookup) addBackgroundColor (char byte, r int, g int, b int) {
+	m.ColorBgMap[char] = &Color{
+		R: r,
+		G: g,
+		B: b,
+	}
 }
 
 /**
@@ -42,20 +111,40 @@ type Recorded struct {
 	TilePair * TilePair
 }
 
+func terminalClientWithTerminalInput () (* TerminalClient, * NetworkedStdIn) {
+	terminalClient := &TerminalClient{
+		Window:         nil,
+		Row:            0,
+		Col:            0,
+		MultiMapLookup: createMultiplexedLookup(),
+	}
+	input := initializeInput()
+	return terminalClient, input
+}
+
 func (t * TerminalClient) Init(def * TilePair, rows int, cols int) {
-	//For each tile print out default tile with newlines
-	//Set Row = height and col = 0
-	//Move to 0
+	for row := 0 ; row < rows ; row ++ {
+		for col := 0 ; col < cols ; col ++ {
+			print(" ")
+		}
+		println()
+	}
+	t.Row = rows
+	t.Col = 0
+	t.moveTo(0,0)
+	for row := 0 ; row < rows ; row ++ {
+		for col := 0 ; col < cols ; col ++ {
+			t.DrawAt(def, row, col)
+		}
+	}
 }
 
 func (t * TerminalClient) DrawAt (toDraw * TilePair, row int, col int) {
-
+	t.placeAt(fmt.Sprintf(t.MultiMapLookup.getContext(toDraw).Format,toDraw.ShownSymbol),row,col,1)
 }
 
-func (t * TerminalClient) MultiplexTile (tile * TilePair) * Recorded {
-	//If pair not in recorded lookup, bake and save
-	//BG -> color, FG -> color
-	return nil
+func (t * TerminalClient) SetWindow (window * ClientWindow) {
+	t.Window = window
 }
 
 /**

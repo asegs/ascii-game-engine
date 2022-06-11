@@ -28,26 +28,13 @@ func render () {
 	}
 
 	input := initializeInput()
-	cursor := initContext().addRgbStyleFg(255,0,0).compile()
-	redBlock := initContext().addRgbStyleBg(255,0,0).compile()
-	blackBlock := initContext().addRgbStyleBg(0,0,0).compile()
-	greenBlock := initContext().addRgbStyleBg(0,255,0).compile()
-	blueBlock := initContext().addRgbStyleBg(0,0,255).compile()
-	hunter := initContext().addRgbStyleFg(255,255,255).compile()
-	clear := initContext().addSimpleStyle(0).compile()
-	terminal := createTerminal(mapHeight, mapWidth, &Recorded{
-		Format:         clear,
+	terminalClient, input := terminalClientWithTerminalInput()
+	window := createClientWindow(mapHeight, mapWidth, &TilePair{
 		ShownSymbol:    ' ',
 		BackgroundCode: '0',
-	})
-	terminal.assoc('0',clear,' ')
-	terminal.assoc('1',blackBlock,' ')
-	terminal.assoc('2',greenBlock,' ')
-	terminal.assoc('3',blueBlock,' ')
-	terminal.assoc('*',cursor,'*')
-	terminal.assoc('x',redBlock,' ')
-	terminal.assoc('?',hunter,'?')
-	zoning := initZones(mapHeight,mapWidth,input,terminal)
+	},terminalClient)
+	terminalClient.MultiMapLookup.addForegroundColor('*',255,0,0)
+	zoning := initZones(mapHeight,mapWidth,input,terminalClient)
 	zone,err := zoning.createZone(0,0,mapHeight,mapWidth,true)
 	if err != nil {
 		fmt.Println("creating map error: " + err.Error())
@@ -56,18 +43,18 @@ func render () {
 	_ = zoning.cursorEnterZone(zone,0)
 	disconnectHandler := func(id int) {
 		disconnectedPos := playerStates[id].(* PlayerState).Pos
-		terminal.sendUndoAtLocationConditional(disconnectedPos.Row,disconnectedPos.Col,'*',true)
+		window.sendUndoAtLocationConditional(disconnectedPos.Row,disconnectedPos.Col,'*',true)
 		delete(playerStates,id)
 	}
 	client := newClient([]byte{127,0,0,1},&zone.Events,localState,playerStates,globalState,onConnect,disconnectHandler,clientConfig)
 	client.addLocalHandler("Pos", func(oldState interface{}) {
 		oldPos := oldState.(* PlayerState).Pos
-		zone.sendPlaceCharAtCoordCondUndo('*',localState.Pos.Row,localState.Pos.Col,oldPos.Row,oldPos.Col,'*',true)
+		window.sendPlaceFgCharAtCoordCondUndo('*',localState.Pos.Row,localState.Pos.Col,oldPos.Row,oldPos.Col,'*',true)
 	})
 	client.addPlayersHandler("Pos", func(id int, oldState interface{}) {
 		pos := playerStates[id].(* PlayerState).Pos
 		oldPos := oldState.(* PlayerState).Pos
-		zone.sendPlaceCharAtCoordCondUndo('*',pos.Row,pos.Col,oldPos.Row,oldPos.Col,'*',true)
+		window.sendPlaceFgCharAtCoordCondUndo('*',pos.Row,pos.Col,oldPos.Row,oldPos.Col,'*',true)
 	})
 
 	client.listen()

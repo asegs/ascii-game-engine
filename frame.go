@@ -47,16 +47,16 @@ func buildFrame(filename string) * Frame {
 	}
 }
 
-func (t * Terminal) drawFrame (frame * Frame,y int,x int){
+func (t * TerminalClient) drawFrame (frame * Frame,y int,x int){
 	bg := initContext().addSimpleStyle(0).compile()
 	for i := y ; i < len(frame.Pixels) + y ; i ++ {
 		row := i
-		t.CustomFeed <- func(terminal *Terminal) {
+		t.Window.CustomFeed <- func() {
 			for b := x ; b < len(frame.Pixels[0]) + x ; b ++ {
 				if frame.Pixels[row-y][b-x] == -1 {
-					terminal.placeCharFormat(' ',row,b,bg,'w')
+					t.placeCharFormat(' ',row,b,bg,'w')
 				}else {
-					terminal.placeCharFormat(' ',row,b,frame.Colors[frame.Pixels[row-y][b-x]],'x')
+					t.placeCharFormat(' ',row,b,frame.Colors[frame.Pixels[row-y][b-x]],'x')
 				}
 			}
 		}

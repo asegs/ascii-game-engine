@@ -31,7 +31,7 @@ type NetworkedMsg struct {
 }
 
 type NetworkedStdIn struct {
-	events chan * NetworkedMsg
+	events chan byte
 }
 
 func tput(arg string) error {
@@ -49,7 +49,7 @@ func initializeInput () * NetworkedStdIn {
 	if err != nil {
 		fmt.Println(err.Error())
 	}
-	scanner := make(chan * NetworkedMsg,1000)
+	scanner := make(chan byte,1000)
 	input := &NetworkedStdIn{events: scanner}
 	go input.scanForInput()
 	return input
@@ -83,16 +83,10 @@ func (ns * NetworkedStdIn) scanForInput(){
 		}else if c == BRACKET && ranksToMovement == 1{
 			ranksToMovement ++
 		}else if ranksToMovement == 2 && 65 <= c && c <= 68{
-			ns.events <- &NetworkedMsg{
-				Msg:  c + 63,
-				From: LOCAL_PORT,
-			}
+			ns.events <- c + 63
 			ranksToMovement = 0
 		}else{
-			ns.events <- &NetworkedMsg{
-				Msg:  c,
-				From: LOCAL_PORT,
-			}
+			ns.events <- c
 		}
 	}
 }
