@@ -45,10 +45,7 @@ Wordle:
 
 Insane:
 Local server instance for just validating input?
-Map ascii to isometric view and include localized mouse events, map fg/bg to sprites with extra function
 Develop for alacritty
-
-Auto multiplex when not explicitly defined.  "X" = green grass background or green bg, "*" = man standing there or red "*"
 
 Should people still be able to place customs?  Yes but maybe not make them undoable, as in, play default on undo to custom
 
@@ -59,3 +56,5 @@ Could map fg char to different char but why?
 Red star = player
 Green star = other
 Need char map
+
+Duplication issues multiplayer term
