@@ -27,26 +27,18 @@ func render () {
 		}}
 	}
 
-	input := initializeInput()
 	terminalClient, input := terminalClientWithTerminalInput(mapHeight,mapWidth)
 	window := createClientWindow(mapHeight, mapWidth, &TilePair{
 		ShownSymbol:    ' ',
 		BackgroundCode: '0',
 	},terminalClient)
 	terminalClient.MultiMapLookup.addForegroundColor('*',255,0,0)
-	zoning := initZones(mapHeight,mapWidth,input,terminalClient)
-	zone,err := zoning.createZone(0,0,mapHeight,mapWidth,true)
-	if err != nil {
-		fmt.Println("creating map error: " + err.Error())
-		return
-	}
-	_ = zoning.cursorEnterZone(zone,0)
 	disconnectHandler := func(id int) {
 		disconnectedPos := playerStates[id].(* PlayerState).Pos
 		window.sendUndoAtLocationConditional(disconnectedPos.Row,disconnectedPos.Col,'*',true)
 		delete(playerStates,id)
 	}
-	client := newClient([]byte{127,0,0,1},&zone.Events,localState,playerStates,globalState,onConnect,disconnectHandler,clientConfig)
+	client := newClient([]byte{127,0,0,1},&input.events,localState,playerStates,globalState,onConnect,disconnectHandler,clientConfig)
 	client.addLocalHandler("Pos", func(oldState interface{}) {
 		oldPos := oldState.(* PlayerState).Pos
 		window.sendPlaceFgCharAtCoordCondUndo('*',localState.Pos.Row,localState.Pos.Col,oldPos.Row,oldPos.Col,'*',true)
