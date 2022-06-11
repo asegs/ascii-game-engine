@@ -37,6 +37,8 @@ Server:
 -Just check to see if futures to process edit the same state instead of allowasync and keep track of updated keys since last processed
 -Change packet id to local when ip from = ip to (provides local handlers for live buffers)
 -Save on server as bytes, parse to update, check id matches where we're sending it, update, back to bytes (provides local handlers for saved buffers)
+-Build in context compose to renderer
+-Allow tile select option
 
 Wordle:
 -Autofill known green letters or don't allow anything else for green letters
@@ -44,3 +46,10 @@ Wordle:
 Insane:
 Local server instance for just validating input?
 Map ascii to isometric view and include localized mouse events, map fg/bg to sprites with extra function
+Develop for alacritty
+
+Auto multiplex when not explicitly defined.  "X" = green grass background or green bg, "*" = man standing there or red "*"
+
+Should people still be able to place customs?  Yes but maybe not make them undoable, as in, play default on undo to custom
+
+Set fg or bg to some char, have mappings for each.

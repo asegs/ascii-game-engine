@@ -1,7 +1,7 @@
 package main
 
 type HistoryNode struct {
-	Record * Recorded
+	Record * TilePair
 	Previous * HistoryNode
 }
 
@@ -10,16 +10,16 @@ type HistoryStack struct {
 	Length int
 }
 
-func (h * HistoryStack) add(r * Recorded) {
+func (h * HistoryStack) add(t * TilePair) {
 	newTop := &HistoryNode{
-		Record:   r,
+		Record:   t,
 		Previous: h.Top,
 	}
 	h.Top = newTop
 	h.Length++
 }
 
-func (h * HistoryStack) pop() * Recorded {
+func (h * HistoryStack) pop() * TilePair {
 	if h == nil || h.Top == nil {
 		return nil
 	}
@@ -28,7 +28,7 @@ func (h * HistoryStack) pop() * Recorded {
 	return h.Top.Record
 }
 
-func (h * HistoryStack) top() * Recorded {
+func (h * HistoryStack) top() * TilePair {
 	if h == nil || h.Top == nil{
 		return nil
 	}
@@ -37,7 +37,7 @@ func (h * HistoryStack) top() * Recorded {
 }
 
 
-func (h * HistoryStack) back(n int) * Recorded {
+func (h * HistoryStack) back(n int) * TilePair {
 	if h == nil || h.Top == nil {
 		return nil
 	}
@@ -52,14 +52,14 @@ func (h * HistoryStack) back(n int) * Recorded {
 	return node.Record
 }
 
-func (h * HistoryStack) toArr() [] * Recorded {
+func (h * HistoryStack) toArr() [] * TilePair {
 	if h == nil {
 		return nil
 	}
 	if h.Length == 0 {
 		h.Length = 0
 	}
-	stack := make([] * Recorded, h.Length)
+	stack := make([] * TilePair, h.Length)
 	node := h.Top
 	for i := h.Length - 1; i >= 0 ; i -- {
 		if node.Record == nil {
@@ -71,7 +71,7 @@ func (h * HistoryStack) toArr() [] * Recorded {
 	return stack
 }
 
-func toHistory (records [] * Recorded) * HistoryStack {
+func toHistory (records [] * TilePair) * HistoryStack {
 	stack := &HistoryStack{Top: nil}
 	for _,record := range records{
 		stack.add(record)
