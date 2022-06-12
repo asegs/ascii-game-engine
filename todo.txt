@@ -58,3 +58,8 @@ Green star = other
 Need char map
 
 Duplication issues multiplayer term
+Have some built in construction, since other than constructors and visual mappings, they are the same
+Main game has to take an abstract client, each abstract client mappings in file
+Have modal references, press x, movement is handled differently, then when selected some action can be performed on that tile
+Would be useful for mouse support equivalent as well as keys only in visual
+Some sort of packages containing reasonable behavior?  Add in movement tracker unit, add in object placer unit, etc...
