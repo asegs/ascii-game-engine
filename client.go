@@ -15,46 +15,45 @@ var GLOBAL_ID int = -1
 var LOCAL_ID int = 0
 
 type Client struct {
-	 LocalState interface{}
-	 PlayerStates map[int]interface{}
-	 GlobalState interface{}
-	 LocalProcessor map[string]func(interface{})
-	 GlobalProcessor map[string]func(interface{})
-	 PlayersProcessor map[string]func(int,interface{})
-	 CustomProcessor map[string]func(string)
-	 ToSend * net.UDPConn
-	 ToReceive * net.UDPConn
-	 EventChannel * chan byte
-	 LastMessageProcessed int
-	 Buffers chan [] byte
-	 StoredBuffers map [int] * UpdateMessage
-	 HighestReceivedBuffer int
-	 BufferFirstQueryTimes map [int] time.Time
-	 OnNewPlayerConnect func (id int)
-	 OnPlayerDisconnect func (id int)
-	 Config * ClientNetworkConfig
+	LocalState            interface{}
+	PlayerStates          map[int]interface{}
+	GlobalState           interface{}
+	LocalProcessor        map[string]func(interface{})
+	GlobalProcessor       map[string]func(interface{})
+	PlayersProcessor      map[string]func(int, interface{})
+	CustomProcessor       map[string]func(string)
+	ToSend                *net.UDPConn
+	ToReceive             *net.UDPConn
+	EventChannel          *chan byte
+	LastMessageProcessed  int
+	Buffers               chan []byte
+	StoredBuffers         map[int]*UpdateMessage
+	HighestReceivedBuffer int
+	BufferFirstQueryTimes map[int]time.Time
+	OnNewPlayerConnect    func(id int)
+	OnPlayerDisconnect    func(id int)
+	Config                *ClientNetworkConfig
 }
 
 type StatePair struct {
-	Key string
+	Key  string
 	Json string
 }
 
-
 type UpdateMessage struct {
-	From int
-	Pairs [] StatePair
-	Id int
+	From    int
+	Pairs   []StatePair
+	Id      int
 	AsyncOk bool
 }
 
 type ClientNetworkConfig struct {
-	ClientPort int
-	ServerPort int
-	BufferSize int
-	SkipWindowMs int
+	ClientPort       int
+	ServerPort       int
+	BufferSize       int
+	SkipWindowMs     int
 	ScanMissedFreqMs int
-	PacketRetries int
+	PacketRetries    int
 }
 
 type IndexUpdate struct {
@@ -65,29 +64,28 @@ type DisconnectUpdate struct {
 	DisconnectId int
 }
 
-
-func newClient (serverIp []byte,events * chan byte,localState interface{},playerStates map[int]interface{},globalState interface{}, onNewPlayer func (id int), onPlayerDisconnect func(id int), config * ClientNetworkConfig) * Client {
+func newClient(serverIp []byte, events *chan byte, localState interface{}, playerStates map[int]interface{}, globalState interface{}, onNewPlayer func(id int), onPlayerDisconnect func(id int), config *ClientNetworkConfig) *Client {
 	client := &Client{
-		LocalState: localState,
-		PlayerStates: playerStates,
-		GlobalState: globalState,
-		LocalProcessor:   make(map[string]func(interface{})),
-		GlobalProcessor:  make(map[string]func(interface{})),
-		PlayersProcessor: make(map[string]func(int,interface{})),
-		CustomProcessor:  make(map[string]func(string)),
-		LastMessageProcessed: -1,
-		Buffers: make(chan [] byte),
-		StoredBuffers: make(map[int] * UpdateMessage),
+		LocalState:            localState,
+		PlayerStates:          playerStates,
+		GlobalState:           globalState,
+		LocalProcessor:        make(map[string]func(interface{})),
+		GlobalProcessor:       make(map[string]func(interface{})),
+		PlayersProcessor:      make(map[string]func(int, interface{})),
+		CustomProcessor:       make(map[string]func(string)),
+		LastMessageProcessed:  -1,
+		Buffers:               make(chan []byte),
+		StoredBuffers:         make(map[int]*UpdateMessage),
 		HighestReceivedBuffer: 0,
-		BufferFirstQueryTimes: make(map[int] time.Time),
-		OnNewPlayerConnect: onNewPlayer,
-		OnPlayerDisconnect: onPlayerDisconnect,
-		Config: config,
-		EventChannel: events,
+		BufferFirstQueryTimes: make(map[int]time.Time),
+		OnNewPlayerConnect:    onNewPlayer,
+		OnPlayerDisconnect:    onPlayerDisconnect,
+		Config:                config,
+		EventChannel:          events,
 	}
 	client.addCustomHandler("Index", func(s string) {
 		var idx IndexUpdate
-		_ = json.Unmarshal([]byte(s),&idx)
+		_ = json.Unmarshal([]byte(s), &idx)
 		if client.LastMessageProcessed < idx.Index {
 			client.LastMessageProcessed = idx.Index
 		}
@@ -99,7 +97,7 @@ func newClient (serverIp []byte,events * chan byte,localState interface{},player
 
 	client.addCustomHandler("DisconnectId", func(s string) {
 		var disconnect DisconnectUpdate
-		err := json.Unmarshal([]byte(s),&disconnect)
+		err := json.Unmarshal([]byte(s), &disconnect)
 		if err != nil {
 			LogString("Couldn't process disconnect: " + err.Error())
 			return
@@ -109,8 +107,8 @@ func newClient (serverIp []byte,events * chan byte,localState interface{},player
 	err := client.connectToServer(serverIp)
 	if err != nil {
 		fmt.Println("Failed to connect to server " + err.Error())
-	}else {
-		helloBuffer := make([]byte,1)
+	} else {
+		helloBuffer := make([]byte, 1)
 		helloBuffer[0] = CONNECT
 		_ = client.sendWithRetry(helloBuffer)
 		client.broadcastActions()
@@ -118,79 +116,79 @@ func newClient (serverIp []byte,events * chan byte,localState interface{},player
 	return client
 }
 
-func (c * Client) addLocalHandler (key string,operator func(interface{})) * Client{
+func (c *Client) addLocalHandler(key string, operator func(interface{})) *Client {
 	c.LocalProcessor[key] = operator
 	return c
 }
 
-func (c * Client) addGlobalHandler (key string,operator func(interface{})) * Client{
+func (c *Client) addGlobalHandler(key string, operator func(interface{})) *Client {
 	c.GlobalProcessor[key] = operator
 	return c
 }
 
-func (c * Client) addPlayersHandler (key string,operator func(int,interface{})) * Client{
+func (c *Client) addPlayersHandler(key string, operator func(int, interface{})) *Client {
 	c.PlayersProcessor[key] = operator
 	return c
 }
 
-func (c * Client) addCustomHandler (key string,operator func(string)) * Client{
+func (c *Client) addCustomHandler(key string, operator func(string)) *Client {
 	c.CustomProcessor[key] = operator
 	return c
 }
 
 func marshal(anything interface{}) []byte {
-	output,err := json.Marshal(anything)
+	output, err := json.Marshal(anything)
 	if err != nil {
 		LogString(err.Error())
 	}
 	return output
 }
 
-func newStateUpdate(from int,asyncOk bool) * UpdateMessage {
+func newStateUpdate(from int, asyncOk bool) *UpdateMessage {
 	return &UpdateMessage{
 		From:    from,
-		Pairs: make([] StatePair,0),
+		Pairs:   make([]StatePair, 0),
 		AsyncOk: asyncOk,
 	}
 }
 
-func wrapWithKey (key string, jsonBody string) string {
+func wrapWithKey(key string, jsonBody string) string {
 	return `{"` + key + `":` + jsonBody + "}"
 }
 
-func (u * UpdateMessage) append(state interface{}, keys ...string) * UpdateMessage {
-	if len(keys) == 0{
+func (u *UpdateMessage) append(state interface{}, keys ...string) *UpdateMessage {
+	if len(keys) == 0 {
 		valueOf := directIfPointer(state).Type()
 		for i := 0; i < valueOf.NumField(); i++ {
 			keys = append(keys, valueOf.Field(i).Name)
 		}
 	}
-	for _,key := range keys {
+	for _, key := range keys {
 		reflectedState := directIfPointer(state)
-		u.Pairs = append(u.Pairs,StatePair{
+		u.Pairs = append(u.Pairs, StatePair{
 			Key:  key,
-			Json: wrapWithKey(key,string(marshal(reflectedState.FieldByName(key).Interface()))),
+			Json: wrapWithKey(key, string(marshal(reflectedState.FieldByName(key).Interface()))),
 		})
 	}
 	return u
 }
 
-func (u * UpdateMessage) appendCustom (data interface{}, key string) * UpdateMessage{
-	u.Pairs = append(u.Pairs,StatePair{
+func (u *UpdateMessage) appendCustom(data interface{}, key string) *UpdateMessage {
+	u.Pairs = append(u.Pairs, StatePair{
 		Key:  key,
-		Json: wrapWithKey(key,string(marshal(data))),
+		Json: wrapWithKey(key, string(marshal(data))),
 	})
 	return u
 }
 
-func (u * UpdateMessage) toBytes() []byte{
-	output,_ := json.Marshal(u)
+func (u *UpdateMessage) toBytes() []byte {
+	output, _ := json.Marshal(u)
 	return output
 }
 
-func messageFromBytes (bytes []byte) * UpdateMessage {
+func messageFromBytes(bytes []byte) *UpdateMessage {
 	var update UpdateMessage
-	err := json.Unmarshal(bytes,&update)
+	err := json.Unmarshal(bytes, &update)
 	if err != nil {
 		LogString("JSON received: " + string(bytes))
 		LogString(err.Error())
@@ -199,12 +197,12 @@ func messageFromBytes (bytes []byte) * UpdateMessage {
 
 }
 
-func updateStateFromJson(state interface{},data string) error{
-	err := json.Unmarshal([]byte(data),&state)
+func updateStateFromJson(state interface{}, data string) error {
+	err := json.Unmarshal([]byte(data), &state)
 	return err
 }
 
-func keyInState (key string, state interface{}) bool{
+func keyInState(key string, state interface{}) bool {
 	reflectedState := directIfPointer(state)
 	return reflectedState.FieldByName(key).IsValid()
 }
@@ -213,17 +211,16 @@ func (p StatePair) performCustomFunction(customs map[string]func(string)) {
 	customs[p.Key](p.Json)
 }
 
-
-func (u * UpdateMessage) applyToStates(localState interface{},playerStates map[int]interface{},globalState interface{},localHandlers map[string]func(interface{}),playersHandlers map[string]func(int, interface{}),globalHandlers map[string]func(interface{}),customHandlers map[string]func(string2 string)){
-	for _,pair := range u.Pairs {
+func (u *UpdateMessage) applyToStates(localState interface{}, playerStates map[int]interface{}, globalState interface{}, localHandlers map[string]func(interface{}), playersHandlers map[string]func(int, interface{}), globalHandlers map[string]func(interface{}), customHandlers map[string]func(string2 string)) {
+	for _, pair := range u.Pairs {
 		switch u.From {
 		case LOCAL_ID:
-			if keyInState(pair.Key,localState) {
+			if keyInState(pair.Key, localState) {
 				previousLocalState := directAndCopy(localState)
-				updateStateFromJson(&localState,pair.Json)
-				if localHandler, ok := localHandlers[pair.Key] ; ok {
+				updateStateFromJson(&localState, pair.Json)
+				if localHandler, ok := localHandlers[pair.Key]; ok {
 					localHandler(previousLocalState)
-				}else {
+				} else {
 					LogString("No local handler defined for key: " + pair.Key)
 				}
 			} else {
@@ -231,12 +228,12 @@ func (u * UpdateMessage) applyToStates(localState interface{},playerStates map[i
 			}
 			break
 		case GLOBAL_ID:
-			if keyInState(pair.Key,globalState) {
+			if keyInState(pair.Key, globalState) {
 				previousGlobalState := directAndCopy(globalState)
-				updateStateFromJson(&globalState,pair.Json)
-				if globalHandler, ok := globalHandlers[pair.Key] ; ok {
+				updateStateFromJson(&globalState, pair.Json)
+				if globalHandler, ok := globalHandlers[pair.Key]; ok {
 					globalHandler(previousGlobalState)
-				}else {
+				} else {
 					LogString("No global handler defined for key: " + pair.Key)
 				}
 			} else {
@@ -245,12 +242,12 @@ func (u * UpdateMessage) applyToStates(localState interface{},playerStates map[i
 			break
 		default:
 			playerState := playerStates[u.From]
-			if keyInState(pair.Key,playerState) {
+			if keyInState(pair.Key, playerState) {
 				previousPlayerState := directAndCopy(playerState)
-				updateStateFromJson(&playerState,pair.Json)
-				if playerHandler, ok := playersHandlers[pair.Key] ; ok {
-					playerHandler(u.From,previousPlayerState)
-				}else {
+				updateStateFromJson(&playerState, pair.Json)
+				if playerHandler, ok := playersHandlers[pair.Key]; ok {
+					playerHandler(u.From, previousPlayerState)
+				} else {
 					LogString("No global handler defined for key: " + pair.Key)
 				}
 			} else {
@@ -260,16 +257,16 @@ func (u * UpdateMessage) applyToStates(localState interface{},playerStates map[i
 	}
 }
 
-func (c * Client) connectToServer(IP []byte) error{
-	Conn, err := net.DialUDP("udp",nil,&net.UDPAddr{
+func (c *Client) connectToServer(IP []byte) error {
+	Conn, err := net.DialUDP("udp", nil, &net.UDPAddr{
 		IP:   IP,
 		Port: c.Config.ServerPort,
 		Zone: "",
 	})
-	ServerConn, err := net.ListenUDP("udp",&net.UDPAddr{
-		IP:[]byte{0,0,0,0},
-		Port:c.Config.ClientPort,
-		Zone:"",
+	ServerConn, err := net.ListenUDP("udp", &net.UDPAddr{
+		IP:   []byte{0, 0, 0, 0},
+		Port: c.Config.ClientPort,
+		Zone: "",
 	})
 	if err != nil {
 		return err
@@ -279,13 +276,13 @@ func (c * Client) connectToServer(IP []byte) error{
 	return err
 }
 
-func (c * Client) broadcastActions () {
+func (c *Client) broadcastActions() {
 	go func() {
 		var message byte
 		var err error
-		fmtMessage := make([]byte,1)
+		fmtMessage := make([]byte, 1)
 		for true {
-			message = <- * c.EventChannel
+			message = <-*c.EventChannel
 			fmtMessage[0] = message
 			err = c.sendWithRetry(fmtMessage)
 			if err != nil {
@@ -295,30 +292,30 @@ func (c * Client) broadcastActions () {
 	}()
 }
 
-func (c * Client) listen() {
-	var addr * net.UDPAddr
+func (c *Client) listen() {
+	//var addr * net.UDPAddr
 	var err error
 	var received int
-	buf := make([]byte,c.Config.BufferSize)
+	buf := make([]byte, c.Config.BufferSize)
 	go func() {
 		for true {
-			received, addr, err = c.ToReceive.ReadFromUDP(buf)
+			received, _, err = c.ToReceive.ReadFromUDP(buf)
 			if err != nil {
 				LogString("Failed to read from server: " + err.Error())
 				continue
 			}
-			newCopy := copyByteSlice(buf,received)
+			newCopy := copyByteSlice(buf, received)
 			c.Buffers <- newCopy
 		}
 	}()
 
 	var newBuf []byte
-	var message * UpdateMessage
+	var message *UpdateMessage
 
 	go func() {
 		var cont bool
 		for true {
-			newBuf = <- c.Buffers
+			newBuf = <-c.Buffers
 			message = messageFromBytes(newBuf)
 			if message.Pairs[0].Key == "DisconnectId" {
 				LogString("Received disconnect packet")
@@ -333,7 +330,7 @@ func (c * Client) listen() {
 				c.HighestReceivedBuffer = message.Id
 			}
 			c.StoredBuffers[message.Id] = message
-			for i := c.LastMessageProcessed + 1 ; i <= c.HighestReceivedBuffer ; i ++ {
+			for i := c.LastMessageProcessed + 1; i <= c.HighestReceivedBuffer; i++ {
 				cont = c.processBuffer(i)
 				if !cont {
 					break
@@ -345,28 +342,28 @@ func (c * Client) listen() {
 	go c.grabExtra()
 }
 
-func (c * Client) processBuffer (i int) bool{
-	message,ok := c.StoredBuffers[i]
+func (c *Client) processBuffer(i int) bool {
+	message, ok := c.StoredBuffers[i]
 	//message of that id exists and has been stored
 	if ok {
-		c.applyBufferMessage(message,i)
+		c.applyBufferMessage(message, i)
 		c.LastMessageProcessed = i
 		return true
-	}else {
+	} else {
 		//message of that id has not been received
-		readTime,ok := c.BufferFirstQueryTimes[i]
+		readTime, ok := c.BufferFirstQueryTimes[i]
 		//this message has already been looked for
 		if ok {
-			if time.Now().Sub(readTime) > time.Millisecond * time.Duration(c.Config.SkipWindowMs) {
+			if time.Now().Sub(readTime) > time.Millisecond*time.Duration(c.Config.SkipWindowMs) {
 				//skip, timed out
 				c.LastMessageProcessed = i
-				delete(c.BufferFirstQueryTimes,i)
+				delete(c.BufferFirstQueryTimes, i)
 				return true
-			}else {
+			} else {
 				//still waiting for this packet
 				return false
 			}
-		}else {
+		} else {
 			err := c.requestPacketFromServer(i)
 			if err != nil {
 				LogString("Failed to send packet: " + err.Error())
@@ -377,15 +374,15 @@ func (c * Client) processBuffer (i int) bool{
 	}
 }
 
-func (c * Client) applyBufferMessage (message * UpdateMessage,i int) {
+func (c *Client) applyBufferMessage(message *UpdateMessage, i int) {
 	c.applyMessage(message)
-	delete(c.StoredBuffers,i)
-	delete(c.BufferFirstQueryTimes,i)
+	delete(c.StoredBuffers, i)
+	delete(c.BufferFirstQueryTimes, i)
 }
 
-func (c * Client) applyMessage (message * UpdateMessage) {
-	_,playerExists := c.PlayerStates[message.From]
-	if message.From != GLOBAL_ID && message.From != LOCAL_ID && !playerExists{
+func (c *Client) applyMessage(message *UpdateMessage) {
+	_, playerExists := c.PlayerStates[message.From]
+	if message.From != GLOBAL_ID && message.From != LOCAL_ID && !playerExists {
 		c.OnNewPlayerConnect(message.From)
 	}
 	message.applyToStates(c.LocalState,
@@ -398,19 +395,19 @@ func (c * Client) applyMessage (message * UpdateMessage) {
 	)
 }
 
-func (c * Client) grabExtra () {
+func (c *Client) grabExtra() {
 	for true {
-		for i,update := range c.StoredBuffers {
-			if i < c.LastMessageProcessed && update.AsyncOk{
-				c.applyBufferMessage(update,i)
+		for i, update := range c.StoredBuffers {
+			if i < c.LastMessageProcessed && update.AsyncOk {
+				c.applyBufferMessage(update, i)
 			}
 		}
 		time.Sleep(time.Duration(c.Config.ScanMissedFreqMs) * time.Millisecond)
 	}
 }
 
-func (c * Client) requestPacketFromServer (id int) error {
-	idText := [] byte (strconv.Itoa(id))
+func (c *Client) requestPacketFromServer(id int) error {
+	idText := []byte(strconv.Itoa(id))
 	if len(idText) == 1 {
 		newIdText := make([]byte, 2)
 		newIdText[0] = '0'
@@ -420,18 +417,18 @@ func (c * Client) requestPacketFromServer (id int) error {
 	return c.sendWithRetry(idText)
 }
 
-func (c * Client) sendWithRetry (buf [] byte) error{
-	return c.sendWithCustomRetry(buf,c.Config.PacketRetries)
+func (c *Client) sendWithRetry(buf []byte) error {
+	return c.sendWithCustomRetry(buf, c.Config.PacketRetries)
 }
 
-func (c * Client) sendWithCustomRetry (buf [] byte, maxRetries int) error {
-	s,err := c.ToSend.Write(buf)
+func (c *Client) sendWithCustomRetry(buf []byte, maxRetries int) error {
+	s, err := c.ToSend.Write(buf)
 	if err == nil && s < len(buf) {
 		err = errors.New("entire body not sent")
 	}
 	if err != nil {
-		for retryCount := 0 ; retryCount < maxRetries && err != nil ; retryCount ++ {
-			s,err = c.ToSend.Write(buf)
+		for retryCount := 0; retryCount < maxRetries && err != nil; retryCount++ {
+			s, err = c.ToSend.Write(buf)
 			if err == nil && s < len(buf) {
 				err = errors.New("entire body not sent")
 			}
@@ -443,22 +440,22 @@ func (c * Client) sendWithCustomRetry (buf [] byte, maxRetries int) error {
 	return err
 }
 
-func directAndCopy (data interface{}) interface{} {
+func directAndCopy(data interface{}) interface{} {
 	reflectedValue := directIfPointer(data)
 	directedInterface := reflectedValue.Interface()
-	toJson,_ := json.Marshal(directedInterface)
+	toJson, _ := json.Marshal(directedInterface)
 	newOfType := reflect.New(reflectedValue.Type()).Interface()
-	_ = json.Unmarshal(toJson,&newOfType)
+	_ = json.Unmarshal(toJson, &newOfType)
 
 	return newOfType
 }
 
-func copyByteSlice (bytes []byte, until int) []byte {
+func copyByteSlice(bytes []byte, until int) []byte {
 	if len(bytes) < until {
 		until = len(bytes)
 	}
 	newSlice := make([]byte, until)
-	for i := 0 ; i < until ; i ++ {
+	for i := 0; i < until; i++ {
 		newSlice[i] = bytes[i]
 	}
 	return newSlice
