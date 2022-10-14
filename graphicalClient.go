@@ -24,8 +24,8 @@ func keycodeMap(pressed fyne.KeyName) byte {
 	return pressed[0]
 }
 
-var resX = 1920
-var resY = 1080
+var resX = 2560
+var resY = 1440
 
 type GraphicalClient struct {
 	Window         *ClientWindow
@@ -162,8 +162,8 @@ func (i *GraphicalClient) DrawAt(pair *TilePair, row int, col int) {
 }
 
 func (i *GraphicalClient) permutePoint(point image.Point) image.Point {
-	offsetX := -100
-	offsetY := -500
+	offsetX := 0
+	offsetY := -650
 	if !i.IsIsometric {
 		return point
 	}

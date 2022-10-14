@@ -23,6 +23,7 @@ func hoboVisual() {
 	visualClient.addBgSprite('#', "assets/sprites/rough.png")
 	visualClient.addBgSprite('&', "assets/sprites/medium.png")
 	visualClient.addBgSprite('%', "assets/sprites/light.png")
+	visualClient.addBgSprite('.', "assets/sprites/basic_trail.png")
 	visualClient.addBgSprite(' ', "assets/sprites/water.png")
 	visualClient.addFgSprite('*', "assets/sprites/firefighter.png")
 

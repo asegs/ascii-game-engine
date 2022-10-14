@@ -6,10 +6,11 @@ import (
 	"time"
 )
 
-const mapWidth int = 40
-const mapHeight int = 40
+const mapWidth int = 60
+const mapHeight int = 60
 
 var undevelopedLevels = [...]byte{'%', '&', '#'}
+
 var directions = [...]byte{MOVE_UP, MOVE_RIGHT, MOVE_DOWN, MOVE_LEFT}
 var r = rand.New(rand.NewSource(time.Now().UnixNano()))
 
@@ -198,7 +199,7 @@ func generateGrid() *[][]byte {
 		m[i] = row
 	}
 	//Drawing initial rivers using basic cellular automata.  Using some hardcoded values for now.
-	mRef := drawStreams(&m, 3, 0.5, 1)
+	mRef := drawStreams(&m, 3, 0.35, 3)
 	//Eroding land to form lakes and dry up isolated ponds.
 	mRef = erode(mRef, 5, 6)
 	mRef = drawLand(mRef, 1)
@@ -232,7 +233,7 @@ func newPlayer(grid *[][]byte) *PlayerState {
 }
 
 func selectNew(direction byte, player *PlayerState) *Coord {
-	if time.Now().Sub(player.LastSleep) > 3*time.Minute {
+	if time.Now().Sub(player.LastSleep) > 10*time.Minute {
 		direction = directions[RandInt(0, 3)]
 	}
 	if direction == MOVE_UP {
@@ -252,6 +253,36 @@ func move(direction byte, player *PlayerState, grid *[][]byte) {
 	if inBounds(newCoord) && (*grid)[newCoord.Row][newCoord.Col] != ' ' {
 		player.Pos = newCoord
 	}
+}
+
+func clearOnMove(lastPos *Coord, grid *[][]byte) bool {
+	if (*grid)[lastPos.Row][lastPos.Col] == '#' {
+		(*grid)[lastPos.Row][lastPos.Col] = '&'
+		return true
+	}
+	if (*grid)[lastPos.Row][lastPos.Col] == '&' {
+		(*grid)[lastPos.Row][lastPos.Col] = '%'
+		return true
+	}
+	if (*grid)[lastPos.Row][lastPos.Col] == '%' {
+		(*grid)[lastPos.Row][lastPos.Col] = '.'
+		return true
+	}
+	return false
+}
+
+//Use a little goroutine and done channel to do this instead of blocking the main server thread
+func waitForTerrain(lastPos *Coord, grid *[][]byte) int {
+	if (*grid)[lastPos.Row][lastPos.Col] == '#' {
+		return 5
+	}
+	if (*grid)[lastPos.Row][lastPos.Col] == '&' {
+		return 3
+	}
+	if (*grid)[lastPos.Row][lastPos.Col] == '%' {
+		return 1
+	}
+	return 0
 }
 
 func hardCastToState(playerState interface{}) *PlayerState {
@@ -278,20 +309,48 @@ func serve() {
 	handlers := server.newZoneHandlers("map")
 	//When I tried to do this with a range, I had a bizarre issue with closures I think?
 	handlers.addPlayerHandler(MOVE_UP, func(id int) {
-		move(MOVE_UP, hardCastToState(playerStates[id]), gameMap)
-		server.broadcastStateUpdate(playerStates[id], id, true, "Pos")
+		wait := waitForTerrain(hardCastToState(playerStates[id]).Pos, gameMap)
+		go func() {
+			time.Sleep(time.Duration(wait) * time.Second)
+			if clearOnMove(hardCastToState(playerStates[id]).Pos, gameMap) {
+				server.broadcastStateUpdate(globalState, GLOBAL_ID, true, "Grid")
+			}
+			move(MOVE_UP, hardCastToState(playerStates[id]), gameMap)
+			server.broadcastStateUpdate(playerStates[id], id, true, "Pos")
+		}()
 	})
 	handlers.addPlayerHandler(MOVE_RIGHT, func(id int) {
-		move(MOVE_RIGHT, hardCastToState(playerStates[id]), gameMap)
-		server.broadcastStateUpdate(playerStates[id], id, true, "Pos")
+		wait := waitForTerrain(hardCastToState(playerStates[id]).Pos, gameMap)
+		go func() {
+			time.Sleep(time.Duration(wait) * time.Second)
+			if clearOnMove(hardCastToState(playerStates[id]).Pos, gameMap) {
+				server.broadcastStateUpdate(globalState, GLOBAL_ID, true, "Grid")
+			}
+			move(MOVE_RIGHT, hardCastToState(playerStates[id]), gameMap)
+			server.broadcastStateUpdate(playerStates[id], id, true, "Pos")
+		}()
 	})
 	handlers.addPlayerHandler(MOVE_DOWN, func(id int) {
-		move(MOVE_DOWN, hardCastToState(playerStates[id]), gameMap)
-		server.broadcastStateUpdate(playerStates[id], id, true, "Pos")
+		wait := waitForTerrain(hardCastToState(playerStates[id]).Pos, gameMap)
+		go func() {
+			time.Sleep(time.Duration(wait) * time.Second)
+			if clearOnMove(hardCastToState(playerStates[id]).Pos, gameMap) {
+				server.broadcastStateUpdate(globalState, GLOBAL_ID, true, "Grid")
+			}
+			move(MOVE_DOWN, hardCastToState(playerStates[id]), gameMap)
+			server.broadcastStateUpdate(playerStates[id], id, true, "Pos")
+		}()
 	})
 	handlers.addPlayerHandler(MOVE_LEFT, func(id int) {
-		move(MOVE_LEFT, hardCastToState(playerStates[id]), gameMap)
-		server.broadcastStateUpdate(playerStates[id], id, true, "Pos")
+		wait := waitForTerrain(hardCastToState(playerStates[id]).Pos, gameMap)
+		go func() {
+			time.Sleep(time.Duration(wait) * time.Second)
+			if clearOnMove(hardCastToState(playerStates[id]).Pos, gameMap) {
+				server.broadcastStateUpdate(globalState, GLOBAL_ID, true, "Grid")
+			}
+			move(MOVE_LEFT, hardCastToState(playerStates[id]), gameMap)
+			server.broadcastStateUpdate(playerStates[id], id, true, "Pos")
+		}()
 	})
 	server.start()
 	for true {
