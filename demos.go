@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-func main () {
+func main() {
 	go HandleLog()
 	reader := bufio.NewScanner(os.Stdin)
 	fmt.Println("(S)erver mode, or (C)lient mode? (T/V):")
@@ -14,9 +14,9 @@ func main () {
 	entry := reader.Text()
 	if entry == "S" {
 		serve()
-	}else if entry == "CT" {
-		render()
+	} else if entry == "CT" {
+		//Nothing yet.
 	} else {
-		armyVisual()
+		hoboVisual()
 	}
 }

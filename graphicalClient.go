@@ -164,7 +164,7 @@ func (i *GraphicalClient) DrawAt(pair *TilePair, row int, col int) {
 func (i *GraphicalClient) permutePoint(point image.Point) image.Point {
 	offsetX := -100
 	offsetY := -500
-	if i.IsIsometric {
+	if !i.IsIsometric {
 		return point
 	}
 
