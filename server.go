@@ -58,14 +58,20 @@ type TimedEvent struct {
 }
 
 func PrepareTimedEvent(duration time.Duration) *TimedEvent {
+	return PrepareTimedEventWithCallback(duration, func() {})
+}
+
+func PrepareTimedEventWithCallback(duration time.Duration, callback func()) *TimedEvent {
 	wait := make(chan bool, 1)
 	if duration > 0 {
 		go func() {
 			time.Sleep(duration)
 			wait <- true
+			callback()
 		}()
 	} else {
 		wait <- true
+		callback()
 	}
 	return &TimedEvent{Wait: wait}
 }

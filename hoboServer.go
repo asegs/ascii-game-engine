@@ -277,10 +277,11 @@ func moveMetaAction(direction byte, server *Server, playerStates map[int]interfa
 	originalPosition := &Coord{player.Pos.Row, player.Pos.Col}
 	move(direction, hardCastToState(playerStates[id]), gameMap)
 	if player.Pos.Row != originalPosition.Row || player.Pos.Col != originalPosition.Col {
-		player.MoveTimer = PrepareTimedEvent(time.Duration(waitForTerrain(player.Pos, gameMap)) * time.Second)
-		if clearOnMove(originalPosition, gameMap) {
-			server.broadcastStateUpdate(globalState, GLOBAL_ID, true, "Grid")
-		}
+		player.MoveTimer = PrepareTimedEventWithCallback(time.Duration(waitForTerrain(player.Pos, gameMap))*time.Second, func() {
+			if clearOnMove(&Coord{player.Pos.Row, player.Pos.Col}, gameMap) {
+				server.broadcastStateUpdate(globalState, GLOBAL_ID, true, "Grid")
+			}
+		})
 		server.broadcastStateUpdate(playerStates[id], id, true, "Pos")
 	}
 }

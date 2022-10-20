@@ -53,7 +53,6 @@ func hoboVisual() {
 		oldMap := oldState.(*GlobalState).Grid
 		for row := 0; row < mapHeight; row++ {
 			for col := 0; col < mapWidth; col++ {
-				// Not drawing on init maybe?
 				if (*oldMap)[row][col] != (*globalState.Grid)[row][col] {
 					window.placeBgCharAtCoord((*globalState.Grid)[row][col], row, col)
 				}
