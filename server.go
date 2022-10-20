@@ -9,81 +9,109 @@ import (
 )
 
 var symbolicMapping map[byte]string = map[byte]string{
-MOVE_LEFT: "<-",
-MOVE_UP: "^",
-MOVE_RIGHT: "->",
-MOVE_DOWN: "v",
-CONNECT: "CONNECT",
+	MOVE_LEFT:  "<-",
+	MOVE_UP:    "^",
+	MOVE_RIGHT: "->",
+	MOVE_DOWN:  "v",
+	CONNECT:    "CONNECT",
 }
 
-func symbolicMap (buf []byte) string {
-	if str,ok := symbolicMapping[buf[0]]; ok {
+func symbolicMap(buf []byte) string {
+	if str, ok := symbolicMapping[buf[0]]; ok {
 		return str
 	}
 	return string(buf)
 }
 
-
 type ServerNetworkConfig struct {
-	ClientPort int
-	ServerPort int
-	Strikes int
-	BufferSize int
-	StoredUpdates int
+	ClientPort           int
+	ServerPort           int
+	Strikes              int
+	BufferSize           int
+	StoredUpdates        int
 	StateDumpFrequencyMs int
 }
 
 type Server struct {
-	Players map[int] * net.UDPConn
-	ConnectKey string
-	ZoneIndexes map[int] int
-	ZoneHandlers [] * ZoneHandlers
+	Players      map[int]*net.UDPConn
+	ConnectKey   string
+	ZoneIndexes  map[int]int
+	ZoneHandlers []*ZoneHandlers
 	PlayerJoined func(int)
-	PlayerLeft func(int)
-	Strikes map[int] int
+	PlayerLeft   func(int)
+	Strikes      map[int]int
 	MessagesSent int
-	MessageMap map[int] [] byte
-	ZoneMap map[string] int
-	PlayerState map[int] interface{}
-	GlobalState interface{}
-	Config * ServerNetworkConfig
+	MessageMap   map[int][]byte
+	ZoneMap      map[string]int
+	PlayerState  map[int]interface{}
+	GlobalState  interface{}
+	Config       *ServerNetworkConfig
 }
 
 type ZoneHandlers struct {
-	Server * Server
+	Server         *Server
 	PlayerHandlers map[byte]func(int)
 }
 
-func newServerDefault (PlayerJoined func(int),PlayerLeft func(int),config * ServerNetworkConfig, globalState interface{}, playerStates map[int] interface{}) * Server {
-	return newServer("connect",PlayerJoined,PlayerLeft,config,globalState,playerStates)
+type TimedEvent struct {
+	Wait chan bool
 }
 
-func newServer (connectKey string,PlayerJoined func(int),PlayerLeft func(int),config * ServerNetworkConfig, globalState interface{}, playerStates map[int] interface{}) * Server {
-	return &Server{
-		Players:        make(map[int] * net.UDPConn,0),
-		ConnectKey:     connectKey,
-		ZoneIndexes: make(map[int]int),
-		ZoneHandlers: make([] *ZoneHandlers,0),
-		Strikes: make(map[int] int),
-		PlayerJoined: PlayerJoined,
-		PlayerLeft: PlayerLeft,
-		MessagesSent: 0,
-		MessageMap: make(map[int] []byte),
-		ZoneMap: make(map[string] int),
-		PlayerState: playerStates,
-		GlobalState: globalState,
-		Config: config,
+func PrepareTimedEvent(duration time.Duration) *TimedEvent {
+	wait := make(chan bool, 1)
+	if duration > 0 {
+		go func() {
+			time.Sleep(duration)
+			wait <- true
+		}()
+	} else {
+		wait <- true
+	}
+	return &TimedEvent{Wait: wait}
+}
+
+func (t *TimedEvent) Ready() bool {
+	select {
+	case _, ok := <-t.Wait:
+		if ok {
+			return true
+		}
+		return false
+	default:
+		return false
 	}
 }
 
-func (s * Server) start() {
+func newServerDefault(PlayerJoined func(int), PlayerLeft func(int), config *ServerNetworkConfig, globalState interface{}, playerStates map[int]interface{}) *Server {
+	return newServer("connect", PlayerJoined, PlayerLeft, config, globalState, playerStates)
+}
+
+func newServer(connectKey string, PlayerJoined func(int), PlayerLeft func(int), config *ServerNetworkConfig, globalState interface{}, playerStates map[int]interface{}) *Server {
+	return &Server{
+		Players:      make(map[int]*net.UDPConn, 0),
+		ConnectKey:   connectKey,
+		ZoneIndexes:  make(map[int]int),
+		ZoneHandlers: make([]*ZoneHandlers, 0),
+		Strikes:      make(map[int]int),
+		PlayerJoined: PlayerJoined,
+		PlayerLeft:   PlayerLeft,
+		MessagesSent: 0,
+		MessageMap:   make(map[int][]byte),
+		ZoneMap:      make(map[string]int),
+		PlayerState:  playerStates,
+		GlobalState:  globalState,
+		Config:       config,
+	}
+}
+
+func (s *Server) start() {
 	err := s.listen()
 	if err != nil {
 		fmt.Println(err.Error())
 	}
 }
 
-func (s * Server) newZoneHandlers (name string) * ZoneHandlers {
+func (s *Server) newZoneHandlers(name string) *ZoneHandlers {
 	handlers := &ZoneHandlers{
 		Server:         s,
 		PlayerHandlers: make(map[byte]func(int)),
@@ -93,30 +121,30 @@ func (s * Server) newZoneHandlers (name string) * ZoneHandlers {
 	return handlers
 }
 
-func (s * Server) zoneByName (name string) * ZoneHandlers {
+func (s *Server) zoneByName(name string) *ZoneHandlers {
 	return s.ZoneHandlers[s.ZoneMap[name]]
 }
 
-func (s * Server) addZoneHandlers (zoneHandlers * ZoneHandlers) {
+func (s *Server) addZoneHandlers(zoneHandlers *ZoneHandlers) {
 	s.ZoneHandlers = append(s.ZoneHandlers, zoneHandlers)
 }
 
-func (z * ZoneHandlers) addPlayerHandler (key byte,operator func(int)) * ZoneHandlers{
+func (z *ZoneHandlers) addPlayerHandler(key byte, operator func(int)) *ZoneHandlers {
 	z.PlayerHandlers[key] = operator
 	return z
 }
 
 func hash(s string) uint32 {
 	h := fnv.New32a()
-	_,_ = h.Write([]byte(s))
+	_, _ = h.Write([]byte(s))
 	return h.Sum32()
 }
 
-func permuteIp (addr * net.UDPAddr) int{
+func permuteIp(addr *net.UDPAddr) int {
 	return int(hash(addr.IP.String()))
 }
 
-func (s * Server) broadcastToAll (stateUpdate * UpdateMessage) {
+func (s *Server) broadcastToAll(stateUpdate *UpdateMessage) {
 	stateUpdate.Id = s.MessagesSent
 	message := stateUpdate.toBytes()
 	s.MessageMap[s.MessagesSent] = message
@@ -124,65 +152,65 @@ func (s * Server) broadcastToAll (stateUpdate * UpdateMessage) {
 		LogString("Buffer limit exceeded with: " + string(message))
 		message = message[0:s.Config.BufferSize]
 	}
-	for id,player := range s.Players {
-		s.sendToConn(message,id,player)
+	for id, player := range s.Players {
+		s.sendToConn(message, id, player)
 	}
 	s.MessagesSent++
-	if _,ok := s.MessageMap[s.MessagesSent - s.Config.StoredUpdates]; ok {
-		delete(s.MessageMap,s.MessagesSent - s.Config.StoredUpdates)
+	if _, ok := s.MessageMap[s.MessagesSent-s.Config.StoredUpdates]; ok {
+		delete(s.MessageMap, s.MessagesSent-s.Config.StoredUpdates)
 	}
 }
 
-func (s * Server) sendToConn(buf [] byte, id int, conn * net.UDPConn)  {
-	n,err := conn.Write(buf)
+func (s *Server) sendToConn(buf []byte, id int, conn *net.UDPConn) {
+	n, err := conn.Write(buf)
 	if err != nil {
 		LogString("Failed to write: " + err.Error())
 	}
 	if err != nil || n < len(buf) {
-		s.Strikes[id] ++
+		s.Strikes[id]++
 		if s.Strikes[id] >= s.Config.Strikes {
 			s.removePlayerSaveState(id)
 		}
-	}else {
+	} else {
 		s.Strikes[id] = 0
 	}
 }
 
-func (s * Server) nextZone (from int) {
+func (s *Server) nextZone(from int) {
 	index := s.ZoneIndexes[from]
-	if index == len(s.ZoneHandlers) - 1 {
+	if index == len(s.ZoneHandlers)-1 {
 		s.ZoneIndexes[from] = 0
-	}else {
-		s.ZoneIndexes[from] ++
+	} else {
+		s.ZoneIndexes[from]++
 	}
 }
 
-func (s * Server) broadcastCustomPair (key string, data interface{}, from int,asyncOk bool) {
-	s.broadcastToAll(newStateUpdate(from,asyncOk).appendCustom(data,key))
+func (s *Server) broadcastCustomPair(key string, data interface{}, from int, asyncOk bool) {
+	s.broadcastToAll(newStateUpdate(from, asyncOk).appendCustom(data, key))
 }
 
-func (s * Server) broadcastStateUpdate (state interface{}, from int, asyncOk bool, keys ...string) {
-	s.broadcastToAll(newStateUpdate(from,asyncOk).append(state,keys...))
+func (s *Server) broadcastStateUpdate(state interface{}, from int, asyncOk bool, keys ...string) {
+	s.broadcastToAll(newStateUpdate(from, asyncOk).append(state, keys...))
 }
 
-func (s * Server) listen () error{
-	ServerConn, err := net.ListenUDP("udp",&net.UDPAddr{
-		IP:[]byte{0,0,0,0},
-		Port:s.Config.ServerPort,
-		Zone:"",
+func (s *Server) listen() error {
+	ServerConn, err := net.ListenUDP("udp", &net.UDPAddr{
+		IP:   []byte{0, 0, 0, 0},
+		Port: s.Config.ServerPort,
+		Zone: "",
 	})
 	fmt.Println("Started UDP listen server")
 	if err != nil {
 		return err
 	}
 	var received int
-	var addr * net.UDPAddr
+	var addr *net.UDPAddr
 	var id int
-	buf := make([]byte,64)
+	buf := make([]byte, 64)
 	go func() {
 		for true {
 			received, addr, err = ServerConn.ReadFromUDP(buf)
-			fmt.Printf("Received %s from %s\n",symbolicMap(buf),addr)
+			fmt.Printf("Received %s from %s\n", symbolicMap(buf), addr)
 			if err != nil {
 				LogString("Failed to read from connection: " + err.Error())
 				continue
@@ -198,25 +226,25 @@ func (s * Server) listen () error{
 					LogString("Failed to add client to players set: " + err.Error())
 				}
 				if ok {
-					s.reloadPlayer(id,NewConn)
-				}else {
+					s.reloadPlayer(id, NewConn)
+				} else {
 					s.PlayerJoined(id)
-					s.addNewDefaultPlayer(id,NewConn)
+					s.addNewDefaultPlayer(id, NewConn)
 					s.dumpPlayerStateToAll(id)
 				}
 			}
 			if received > 1 {
-				packetId,err := strconv.Atoi(string(buf[0:received]))
+				packetId, err := strconv.Atoi(string(buf[0:received]))
 				if err != nil {
-					LogString(fmt.Sprintf("Failed to convert packet info to id, info was: %s",buf[0:received]))
+					LogString(fmt.Sprintf("Failed to convert packet info to id, info was: %s", buf[0:received]))
 				}
-				if message,ok := s.MessageMap[packetId] ; ok {
-					s.sendToConn(message,id,s.Players[id])
+				if message, ok := s.MessageMap[packetId]; ok {
+					s.sendToConn(message, id, s.Players[id])
 				}
-			}else {
-				if operation,ok := s.ZoneHandlers[s.ZoneIndexes[id]].PlayerHandlers[buf[0]] ; ok {
+			} else {
+				if operation, ok := s.ZoneHandlers[s.ZoneIndexes[id]].PlayerHandlers[buf[0]]; ok {
 					operation(id)
-				}else {
+				} else {
 					LogString("Zone has no implemented function for key: " + string(buf[0]))
 				}
 			}
@@ -228,57 +256,57 @@ func (s * Server) listen () error{
 	return nil
 }
 
-func (s * Server) addNewDefaultPlayer (id int, conn * net.UDPConn) {
+func (s *Server) addNewDefaultPlayer(id int, conn *net.UDPConn) {
 	s.Players[id] = conn
 	s.ZoneIndexes[id] = 0
 	s.Strikes[id] = 0
 	s.dumpStateToPlayer(id)
 }
 
-func (s * Server) reloadPlayer (id int, conn * net.UDPConn) {
+func (s *Server) reloadPlayer(id int, conn *net.UDPConn) {
 	s.Players[id] = conn
 	s.Strikes[id] = 0
 	s.dumpStateToPlayer(id)
 }
 
-func (s * Server) removePlayerSaveState (id int) {
+func (s *Server) removePlayerSaveState(id int) {
 	s.PlayerLeft(id)
-	delete(s.Players,id)
-	delete(s.ZoneIndexes,id)
-	delete(s.Strikes,id)
-	delete(s.PlayerState,id)
-	s.broadcastCustomPair("DisconnectId",id,id,true)
+	delete(s.Players, id)
+	delete(s.ZoneIndexes, id)
+	delete(s.Strikes, id)
+	delete(s.PlayerState, id)
+	s.broadcastCustomPair("DisconnectId", id, id, true)
 }
 
-func (s * Server) dumpStateToPlayer (id int) {
-	playerConn,ok := s.Players[id]
+func (s *Server) dumpStateToPlayer(id int) {
+	playerConn, ok := s.Players[id]
 	if !ok {
 		LogString("Conn does not exist")
 		return
 	}
 	for i, state := range s.PlayerState {
-		playerUpdate := newStateUpdate(i,true).append(state)
+		playerUpdate := newStateUpdate(i, true).append(state)
 		playerUpdate.Id = DUMP_ID
-		s.sendToConn(playerUpdate.toBytes(),id,playerConn)
+		s.sendToConn(playerUpdate.toBytes(), id, playerConn)
 	}
 
-	globalUpdate := newStateUpdate(GLOBAL_ID,true).append(s.GlobalState)
+	globalUpdate := newStateUpdate(GLOBAL_ID, true).append(s.GlobalState)
 	globalUpdate.Id = DUMP_ID
-	s.sendToConn(globalUpdate.toBytes(),id,playerConn)
+	s.sendToConn(globalUpdate.toBytes(), id, playerConn)
 
-	indexUpdate := newStateUpdate(GLOBAL_ID,true).appendCustom(s.MessagesSent - 1,"Index")
+	indexUpdate := newStateUpdate(GLOBAL_ID, true).appendCustom(s.MessagesSent-1, "Index")
 	indexUpdate.Id = DUMP_ID
-	s.sendToConn(indexUpdate.toBytes(),id,playerConn)
+	s.sendToConn(indexUpdate.toBytes(), id, playerConn)
 	fmt.Println("Sent program state to: " + playerConn.RemoteAddr().String())
 }
 
-func (s * Server) dumpPlayerStateToAll (id int) {
-	s.broadcastStateUpdate(s.PlayerState[id],id,true)
+func (s *Server) dumpPlayerStateToAll(id int) {
+	s.broadcastStateUpdate(s.PlayerState[id], id, true)
 }
 
-func (s * Server) recurringStateDump () {
+func (s *Server) recurringStateDump() {
 	for true {
-		for id,_ := range s.Players {
+		for id, _ := range s.Players {
 			s.dumpStateToPlayer(id)
 		}
 		time.Sleep(time.Millisecond * time.Duration(s.Config.StateDumpFrequencyMs))

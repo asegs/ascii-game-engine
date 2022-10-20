@@ -36,6 +36,7 @@ type PlayerState struct {
 	Logs      int
 	Stone     int
 	Metal     int
+	MoveTimer *TimedEvent
 }
 
 type GlobalState struct {
@@ -63,26 +64,8 @@ type GlobalState struct {
 
 func newGlobalState(grid *[][]byte) *GlobalState {
 	return &GlobalState{
-		Grid:                  grid,
-		StoredLogs:            0,
-		StoredStone:           0,
-		StoredMetal:           0,
-		HousingSpace:          0,
-		Appeal:                0,
-		Unassigned:            0,
-		Loggers:               0,
-		Miners:                0,
-		Metalworkers:          0,
-		Clearers:              0,
-		LogsPerMinute:         0,
-		StonePerMinute:        0,
-		MetalPerMinute:        0,
-		ImprovementsPerMinute: 0,
-		PeoplesHappiness:      0,
-		QuarrySumLevel:        0,
-		MetalworksSumLevel:    0,
-		RoadUnlocked:          0,
-		Unfinished:            make([]*Structure, 0),
+		Grid:       grid,
+		Unfinished: make([]*Structure, 0),
 	}
 }
 
@@ -209,18 +192,15 @@ func generateGrid() *[][]byte {
 func newPlayer(grid *[][]byte) *PlayerState {
 	tiles := mapWidth * mapHeight
 	player := &PlayerState{
-		Pos:       nil,
 		Health:    10,
 		Water:     100,
 		Food:      100,
 		LastSleep: time.Now(),
-		Logs:      0,
-		Stone:     0,
-		Metal:     0,
+		MoveTimer: PrepareTimedEvent(0),
 	}
 	for true {
 		placement := RandInt(0, tiles-1)
-		row := int(placement / mapWidth)
+		row := placement / mapWidth
 		col := placement - row*mapWidth
 		pos := &Coord{Row: row, Col: col}
 		count := countBorders(grid, ' ', pos, true)
@@ -289,6 +269,22 @@ func hardCastToState(playerState interface{}) *PlayerState {
 	return playerState.(*PlayerState)
 }
 
+func moveMetaAction(direction byte, server *Server, playerStates map[int]interface{}, globalState *GlobalState, gameMap *[][]byte, id int) {
+	player := hardCastToState(playerStates[id])
+	if !player.MoveTimer.Ready() {
+		return
+	}
+	originalPosition := &Coord{player.Pos.Row, player.Pos.Col}
+	move(direction, hardCastToState(playerStates[id]), gameMap)
+	if player.Pos.Row != originalPosition.Row || player.Pos.Col != originalPosition.Col {
+		player.MoveTimer = PrepareTimedEvent(time.Duration(waitForTerrain(player.Pos, gameMap)) * time.Second)
+		if clearOnMove(originalPosition, gameMap) {
+			server.broadcastStateUpdate(globalState, GLOBAL_ID, true, "Grid")
+		}
+		server.broadcastStateUpdate(playerStates[id], id, true, "Pos")
+	}
+}
+
 //No saving yet.
 func savePlayerState(id int) {}
 
@@ -309,50 +305,21 @@ func serve() {
 	handlers := server.newZoneHandlers("map")
 	//When I tried to do this with a range, I had a bizarre issue with closures I think?
 	handlers.addPlayerHandler(MOVE_UP, func(id int) {
-		wait := waitForTerrain(hardCastToState(playerStates[id]).Pos, gameMap)
-		go func() {
-			time.Sleep(time.Duration(wait) * time.Second)
-			if clearOnMove(hardCastToState(playerStates[id]).Pos, gameMap) {
-				server.broadcastStateUpdate(globalState, GLOBAL_ID, true, "Grid")
-			}
-			move(MOVE_UP, hardCastToState(playerStates[id]), gameMap)
-			server.broadcastStateUpdate(playerStates[id], id, true, "Pos")
-		}()
+		moveMetaAction(MOVE_UP, server, playerStates, globalState, gameMap, id)
 	})
 	handlers.addPlayerHandler(MOVE_RIGHT, func(id int) {
-		wait := waitForTerrain(hardCastToState(playerStates[id]).Pos, gameMap)
-		go func() {
-			time.Sleep(time.Duration(wait) * time.Second)
-			if clearOnMove(hardCastToState(playerStates[id]).Pos, gameMap) {
-				server.broadcastStateUpdate(globalState, GLOBAL_ID, true, "Grid")
-			}
-			move(MOVE_RIGHT, hardCastToState(playerStates[id]), gameMap)
-			server.broadcastStateUpdate(playerStates[id], id, true, "Pos")
-		}()
+		moveMetaAction(MOVE_RIGHT, server, playerStates, globalState, gameMap, id)
 	})
 	handlers.addPlayerHandler(MOVE_DOWN, func(id int) {
-		wait := waitForTerrain(hardCastToState(playerStates[id]).Pos, gameMap)
-		go func() {
-			time.Sleep(time.Duration(wait) * time.Second)
-			if clearOnMove(hardCastToState(playerStates[id]).Pos, gameMap) {
-				server.broadcastStateUpdate(globalState, GLOBAL_ID, true, "Grid")
-			}
-			move(MOVE_DOWN, hardCastToState(playerStates[id]), gameMap)
-			server.broadcastStateUpdate(playerStates[id], id, true, "Pos")
-		}()
+		moveMetaAction(MOVE_DOWN, server, playerStates, globalState, gameMap, id)
 	})
 	handlers.addPlayerHandler(MOVE_LEFT, func(id int) {
-		wait := waitForTerrain(hardCastToState(playerStates[id]).Pos, gameMap)
-		go func() {
-			time.Sleep(time.Duration(wait) * time.Second)
-			if clearOnMove(hardCastToState(playerStates[id]).Pos, gameMap) {
-				server.broadcastStateUpdate(globalState, GLOBAL_ID, true, "Grid")
-			}
-			move(MOVE_LEFT, hardCastToState(playerStates[id]), gameMap)
-			server.broadcastStateUpdate(playerStates[id], id, true, "Pos")
-		}()
+		moveMetaAction(MOVE_LEFT, server, playerStates, globalState, gameMap, id)
 	})
-	server.start()
+	err = server.listen()
+	if err != nil {
+		LogString("Failed to start listening: " + err.Error())
+	}
 	for true {
 		time.Sleep(1 * time.Second)
 	}

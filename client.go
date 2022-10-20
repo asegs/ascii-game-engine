@@ -110,7 +110,10 @@ func newClient(serverIp []byte, events *chan byte, localState interface{}, playe
 	} else {
 		helloBuffer := make([]byte, 1)
 		helloBuffer[0] = CONNECT
-		_ = client.sendWithRetry(helloBuffer)
+		err = client.sendWithRetry(helloBuffer)
+		if err != nil {
+			LogString("Server not accepting connections: " + err.Error())
+		}
 		client.broadcastActions()
 	}
 	return client
