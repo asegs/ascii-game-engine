@@ -33,7 +33,7 @@ type ServerNetworkConfig struct {
 }
 
 type Server struct {
-	Players      map[int]*net.UDPConn
+	Players      map[int]*net.UDPAddr
 	ConnectKey   string
 	ZoneIndexes  map[int]int
 	ZoneHandlers []*ZoneHandlers
@@ -46,6 +46,7 @@ type Server struct {
 	PlayerState  map[int]interface{}
 	GlobalState  interface{}
 	Config       *ServerNetworkConfig
+	ServerConn   *net.UDPConn
 }
 
 type ZoneHandlers struct {
@@ -94,7 +95,7 @@ func newServerDefault(PlayerJoined func(int), PlayerLeft func(int), config *Serv
 
 func newServer(connectKey string, PlayerJoined func(int), PlayerLeft func(int), config *ServerNetworkConfig, globalState interface{}, playerStates map[int]interface{}) *Server {
 	return &Server{
-		Players:      make(map[int]*net.UDPConn, 0),
+		Players:      make(map[int]*net.UDPAddr, 0),
 		ConnectKey:   connectKey,
 		ZoneIndexes:  make(map[int]int),
 		ZoneHandlers: make([]*ZoneHandlers, 0),
@@ -167,8 +168,8 @@ func (s *Server) broadcastToAll(stateUpdate *UpdateMessage) {
 	}
 }
 
-func (s *Server) sendToConn(buf []byte, id int, conn *net.UDPConn) {
-	n, err := conn.Write(buf)
+func (s *Server) sendToConn(buf []byte, id int, player *net.UDPAddr) {
+	n, err := s.ServerConn.WriteToUDP(buf, player)
 	if err != nil {
 		LogString("Failed to write: " + err.Error())
 	}
@@ -205,6 +206,7 @@ func (s *Server) listen() error {
 		Port: s.Config.ServerPort,
 		Zone: "",
 	})
+	s.ServerConn = ServerConn
 	fmt.Println("Started UDP listen server")
 	if err != nil {
 		return err
@@ -223,19 +225,11 @@ func (s *Server) listen() error {
 			}
 			id = permuteIp(addr)
 			if _, ok := s.Players[id]; !ok || buf[0] == CONNECT {
-				NewConn, err := net.DialUDP("udp", nil, &net.UDPAddr{
-					IP:   addr.IP,
-					Port: s.Config.ClientPort,
-					Zone: "",
-				})
-				if err != nil {
-					LogString("Failed to add client to players set: " + err.Error())
-				}
 				if ok {
-					s.reloadPlayer(id, NewConn)
+					s.reloadPlayer(id, addr)
 				} else {
 					s.PlayerJoined(id)
-					s.addNewDefaultPlayer(id, NewConn)
+					s.addNewDefaultPlayer(id, addr)
 					s.dumpPlayerStateToAll(id)
 				}
 			}
@@ -262,15 +256,15 @@ func (s *Server) listen() error {
 	return nil
 }
 
-func (s *Server) addNewDefaultPlayer(id int, conn *net.UDPConn) {
-	s.Players[id] = conn
+func (s *Server) addNewDefaultPlayer(id int, player *net.UDPAddr) {
+	s.Players[id] = player
 	s.ZoneIndexes[id] = 0
 	s.Strikes[id] = 0
 	s.dumpStateToPlayer(id)
 }
 
-func (s *Server) reloadPlayer(id int, conn *net.UDPConn) {
-	s.Players[id] = conn
+func (s *Server) reloadPlayer(id int, player *net.UDPAddr) {
+	s.Players[id] = player
 	s.Strikes[id] = 0
 	s.dumpStateToPlayer(id)
 }
@@ -285,7 +279,7 @@ func (s *Server) removePlayerSaveState(id int) {
 }
 
 func (s *Server) dumpStateToPlayer(id int) {
-	playerConn, ok := s.Players[id]
+	player, ok := s.Players[id]
 	if !ok {
 		LogString("Conn does not exist")
 		return
@@ -293,17 +287,17 @@ func (s *Server) dumpStateToPlayer(id int) {
 	for i, state := range s.PlayerState {
 		playerUpdate := newStateUpdate(i, true).append(state)
 		playerUpdate.Id = DUMP_ID
-		s.sendToConn(playerUpdate.toBytes(), id, playerConn)
+		s.sendToConn(playerUpdate.toBytes(), id, player)
 	}
 
 	globalUpdate := newStateUpdate(GLOBAL_ID, true).append(s.GlobalState)
 	globalUpdate.Id = DUMP_ID
-	s.sendToConn(globalUpdate.toBytes(), id, playerConn)
+	s.sendToConn(globalUpdate.toBytes(), id, player)
 
 	indexUpdate := newStateUpdate(GLOBAL_ID, true).appendCustom(s.MessagesSent-1, "Index")
 	indexUpdate.Id = DUMP_ID
-	s.sendToConn(indexUpdate.toBytes(), id, playerConn)
-	fmt.Println("Sent program state to: " + playerConn.RemoteAddr().String())
+	s.sendToConn(indexUpdate.toBytes(), id, player)
+	fmt.Println("Sent program state to: " + player.String())
 }
 
 func (s *Server) dumpPlayerStateToAll(id int) {

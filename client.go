@@ -22,8 +22,7 @@ type Client struct {
 	GlobalProcessor       map[string]func(interface{})
 	PlayersProcessor      map[string]func(int, interface{})
 	CustomProcessor       map[string]func(string)
-	ToSend                *net.UDPConn
-	ToReceive             *net.UDPConn
+	Socket                *net.UDPConn
 	EventChannel          *chan byte
 	LastMessageProcessed  int
 	Buffers               chan []byte
@@ -266,16 +265,10 @@ func (c *Client) connectToServer(IP []byte) error {
 		Port: c.Config.ServerPort,
 		Zone: "",
 	})
-	ServerConn, err := net.ListenUDP("udp", &net.UDPAddr{
-		IP:   []byte{0, 0, 0, 0},
-		Port: c.Config.ClientPort,
-		Zone: "",
-	})
 	if err != nil {
 		return err
 	}
-	c.ToSend = Conn
-	c.ToReceive = ServerConn
+	c.Socket = Conn
 	return err
 }
 
@@ -302,7 +295,7 @@ func (c *Client) listen() {
 	buf := make([]byte, c.Config.BufferSize)
 	go func() {
 		for true {
-			received, _, err = c.ToReceive.ReadFromUDP(buf)
+			received, _, err = c.Socket.ReadFromUDP(buf)
 			if err != nil {
 				LogString("Failed to read from server: " + err.Error())
 				continue
@@ -425,13 +418,13 @@ func (c *Client) sendWithRetry(buf []byte) error {
 }
 
 func (c *Client) sendWithCustomRetry(buf []byte, maxRetries int) error {
-	s, err := c.ToSend.Write(buf)
+	s, err := c.Socket.Write(buf)
 	if err == nil && s < len(buf) {
 		err = errors.New("entire body not sent")
 	}
 	if err != nil {
 		for retryCount := 0; retryCount < maxRetries && err != nil; retryCount++ {
-			s, err = c.ToSend.Write(buf)
+			s, err = c.Socket.Write(buf)
 			if err == nil && s < len(buf) {
 				err = errors.New("entire body not sent")
 			}
