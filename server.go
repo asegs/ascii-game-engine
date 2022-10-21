@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-var symbolicMapping map[byte]string = map[byte]string{
+var symbolicMapping = map[byte]string{
 	MOVE_LEFT:  "<-",
 	MOVE_UP:    "^",
 	MOVE_RIGHT: "->",
@@ -306,7 +306,7 @@ func (s *Server) dumpPlayerStateToAll(id int) {
 
 func (s *Server) recurringStateDump() {
 	for true {
-		for id, _ := range s.Players {
+		for id := range s.Players {
 			s.dumpStateToPlayer(id)
 		}
 		time.Sleep(time.Millisecond * time.Duration(s.Config.StateDumpFrequencyMs))

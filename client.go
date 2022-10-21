@@ -10,9 +10,9 @@ import (
 	"time"
 )
 
-var DUMP_ID int = -2
-var GLOBAL_ID int = -1
-var LOCAL_ID int = 0
+var DUMP_ID = -2
+var GLOBAL_ID = -1
+var LOCAL_ID = 0
 
 type Client struct {
 	LocalState            interface{}
