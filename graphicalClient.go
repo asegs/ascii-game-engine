@@ -118,7 +118,7 @@ func (i *GraphicalClient) SetWindow(window *ClientWindow) {
 	i.Window = window
 }
 
-func (i *GraphicalClient) Init(pair *TilePair, rows int, cols int) {
+func (i *GraphicalClient) Init(defaultFg byte, defaultBg byte, rows int, cols int) {
 	topLeft := image.Point{0, 0}
 	bottomRight := image.Point{resX, resY}
 
@@ -140,7 +140,7 @@ func (i *GraphicalClient) Init(pair *TilePair, rows int, cols int) {
 
 	for col := cols; col >= 0; col-- {
 		for row := 0; row < rows; row++ {
-			i.DrawAt(pair, row, col)
+			i.DrawAt(defaultFg, defaultBg, row, col)
 		}
 	}
 	i.RenderWindow = imageWindow
@@ -149,9 +149,9 @@ func (i *GraphicalClient) Init(pair *TilePair, rows int, cols int) {
 	})
 }
 
-func (i *GraphicalClient) DrawAt(pair *TilePair, row int, col int) {
-	bgSprite := i.Sprites.getBgSprite(pair.BackgroundCode)
-	fgSprite := i.Sprites.getFgSprite(pair.ShownSymbol)
+func (i *GraphicalClient) DrawAt(fg byte, bg byte, row int, col int) {
+	bgSprite := i.Sprites.getBgSprite(bg)
+	fgSprite := i.Sprites.getFgSprite(fg)
 	if bgSprite != nil {
 		i.drawAtCoord(i.ViewingImage, bgSprite, col, row, i.Rect)
 	}

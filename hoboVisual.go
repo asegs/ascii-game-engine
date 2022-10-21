@@ -27,10 +27,7 @@ func hoboVisual() {
 	visualClient.addBgSprite(' ', "assets/sprites/water.png")
 	visualClient.addFgSprite('*', "assets/sprites/firefighter.png")
 
-	window := createClientWindow(mapHeight, mapWidth, &TilePair{
-		ShownSymbol:    ' ',
-		BackgroundCode: ' ',
-	}, visualClient)
+	window := createClientWindow(mapHeight, mapWidth, ' ', ' ', visualClient)
 	zoning := initZones(mapHeight, mapWidth, input, visualClient)
 	zone, err := zoning.createZone(0, 0, mapHeight, mapWidth, true)
 	if err != nil {
@@ -47,7 +44,7 @@ func hoboVisual() {
 	client.addPlayersHandler("Pos", func(id int, oldState interface{}) {
 		pos := playerStates[id].(*PlayerState).Pos
 		oldPos := oldState.(*PlayerState).Pos
-		window.sendPlaceFgCharAtCoordCondUndo('*', pos.Row, pos.Col, oldPos.Row, oldPos.Col, '*', true)
+		window.sendPlaceFgCharAtCoordCondUndo('*', pos.Row, pos.Col, oldPos.Row, oldPos.Col, '*')
 	})
 	client.addGlobalHandler("Grid", func(oldState interface{}) {
 		oldMap := oldState.(*GlobalState).Grid
