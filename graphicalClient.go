@@ -32,7 +32,7 @@ var resY = 1440
 
 type CanvasWrapper struct {
 	widget.BaseWidget
-	image        *canvas.Raster
+	raster       *canvas.Raster
 	zoom         int
 	offset       *Coord
 	rect         *image.Rectangle
@@ -49,7 +49,7 @@ func (c *CanvasWrapper) Scrolled(scroll *fyne.ScrollEvent) {
 	} else if c.zoom > 1 {
 		c.zoom--
 	}
-	c.image.Resize(fyne.NewSize(float32(c.zoom*resX), float32(c.zoom*resY)))
+	c.raster.Resize(fyne.NewSize(float32(c.zoom*resX), float32(c.zoom*resY)))
 	c.Refresh()
 }
 
@@ -97,7 +97,7 @@ type rasterWidgetRender struct {
 }
 
 func (r *rasterWidgetRender) Layout(size fyne.Size) {
-	r.raster.image.Resize(size)
+	r.raster.raster.Resize(size)
 }
 
 func (r *rasterWidgetRender) MinSize() fyne.Size {
@@ -114,7 +114,7 @@ func (r *rasterWidgetRender) BackgroundColor() color.Color {
 }
 
 func (r *rasterWidgetRender) Objects() []fyne.CanvasObject {
-	return []fyne.CanvasObject{r.raster.image}
+	return []fyne.CanvasObject{r.raster.raster}
 }
 
 func (r *rasterWidgetRender) Destroy() {
@@ -179,7 +179,7 @@ func getImageFromFilePath(filePath string) (image.Image, error) {
 func (i *GraphicalClient) addFgSprite(char byte, filepath string) {
 	img, err := getImageFromFilePath(filepath)
 	if err != nil {
-		LogString("No image found at: " + filepath)
+		LogString("No raster found at: " + filepath)
 		LogString(err.Error())
 		return
 	}
@@ -189,7 +189,7 @@ func (i *GraphicalClient) addFgSprite(char byte, filepath string) {
 func (i *GraphicalClient) addBgSprite(char byte, filepath string) {
 	img, err := getImageFromFilePath(filepath)
 	if err != nil {
-		LogString("No image found at: " + filepath)
+		LogString("No raster found at: " + filepath)
 		LogString(err.Error())
 		return
 	}
@@ -228,6 +228,7 @@ func (i *GraphicalClient) Init(defaultFg byte, defaultBg byte, rows int, cols in
 		Max: image.Point{resX, resY},
 	}
 	canvasToWrite := canvas.NewRasterFromImage(rgbaImage)
+	canvasToWrite.ScaleMode = canvas.ImageScalePixels
 
 	stockImage := image.NewRGBA(r)
 	black := color.RGBA{48, 48, 48, 0xff}
@@ -237,8 +238,8 @@ func (i *GraphicalClient) Init(defaultFg byte, defaultBg byte, rows int, cols in
 		}
 	}
 	widgetWrapper := CanvasWrapper{
-		image: canvasToWrite,
-		zoom:  1,
+		raster: canvasToWrite,
+		zoom:   1,
 		offset: &Coord{
 			Row: 0,
 			Col: 0,
