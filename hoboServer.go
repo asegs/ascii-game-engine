@@ -28,15 +28,17 @@ type Structure struct {
 }
 
 type PlayerState struct {
-	Pos       *Coord
-	Health    int
-	Water     int
-	Food      int
-	LastSleep time.Time
-	Logs      int
-	Stone     int
-	Metal     int
-	MoveTimer *TimedEvent
+	Pos          *Coord
+	Health       int
+	Water        int
+	Food         int
+	LastSleep    time.Time
+	Logs         int
+	Stone        int
+	Metal        int
+	MoveTimer    *TimedEvent
+	Selecting    bool
+	SelectedTile *Coord
 }
 
 type GlobalState struct {
@@ -316,6 +318,17 @@ func serve() {
 	})
 	handlers.addPlayerHandler(MOVE_LEFT, func(id int) {
 		moveMetaAction(MOVE_LEFT, server, playerStates, globalState, gameMap, id)
+	})
+	handlers.addPlayerHandler('S', func(id int) {
+		player := hardCastToState(playerStates[id])
+		if player.Selecting {
+			player.Selecting = false
+			player.SelectedTile = nil
+		} else {
+			player.Selecting = true
+			player.SelectedTile = &Coord{player.Pos.Row, player.Pos.Col}
+		}
+		server.broadcastStateUpdate(playerStates[id], id, true, "SelectedTile", "Selecting")
 	})
 	err = server.listen()
 	if err != nil {

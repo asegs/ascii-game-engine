@@ -27,6 +27,7 @@ func hoboVisual() {
 	visualClient.addBgSprite('.', "assets/sprites/basic_trail.png")
 	visualClient.addBgSprite(' ', "assets/sprites/water.png")
 	visualClient.addFgSprite('*', "assets/sprites/firefighter.png")
+	visualClient.addFgSprite('x', "assets/sprites/x.png")
 
 	window := createClientWindow(mapHeight, mapWidth, ' ', ' ', visualClient)
 	zoning := initZones(mapHeight, mapWidth, input, visualClient)
@@ -57,6 +58,12 @@ func hoboVisual() {
 			}
 		}
 		uninitialized = false
+	})
+	client.addPlayersHandler("SelectedTile", func(id int, oldState interface{}) {
+		player := playerStates[id].(*PlayerState)
+		if player.SelectedTile != nil {
+			window.sendPlaceFgCharAtCoord('x', player.SelectedTile.Row, player.SelectedTile.Col, false)
+		}
 	})
 	client.listen()
 	visualClient.show()
