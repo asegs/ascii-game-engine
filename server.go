@@ -56,6 +56,7 @@ type ZoneHandlers struct {
 
 type TimedEvent struct {
 	Wait chan bool
+	Done bool
 }
 
 func PrepareTimedEvent(duration time.Duration) *TimedEvent {
@@ -78,9 +79,13 @@ func PrepareTimedEventWithCallback(duration time.Duration, callback func()) *Tim
 }
 
 func (t *TimedEvent) Ready() bool {
+	if t.Done {
+		return true
+	}
 	select {
 	case _, ok := <-t.Wait:
 		if ok {
+			t.Done = true
 			return true
 		}
 		return false

@@ -3,6 +3,7 @@ package main
 import "fmt"
 
 func hoboVisual() {
+	uninitialized := true
 	clientConfig, err := loadClientConfig("configs/client_network_setting.json")
 	if err != nil {
 		fmt.Println(err.Error())
@@ -51,10 +52,11 @@ func hoboVisual() {
 		for row := 0; row < mapHeight; row++ {
 			for col := 0; col < mapWidth; col++ {
 				if (*oldMap)[row][col] != (*globalState.Grid)[row][col] {
-					window.placeBgCharAtCoord((*globalState.Grid)[row][col], row, col)
+					window.placeBgCharAtCoord((*globalState.Grid)[row][col], row, col, uninitialized)
 				}
 			}
 		}
+		uninitialized = false
 	})
 	client.listen()
 	visualClient.show()

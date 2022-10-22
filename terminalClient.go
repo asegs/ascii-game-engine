@@ -12,6 +12,7 @@ type TerminalClient struct {
 	MultiMapLookup *MultiplexedLookup
 	Height         int
 	Width          int
+	Stats          map[string]interface{}
 }
 
 //The char sequence to RESET the cursor style.
@@ -109,6 +110,7 @@ func terminalClientWithTerminalInput(height int, width int) (*TerminalClient, *N
 		MultiMapLookup: createMultiplexedLookup(),
 		Height:         height,
 		Width:          width,
+		Stats:          make(map[string]interface{}),
 	}
 	input := initializeInput()
 	return terminalClient, input
@@ -126,12 +128,12 @@ func (t *TerminalClient) Init(defaultFg byte, defaultBg byte, rows int, cols int
 	t.moveTo(0, 0)
 	for row := 0; row < rows; row++ {
 		for col := 0; col < cols; col++ {
-			t.DrawAt(defaultFg, defaultBg, row, col)
+			t.DrawAt(defaultFg, defaultBg, row, col, true)
 		}
 	}
 }
 
-func (t *TerminalClient) DrawAt(fg byte, bg byte, row int, col int) {
+func (t *TerminalClient) DrawAt(fg byte, bg byte, row int, col int, bulk bool) {
 	t.placeAt(fmt.Sprintf(t.MultiMapLookup.getContext(fg, bg).Format, string(fg)), row, col, 1)
 }
 
@@ -437,4 +439,41 @@ func (t *TerminalClient) sendRawFmtString(raw string, effectiveSize int, row int
 		t.moveTo(row, col)
 		t.printRender(raw, effectiveSize)
 	}
+}
+
+func repeatStringN(str string, length int) string {
+	start := ""
+	for i := 0; i < length; i++ {
+		start += str
+	}
+	return start
+}
+
+func (t *TerminalClient) StatsToString() string {
+	mapping := ""
+	for stat, val := range t.Stats {
+		mapping += fmt.Sprintf("%s: %v  ", stat, val)
+	}
+	return mapping
+}
+
+func (t *TerminalClient) RenderStats() {
+	t.Window.CustomFeed <- func() {
+		t.moveTo(t.Height, 0)
+		t.moveCursor(1, DOWN)
+		t.printRender(repeatStringN(" ", t.Width), t.Width)
+		t.moveTo(t.Height, 0)
+		t.moveCursor(1, DOWN)
+		stats := t.StatsToString()
+		if len(stats) > t.Width {
+			stats = stats[0:t.Width]
+		}
+		t.printRender(stats, t.Width)
+		t.moveCursor(t.Height, 0)
+	}
+}
+
+func (t *TerminalClient) DrawStat(statName string, value interface{}) {
+	t.Stats[statName] = value
+	t.RenderStats()
 }

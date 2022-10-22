@@ -99,32 +99,32 @@ func (w *ClientWindow) undoConditional(row int, col int, match byte, matchForegr
 	} else {
 		w.DataHistory[row][col].Bg.removeLastMatching(match)
 	}
-	w.Renderer.DrawAt(w.DataHistory[row][col].Fg.top(), w.DataHistory[row][col].Bg.top(), row, col)
+	w.Renderer.DrawAt(w.DataHistory[row][col].Fg.top(), w.DataHistory[row][col].Bg.top(), row, col, false)
 }
 
-func (w *ClientWindow) placeFgCharAtCoord(char byte, row int, col int) {
+func (w *ClientWindow) placeFgCharAtCoord(char byte, row int, col int, bulk bool) {
 	w.updateAtPos(row, col, char, true)
-	w.Renderer.DrawAt(w.DataHistory[row][col].Fg.top(), w.DataHistory[row][col].Bg.top(), row, col)
+	w.Renderer.DrawAt(w.DataHistory[row][col].Fg.top(), w.DataHistory[row][col].Bg.top(), row, col, bulk)
 }
 
-func (w *ClientWindow) placeBgCharAtCoord(char byte, row int, col int) {
+func (w *ClientWindow) placeBgCharAtCoord(char byte, row int, col int, bulk bool) {
 	w.updateAtPos(row, col, char, false)
-	w.Renderer.DrawAt(w.DataHistory[row][col].Fg.top(), w.DataHistory[row][col].Bg.top(), row, col)
+	w.Renderer.DrawAt(w.DataHistory[row][col].Fg.top(), w.DataHistory[row][col].Bg.top(), row, col, bulk)
 
 }
 
 /**
 Composes and queues a function that looks up a certain character in the map and prints it with the associated Recorded object.
 */
-func (w *ClientWindow) sendPlaceFgCharAtCoord(char byte, row int, col int) {
+func (w *ClientWindow) sendPlaceFgCharAtCoord(char byte, row int, col int, bulk bool) {
 	w.CustomFeed <- func() {
-		w.sendPlaceFgCharAtCoord(char, row, col)
+		w.placeFgCharAtCoord(char, row, col, bulk)
 	}
 }
 
-func (w *ClientWindow) sendPlaceBgCharAtCoord(char byte, row int, col int) {
+func (w *ClientWindow) sendPlaceBgCharAtCoord(char byte, row int, col int, bulk bool) {
 	w.CustomFeed <- func() {
-		w.sendPlaceBgCharAtCoord(char, row, col)
+		w.placeBgCharAtCoord(char, row, col, bulk)
 	}
 }
 
@@ -135,14 +135,14 @@ If so, performs a conditional undo with matchFg and writes the character at the 
 func (w *ClientWindow) sendPlaceFgCharAtCoordCondUndo(char byte, row int, col int, lastRow int, lastCol int, match byte) {
 	w.CustomFeed <- func() {
 		w.undoConditional(lastRow, lastCol, match, true)
-		w.placeFgCharAtCoord(char, row, col)
+		w.placeFgCharAtCoord(char, row, col, false)
 	}
 }
 
 func (w *ClientWindow) sendPlaceBgCharAtCoordCondUndo(char byte, row int, col int, lastRow int, lastCol int, match byte) {
 	w.CustomFeed <- func() {
 		w.undoConditional(lastRow, lastCol, match, false)
-		w.placeBgCharAtCoord(char, row, col)
+		w.placeBgCharAtCoord(char, row, col, false)
 	}
 }
 
